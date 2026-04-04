@@ -1,6 +1,6 @@
 ---
 name: backend-builder
-description: "FastAPI + PostgreSQL MVP API 구현 전용 에이전트"
+description: FastAPI + PostgreSQL MVP API 구현 전용 에이전트
 model: sonnet
 skills:
   - haeda-domain-context

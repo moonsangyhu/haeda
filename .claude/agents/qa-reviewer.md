@@ -1,6 +1,6 @@
 ---
 name: qa-reviewer
-description: "구현 후 체크리스트 기반 품질 리뷰 에이전트"
+description: 구현 후 체크리스트 기반 품질 리뷰 에이전트
 model: sonnet
 skills:
   - haeda-domain-context

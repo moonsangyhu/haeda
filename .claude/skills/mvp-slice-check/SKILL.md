@@ -1,6 +1,6 @@
 ---
 name: mvp-slice-check
-description: "수직 슬라이스 완료 점검 체크리스트 (수동 실행 전용)"
+description: 수직 슬라이스 완료 점검 체크리스트 (수동 실행 전용)
 disable-model-invocation: true
 ---
 

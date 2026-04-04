@@ -1,6 +1,6 @@
 ---
 name: fastapi-mvp
-description: "FastAPI MVP 구현 규칙 (REST naming, 응답 envelope, validation, auth, error format)"
+description: FastAPI MVP 구현 규칙 (REST naming, 응답 envelope, validation, auth, error format)
 ---
 
 # FastAPI MVP 규칙

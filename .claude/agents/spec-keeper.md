@@ -1,6 +1,6 @@
 ---
 name: spec-keeper
-description: "PRD/플로우/도메인/API 문서 기반으로 구현 방향을 검증하고 범위 이탈을 경고하는 검토 에이전트"
+description: PRD/플로우/도메인/API 문서 기반으로 구현 방향을 검증하고 범위 이탈을 경고하는 검토 에이전트
 model: sonnet
 skills:
   - haeda-domain-context

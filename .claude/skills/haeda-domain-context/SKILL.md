@@ -1,6 +1,6 @@
 ---
 name: haeda-domain-context
-description: "해다 프로젝트의 제품 개념, 용어, 핵심 플로우, 계절 아이콘, MVP 범위 요약"
+description: 해다 프로젝트의 제품 개념, 용어, 핵심 플로우, 계절 아이콘, MVP 범위 요약
 ---
 
 # 해다 도메인 컨텍스트
