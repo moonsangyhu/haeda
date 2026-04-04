@@ -6,7 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.exceptions import register_exception_handlers
-from app.routers import challenges, me
+from app.routers import challenges, me, verifications
 
 app = FastAPI(
     title="Haeda API",
@@ -35,11 +35,10 @@ app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
 # 라우터 등록
 app.include_router(me.router, prefix=settings.API_V1_PREFIX)
 app.include_router(challenges.router, prefix=settings.API_V1_PREFIX)
+app.include_router(verifications.router, prefix=settings.API_V1_PREFIX)
 # 다음 슬라이스에서 추가
-# from app.routers import auth, verifications, comments
+# from app.routers import auth
 # app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
-# app.include_router(verifications.router, prefix=settings.API_V1_PREFIX)
-# app.include_router(comments.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")

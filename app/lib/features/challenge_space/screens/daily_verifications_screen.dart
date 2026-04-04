@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/season_icons.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
@@ -130,8 +131,7 @@ class _VerificationListItem extends StatelessWidget {
     final theme = Theme.of(context);
 
     return ListTile(
-      // slice-03에서 인증 상세 화면 구현 예정 — 현재는 탭 동작 없음
-      onTap: null,
+      onTap: () => context.push('/verifications/${item.id}'),
       leading: CircleAvatar(
         radius: 22,
         backgroundColor: theme.colorScheme.primaryContainer,

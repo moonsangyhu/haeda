@@ -4,6 +4,7 @@ import 'features/my_page/screens/my_page_screen.dart';
 import 'features/challenge_space/screens/challenge_space_screen.dart';
 import 'features/challenge_space/screens/create_verification_screen.dart';
 import 'features/challenge_space/screens/daily_verifications_screen.dart';
+import 'features/challenge_space/screens/verification_detail_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -35,6 +36,13 @@ final _router = GoRouter(
           challengeId: challengeId,
           date: date,
         );
+      },
+    ),
+    GoRoute(
+      path: '/verifications/:id',
+      builder: (context, state) {
+        final verificationId = state.pathParameters['id']!;
+        return VerificationDetailScreen(verificationId: verificationId);
       },
     ),
   ],
