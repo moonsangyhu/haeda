@@ -1,8 +1,9 @@
 ---
 name: qa-reviewer
-description: 구현 후 체크리스트 기반 품질 리뷰 에이전트
+description: 구현 후 체크리스트 기반 품질 리뷰 에이전트. 슬라이스 구현 완료 후 API 계약, 도메인 모델, UI 플로우, 보안 항목을 점검한다.
 model: sonnet
 tools: Read Glob Grep Bash
+maxTurns: 20
 skills:
   - haeda-domain-context
   - mvp-slice-check

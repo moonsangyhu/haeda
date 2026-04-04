@@ -1,8 +1,9 @@
 ---
 name: spec-keeper
-description: PRD/플로우/도메인/API 문서 기반으로 구현 방향을 검증하고 범위 이탈을 경고하는 검토 에이전트
+description: PRD/플로우/도메인/API 문서 기반으로 구현 방향을 검증하고 범위 이탈을 경고하는 검토 에이전트. 슬라이스 계획 검토, 스펙 준수 확인, P0 범위 검증 시 사용한다.
 model: sonnet
 tools: Read Glob Grep
+maxTurns: 15
 skills:
   - haeda-domain-context
 ---

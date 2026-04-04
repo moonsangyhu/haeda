@@ -1,6 +1,8 @@
 ---
 name: slice-planning
-description: 수직 슬라이스 구현 전 계획 수립 가이드. 구현할 엔드포인트, 화면, 모델, 파일을 docs 기반으로 정리한다.
+description: 수직 슬라이스 구현 전 계획 수립 가이드. 구현할 엔드포인트, 화면, 모델, 파일을 docs 기반으로 정리한다. 슬라이스 구현을 시작하기 전, 또는 "계획 세워줘"라고 요청받았을 때 사용한다.
+allowed-tools: "Read Glob Grep"
+argument-hint: "[슬라이스명]"
 ---
 
 # 수직 슬라이스 계획

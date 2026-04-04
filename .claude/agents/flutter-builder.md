@@ -1,7 +1,8 @@
 ---
 name: flutter-builder
-description: Flutter MVP UI 구현 전용 에이전트 (feature-first, Riverpod, GoRouter, dio)
+description: Flutter MVP UI 구현 전용 에이전트 (feature-first, Riverpod, GoRouter, dio). 수직 슬라이스의 프론트엔드 부분(화면, 위젯, provider, API 연동) 구현 시 사용한다.
 model: sonnet
+maxTurns: 30
 skills:
   - haeda-domain-context
   - flutter-mvp

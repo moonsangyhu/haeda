@@ -1,6 +1,8 @@
 ---
 name: docs-drift-check
-description: 구현된 코드가 docs(api-contract, domain-model, user-flows)와 일치하는지 확인하는 정합성 점검
+description: 구현된 코드가 docs(api-contract, domain-model, user-flows)와 일치하는지 확인하는 정합성 점검. 슬라이스 구현 완료 후, 또는 코드와 문서 간 불일치가 의심될 때 사용한다.
+allowed-tools: "Read Glob Grep"
+argument-hint: "[슬라이스명 또는 디렉토리]"
 ---
 
 # Docs Drift Check

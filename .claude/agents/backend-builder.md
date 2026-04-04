@@ -1,7 +1,8 @@
 ---
 name: backend-builder
-description: FastAPI + PostgreSQL MVP API 구현 전용 에이전트
+description: FastAPI + PostgreSQL MVP API 구현 전용 에이전트. 수직 슬라이스의 백엔드 부분(라우터, 모델, 서비스, 마이그레이션, 테스트) 구현 시 사용한다.
 model: sonnet
+maxTurns: 30
 skills:
   - haeda-domain-context
   - fastapi-mvp
