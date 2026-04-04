@@ -1,8 +1,15 @@
 # 해다 (Haeda) — API 계약서
 
-> 버전: 0.1 (MVP)
+> 버전: 0.2 (MVP)
 > 최종 수정: 2026-04-04
 > Base URL: `/api/v1`
+
+---
+
+## P0 / P1 범위 안내
+
+- **P0**: Auth, Challenges (생성·상세·초대코드조회·참여·완료), My Page, Verifications, Comments
+- **P1**: 공개 챌린지 목록 (`GET /challenges`), Notifications (디바이스 토큰, 푸시 알림)
 
 ---
 
@@ -37,7 +44,7 @@
 
 ---
 
-## 1. Auth
+## 1. Auth — P0
 
 ### POST `/auth/kakao` — 카카오 로그인
 
@@ -92,12 +99,12 @@
 **에러:**
 | code | 조건 |
 |------|------|
-| NICKNAME_TOO_SHORT | 닉네임 2자 미��� |
+| NICKNAME_TOO_SHORT | 닉네임 2자 미만 |
 | NICKNAME_TOO_LONG | 닉네임 30자 초과 |
 
 ---
 
-## 2. Challenges
+## 2. Challenges — P0
 
 ### POST `/challenges` — 챌린지 생성
 
@@ -112,10 +119,11 @@
   "verification_frequency": {
     "type": "daily"
   },
-  "photo_required": true,
-  "is_public": true
+  "photo_required": true
 }
 ```
+
+> P0에서 `is_public`은 서버가 기본 `false`로 설정. 클라이언트는 전송하지 않는다.
 
 **Response (201):**
 ```json
@@ -129,7 +137,7 @@
     "end_date": "2026-05-04",
     "verification_frequency": { "type": "daily" },
     "photo_required": true,
-    "is_public": true,
+    "is_public": false,
     "invite_code": "ABCD1234",
     "status": "active",
     "creator": {
@@ -151,7 +159,9 @@
 
 ---
 
-### GET `/challenges` — 공개 챌린지 목록
+### GET `/challenges` — 공개 챌린지 목록 — P1
+
+> P1: 공개 탐색 기능(F-05) 구현 시 활성화.
 
 **Query Parameters:**
 | 파라미터 | 타입 | 필수 | 설명 |
@@ -201,7 +211,7 @@
     "end_date": "2026-05-04",
     "verification_frequency": { "type": "daily" },
     "photo_required": true,
-    "is_public": true,
+    "is_public": false,
     "invite_code": "ABCD1234",
     "status": "active",
     "creator": {
@@ -257,7 +267,74 @@
 
 ---
 
-## 3. My Page
+### GET `/challenges/{id}/completion` — 챌린지 완료 결과 (Flow 8)
+
+챌린지 종료 후 완료 화면에 필요한 데이터를 반환한다. `status == 'completed'`인 챌린지에만 유효.
+
+**Response (200):**
+```json
+{
+  "data": {
+    "challenge_id": "uuid",
+    "title": "운동 30일",
+    "category": "운동",
+    "start_date": "2026-03-05",
+    "end_date": "2026-04-03",
+    "total_days": 30,
+    "my_result": {
+      "user_id": "uuid",
+      "achievement_rate": 86.7,
+      "verified_days": 26,
+      "expected_days": 30,
+      "badge": "completed"
+    },
+    "members": [
+      {
+        "user_id": "uuid",
+        "nickname": "김철수",
+        "profile_image_url": "string",
+        "achievement_rate": 90.0,
+        "verified_days": 27,
+        "badge": "completed"
+      },
+      {
+        "user_id": "uuid",
+        "nickname": "이영희",
+        "profile_image_url": "string",
+        "achievement_rate": 86.7,
+        "verified_days": 26,
+        "badge": "completed"
+      }
+    ],
+    "day_completions": 12,
+    "calendar_summary": {
+      "total_days": 30,
+      "all_completed_days": 12,
+      "season_icon_types": ["spring"]
+    }
+  }
+}
+```
+
+| 필드 | 설명 |
+|------|------|
+| `my_result` | 요청한 사용자 본인의 달성 결과 |
+| `members` | 전체 참여자 달성 결과 (달성률 내림차순) |
+| `day_completions` | 전원 인증 달성 일수 |
+| `calendar_summary` | 달력 보존 표시에 필요한 요약 정보 |
+
+**에러:**
+| code | 조건 |
+|------|------|
+| CHALLENGE_NOT_FOUND | 존재하지 않는 챌린지 |
+| NOT_A_MEMBER | 챌린지 참여자가 아님 |
+| CHALLENGE_NOT_COMPLETED | 아직 종료되지 않은 챌린지 |
+
+> 완료 화면의 달력 상세 데이터는 기존 `GET /challenges/{id}/calendar` API를 재활용한다.
+
+---
+
+## 3. My Page — P0
 
 ### GET `/me/challenges` — 내 챌린지 목록
 
@@ -291,7 +368,7 @@
 
 ---
 
-## 4. Verifications
+## 4. Verifications — P0
 
 ### POST `/challenges/{id}/verifications` — 인증 제출
 
@@ -414,12 +491,12 @@
     "challenge_id": "uuid",
     "user": {
       "id": "uuid",
-      "nickname": "���철수",
+      "nickname": "김철수",
       "profile_image_url": "string"
     },
     "date": "2026-04-01",
     "photo_url": "string | null",
-    "diary_text": "오��은 5km 달렸다! 날씨가 좋아서 기분이 좋았다.",
+    "diary_text": "오늘은 5km 달렸다! 날씨가 좋아서 기분이 좋았다.",
     "comments": [
       {
         "id": "uuid",
@@ -439,7 +516,7 @@
 
 ---
 
-## 5. Comments
+## 5. Comments — P0
 
 ### POST `/verifications/{id}/comments` — 댓글 작성
 
@@ -506,7 +583,9 @@
 
 ---
 
-## 6. Notifications
+## 6. Notifications — P1
+
+> P1: 푸시 알림 기능(F-15, F-16, F-18) 구현 시 활성화.
 
 ### POST `/devices` — 디바이스 토큰 등록
 
@@ -530,7 +609,7 @@
 
 ---
 
-## 7. 푸시 알림 이벤트 (서버 → 클라이언트)
+## 7. 푸시 알림 이벤트 (서버 → 클라이언트) — P1
 
 | 이벤트 | 트리거 | 수신자 | payload |
 |--------|--------|--------|---------|
