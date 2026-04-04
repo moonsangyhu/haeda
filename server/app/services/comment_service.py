@@ -195,7 +195,7 @@ async def create_comment(
     # 1. 댓글 길이 검증
     if len(content) > 500:
         raise AppException(
-            status_code=400,
+            status_code=422,
             code="COMMENT_TOO_LONG",
             message="댓글은 500자를 초과할 수 없습니다.",
         )

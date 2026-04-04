@@ -190,14 +190,14 @@ async def test_comment_create_too_long(
     membership: ChallengeMember,
     verification: Verification,
 ):
-    """500자 초과 댓글: COMMENT_TOO_LONG (400)"""
+    """500자 초과 댓글: COMMENT_TOO_LONG (422)"""
     long_content = "가" * 501
     resp = await client.post(
         f"/api/v1/verifications/{verification.id}/comments",
         headers={"Authorization": f"Bearer {user.id}"},
         json={"content": long_content},
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "COMMENT_TOO_LONG"
 
 
