@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(file_path: **/.env)",
+      "Read(file_path: **/.env.*)",
+      "Read(file_path: **/secrets/**)",
+      "Read(file_path: **/config/credentials.json)",
+      "Bash(command: rm -rf *)",
+      "Bash(command: *git push --force*)",
+      "Bash(command: *git push * --force*)",
+      "Bash(command: sudo *)",
+      "Bash(command: *DROP TABLE*)",
+      "Bash(command: *DROP DATABASE*)"
+    ]
+  }
+}
