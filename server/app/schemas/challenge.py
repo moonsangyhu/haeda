@@ -6,6 +6,40 @@ from pydantic import BaseModel
 from app.schemas.user import UserBrief
 
 
+class ChallengeCreate(BaseModel):
+    title: str
+    description: str | None = None
+    category: str
+    start_date: date
+    end_date: date
+    verification_frequency: dict
+    photo_required: bool = False
+
+
+class ChallengeCreateResponse(BaseModel):
+    id: uuid.UUID
+    title: str
+    description: str | None
+    category: str
+    start_date: date
+    end_date: date
+    verification_frequency: dict
+    photo_required: bool
+    is_public: bool
+    invite_code: str
+    status: str
+    creator: UserBrief
+    member_count: int
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class JoinResponse(BaseModel):
+    challenge_id: uuid.UUID
+    joined_at: datetime
+
+
 class ChallengeListItem(BaseModel):
     id: uuid.UUID
     title: str

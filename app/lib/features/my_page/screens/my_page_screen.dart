@@ -43,14 +43,27 @@ class _ChallengeList extends StatelessWidget {
     final completed =
         challenges.where((c) => c.status == 'completed').toList();
 
-    if (challenges.isEmpty) {
-      return const Center(
-        child: Text('참여 중인 챌린지가 없습니다.'),
-      );
-    }
-
     return ListView(
       children: [
+        // Flow 2: [챌린지 만들기] 버튼 — 프로필 영역 아래, 챌린지 목록 위에 위치
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+          child: FilledButton.icon(
+            key: const Key('create_challenge_button'),
+            onPressed: () => context.go('/create'),
+            icon: const Icon(Icons.add),
+            label: const Text('챌린지 만들기'),
+            style: FilledButton.styleFrom(
+              minimumSize: const Size.fromHeight(48),
+            ),
+          ),
+        ),
+        if (challenges.isEmpty) ...[
+          const SizedBox(height: 40),
+          const Center(
+            child: Text('참여 중인 챌린지가 없습니다.'),
+          ),
+        ],
         if (active.isNotEmpty) ...[
           _SectionHeader(title: '참여 중인 챌린지'),
           ...active.map(

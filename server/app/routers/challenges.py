@@ -7,11 +7,40 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.schemas.challenge import ChallengeCreate
 from app.services import calendar_service, challenge_service, verification_service
 
 router = APIRouter(prefix="/challenges", tags=["challenges"])
 
 UPLOADS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "uploads")
+
+
+@router.post("", status_code=201)
+async def create_challenge(
+    body: ChallengeCreate,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await challenge_service.create_challenge(
+        db=db,
+        user_id=user_id,
+        data=body,
+    )
+    return {"data": result.model_dump()}
+
+
+@router.get("/invite/{code}")
+async def get_challenge_by_invite_code(
+    code: str,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    detail = await challenge_service.get_by_invite_code(
+        db=db,
+        code=code,
+        user_id=user_id,
+    )
+    return {"data": detail.model_dump()}
 
 
 @router.get("/{challenge_id}")
@@ -89,3 +118,17 @@ async def get_calendar(
         month=month,
     )
     return {"data": cal.model_dump()}
+
+
+@router.post("/{challenge_id}/join")
+async def join_challenge(
+    challenge_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await challenge_service.join_challenge(
+        db=db,
+        challenge_id=challenge_id,
+        user_id=user_id,
+    )
+    return {"data": result.model_dump()}
