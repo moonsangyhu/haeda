@@ -87,3 +87,42 @@ class CalendarResponse(BaseModel):
     month: int
     members: list[UserBrief]
     days: list[DayEntry]
+
+
+# --- Completion (Flow 8) ---
+
+
+class CompletionMyResult(BaseModel):
+    user_id: uuid.UUID
+    achievement_rate: float
+    verified_days: int
+    expected_days: int
+    badge: str | None
+
+
+class CompletionMember(BaseModel):
+    user_id: uuid.UUID
+    nickname: str
+    profile_image_url: str | None
+    achievement_rate: float
+    verified_days: int
+    badge: str | None
+
+
+class CompletionCalendarSummary(BaseModel):
+    total_days: int
+    all_completed_days: int
+    season_icon_types: list[str]
+
+
+class CompletionResponse(BaseModel):
+    challenge_id: uuid.UUID
+    title: str
+    category: str
+    start_date: date
+    end_date: date
+    total_days: int
+    my_result: CompletionMyResult
+    members: list[CompletionMember]
+    day_completions: int
+    calendar_summary: CompletionCalendarSummary

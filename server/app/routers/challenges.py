@@ -120,6 +120,20 @@ async def get_calendar(
     return {"data": cal.model_dump()}
 
 
+@router.get("/{challenge_id}/completion")
+async def get_completion(
+    challenge_id: uuid.UUID,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await challenge_service.get_completion(
+        db=db,
+        challenge_id=challenge_id,
+        user_id=user_id,
+    )
+    return {"data": result.model_dump()}
+
+
 @router.post("/{challenge_id}/join")
 async def join_challenge(
     challenge_id: uuid.UUID,

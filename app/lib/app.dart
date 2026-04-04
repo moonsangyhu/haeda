@@ -9,6 +9,7 @@ import 'features/challenge_create/screens/challenge_create_step1_screen.dart';
 import 'features/challenge_create/screens/challenge_create_step2_screen.dart';
 import 'features/challenge_create/screens/challenge_create_complete_screen.dart';
 import 'features/challenge_join/screens/invite_preview_screen.dart';
+import 'features/challenge_complete/screens/challenge_completion_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -70,6 +71,14 @@ final _router = GoRouter(
           challengeId: challengeId,
           inviteCode: inviteCode,
         );
+      },
+    ),
+    // Flow 8: 챌린지 완료 결과
+    GoRoute(
+      path: '/challenges/:id/completion',
+      builder: (context, state) {
+        final challengeId = state.pathParameters['id']!;
+        return ChallengeCompletionScreen(challengeId: challengeId);
       },
     ),
     // Flow 4-A: 초대 링크를 통한 참여
