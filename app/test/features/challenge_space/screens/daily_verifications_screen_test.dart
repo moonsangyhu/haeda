@@ -69,6 +69,29 @@ void main() {
       expect(find.text('박지민'), findsOneWidget);
     });
 
+    testWidgets('인증 항목 탭 시 onTap 콜백 호출', (tester) async {
+      String? tappedId;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _TappableVerificationList(
+              items: const [
+                _VerificationListItemData(id: 'v-001', nickname: '김철수'),
+                _VerificationListItemData(id: 'v-002', nickname: '이영희'),
+              ],
+              onTap: (id) => tappedId = id,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('김철수'));
+      expect(tappedId, 'v-001');
+
+      await tester.tap(find.text('이영희'));
+      expect(tappedId, 'v-002');
+    });
+
     testWidgets('인증자 없을 때 빈 메시지 표시', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -128,6 +151,32 @@ class _CompletionBanner extends StatelessWidget {
           Text('$verificationCount명 인증'),
         ],
       ),
+    );
+  }
+}
+
+class _VerificationListItemData {
+  final String id;
+  final String nickname;
+  const _VerificationListItemData({required this.id, required this.nickname});
+}
+
+class _TappableVerificationList extends StatelessWidget {
+  final List<_VerificationListItemData> items;
+  final void Function(String id) onTap;
+
+  const _TappableVerificationList({required this.items, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: items
+          .map((item) => ListTile(
+                title: Text(item.nickname),
+                onTap: () => onTap(item.id),
+              ))
+          .toList(),
     );
   }
 }

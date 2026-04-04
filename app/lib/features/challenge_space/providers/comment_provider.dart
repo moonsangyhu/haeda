@@ -9,7 +9,8 @@ final verificationDetailProvider =
   (ref, verificationId) async {
     final dio = ref.watch(dioProvider);
     final response = await dio.get('/verifications/$verificationId');
-    return VerificationDetail.fromJson(response.data as Map<String, dynamic>);
+    final data = response.data as Map<String, dynamic>;
+    return VerificationDetail.fromJson(data['data'] as Map<String, dynamic>);
   },
 );
 
