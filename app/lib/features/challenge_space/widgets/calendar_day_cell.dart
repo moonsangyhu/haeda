@@ -6,35 +6,40 @@ class CalendarDayCell extends StatelessWidget {
   final int day;
   final DayEntry? entry;
   final List<CalendarMember> members;
+  final VoidCallback? onTap;
 
   const CalendarDayCell({
     super.key,
     required this.day,
     this.entry,
     required this.members,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            '$day',
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
+    return GestureDetector(
+      onTap: entry != null && entry!.verifiedMembers.isNotEmpty ? onTap : null,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(
+            color: Theme.of(context).colorScheme.outlineVariant,
+            width: 0.5,
           ),
-          const SizedBox(height: 2),
-          _buildContent(context),
-        ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '$day',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+            ),
+            const SizedBox(height: 2),
+            _buildContent(context),
+          ],
+        ),
       ),
     );
   }

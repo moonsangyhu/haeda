@@ -125,7 +125,7 @@ async def test_get_calendar_not_a_member(
         f"/api/v1/challenges/{challenge.id}/calendar?year=2026&month=4",
         headers={"Authorization": f"Bearer {other_user.id}"},
     )
-    assert resp.status_code == 400
+    assert resp.status_code == 403
     assert resp.json()["error"]["code"] == "NOT_A_MEMBER"
 
 

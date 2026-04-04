@@ -1,5 +1,8 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.exceptions import register_exception_handlers
@@ -23,6 +26,11 @@ app.add_middleware(
 
 # 예외 핸들러 등록
 register_exception_handlers(app)
+
+# 정적 파일 (업로드 사진) 서빙
+_uploads_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "uploads")
+os.makedirs(_uploads_dir, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
 
 # 라우터 등록
 app.include_router(me.router, prefix=settings.API_V1_PREFIX)

@@ -1,0 +1,229 @@
+import uuid
+from datetime import date
+
+from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.exceptions import AppException
+from app.models.challenge import Challenge
+from app.models.challenge_member import ChallengeMember
+from app.models.comment import Comment
+from app.models.day_completion import DayCompletion
+from app.models.user import User
+from app.models.verification import Verification
+from app.schemas.user import UserBrief
+from app.schemas.verification import (
+    DailyVerificationsResponse,
+    VerificationCreateResponse,
+    VerificationItem,
+)
+from app.services.calendar_service import _determine_season
+
+
+async def _get_challenge_or_404(db: AsyncSession, challenge_id: uuid.UUID) -> Challenge:
+    stmt = select(Challenge).where(Challenge.id == challenge_id)
+    result = await db.execute(stmt)
+    challenge = result.scalar_one_or_none()
+    if challenge is None:
+        raise AppException(
+            status_code=404,
+            code="CHALLENGE_NOT_FOUND",
+            message="챌린지를 찾을 수 없습니다.",
+        )
+    return challenge
+
+
+async def _check_membership(
+    db: AsyncSession, challenge_id: uuid.UUID, user_id: uuid.UUID
+) -> None:
+    stmt = select(ChallengeMember.id).where(
+        ChallengeMember.challenge_id == challenge_id,
+        ChallengeMember.user_id == user_id,
+    )
+    result = await db.execute(stmt)
+    if result.first() is None:
+        raise AppException(
+            status_code=403,
+            code="NOT_A_MEMBER",
+            message="챌린지 참여자가 아닙니다.",
+        )
+
+
+async def create_verification(
+    db: AsyncSession,
+    challenge_id: uuid.UUID,
+    user_id: uuid.UUID,
+    diary_text: str,
+    photo_url: str | None,
+) -> VerificationCreateResponse:
+    # 1. Challenge 조회
+    challenge = await _get_challenge_or_404(db, challenge_id)
+
+    # 2. 멤버십 확인
+    await _check_membership(db, challenge_id, user_id)
+
+    # 3. 챌린지 종료 여부 확인 (status == 'completed')
+    today = date.today()
+    if challenge.status == "completed":
+        raise AppException(
+            status_code=400,
+            code="CHALLENGE_ENDED",
+            message="이미 종료된 챌린지입니다.",
+        )
+
+    # 4. 날짜 범위 확인 (today BETWEEN start_date AND end_date)
+    if not (challenge.start_date <= today <= challenge.end_date):
+        raise AppException(
+            status_code=400,
+            code="CHALLENGE_ENDED",
+            message="인증 가능한 기간이 아닙니다.",
+        )
+
+    # 5. 중복 인증 확인
+    dup_stmt = select(Verification.id).where(
+        Verification.challenge_id == challenge_id,
+        Verification.user_id == user_id,
+        Verification.date == today,
+    )
+    dup_result = await db.execute(dup_stmt)
+    if dup_result.first() is not None:
+        raise AppException(
+            status_code=409,
+            code="ALREADY_VERIFIED_TODAY",
+            message="오늘 이미 인증했습니다.",
+        )
+
+    # 6. 사진 필수 검증
+    if challenge.photo_required and photo_url is None:
+        raise AppException(
+            status_code=400,
+            code="PHOTO_REQUIRED",
+            message="이 챌린지는 사진 첨부가 필수입니다.",
+        )
+
+    # 7. Verification 레코드 생성
+    verification = Verification(
+        id=uuid.uuid4(),
+        challenge_id=challenge_id,
+        user_id=user_id,
+        date=today,
+        photo_url=photo_url,
+        diary_text=diary_text,
+    )
+    db.add(verification)
+    await db.flush()  # id 확보를 위해 flush (commit 전)
+
+    # 8. 전원 인증 판정
+    # 해당 날짜 인증 수 카운트 (방금 flush된 레코드 포함)
+    verif_count_stmt = select(func.count()).where(
+        Verification.challenge_id == challenge_id,
+        Verification.date == today,
+    )
+    verif_count_result = await db.execute(verif_count_stmt)
+    verif_count = verif_count_result.scalar_one()
+
+    # 챌린지 멤버 수 카운트
+    member_count_stmt = select(func.count()).where(
+        ChallengeMember.challenge_id == challenge_id,
+    )
+    member_count_result = await db.execute(member_count_stmt)
+    member_count = member_count_result.scalar_one()
+
+    day_completed = False
+    season_icon_type = None
+
+    if verif_count == member_count and member_count > 0:
+        # DayCompletion 생성
+        season_icon_type = _determine_season(today.month)
+        day_completion = DayCompletion(
+            id=uuid.uuid4(),
+            challenge_id=challenge_id,
+            date=today,
+            season_icon_type=season_icon_type,
+        )
+        db.add(day_completion)
+        day_completed = True
+
+    await db.commit()
+    await db.refresh(verification)
+
+    return VerificationCreateResponse(
+        id=verification.id,
+        date=verification.date,
+        photo_url=verification.photo_url,
+        diary_text=verification.diary_text,
+        created_at=verification.created_at,
+        day_completed=day_completed,
+        season_icon_type=season_icon_type,
+    )
+
+
+async def get_daily_verifications(
+    db: AsyncSession,
+    challenge_id: uuid.UUID,
+    user_id: uuid.UUID,
+    target_date: date,
+) -> DailyVerificationsResponse:
+    # 1. Challenge 조회
+    await _get_challenge_or_404(db, challenge_id)
+
+    # 2. 멤버십 확인
+    await _check_membership(db, challenge_id, user_id)
+
+    # 3. 해당 날짜의 Verification 목록 조회 (User JOIN)
+    verif_stmt = (
+        select(Verification, User)
+        .join(User, User.id == Verification.user_id)
+        .where(
+            Verification.challenge_id == challenge_id,
+            Verification.date == target_date,
+        )
+        .order_by(Verification.created_at)
+    )
+    verif_result = await db.execute(verif_stmt)
+    verif_rows = verif_result.all()
+
+    # 4. DayCompletion 조회
+    dc_stmt = select(DayCompletion).where(
+        DayCompletion.challenge_id == challenge_id,
+        DayCompletion.date == target_date,
+    )
+    dc_result = await db.execute(dc_stmt)
+    day_completion = dc_result.scalar_one_or_none()
+
+    # 5. 각 Verification의 comment_count 조회
+    verification_ids = [row.Verification.id for row in verif_rows]
+    comment_counts: dict[uuid.UUID, int] = {}
+    if verification_ids:
+        comment_count_stmt = (
+            select(Comment.verification_id, func.count().label("cnt"))
+            .where(Comment.verification_id.in_(verification_ids))
+            .group_by(Comment.verification_id)
+        )
+        comment_count_result = await db.execute(comment_count_stmt)
+        for row in comment_count_result.all():
+            comment_counts[row.verification_id] = row.cnt
+
+    # 6. VerificationItem 목록 조립
+    verifications = [
+        VerificationItem(
+            id=row.Verification.id,
+            user=UserBrief(
+                id=row.User.id,
+                nickname=row.User.nickname,
+                profile_image_url=row.User.profile_image_url,
+            ),
+            photo_url=row.Verification.photo_url,
+            diary_text=row.Verification.diary_text,
+            comment_count=comment_counts.get(row.Verification.id, 0),
+            created_at=row.Verification.created_at,
+        )
+        for row in verif_rows
+    ]
+
+    return DailyVerificationsResponse(
+        date=target_date,
+        all_completed=day_completion is not None,
+        season_icon_type=day_completion.season_icon_type if day_completion else None,
+        verifications=verifications,
+    )

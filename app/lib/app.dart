@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'features/my_page/screens/my_page_screen.dart';
 import 'features/challenge_space/screens/challenge_space_screen.dart';
+import 'features/challenge_space/screens/create_verification_screen.dart';
+import 'features/challenge_space/screens/daily_verifications_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -15,6 +17,24 @@ final _router = GoRouter(
       builder: (context, state) {
         final challengeId = state.pathParameters['id']!;
         return ChallengeSpaceScreen(challengeId: challengeId);
+      },
+    ),
+    GoRoute(
+      path: '/challenges/:id/verify',
+      builder: (context, state) {
+        final challengeId = state.pathParameters['id']!;
+        return CreateVerificationScreen(challengeId: challengeId);
+      },
+    ),
+    GoRoute(
+      path: '/challenges/:id/verifications/:date',
+      builder: (context, state) {
+        final challengeId = state.pathParameters['id']!;
+        final date = state.pathParameters['date']!;
+        return DailyVerificationsScreen(
+          challengeId: challengeId,
+          date: date,
+        );
       },
     ),
   ],

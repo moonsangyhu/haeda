@@ -7,6 +7,7 @@ class CalendarGrid extends StatelessWidget {
   final int month;
   final List<DayEntry> days;
   final List<CalendarMember> members;
+  final void Function(String date)? onDayTap;
 
   const CalendarGrid({
     super.key,
@@ -14,6 +15,7 @@ class CalendarGrid extends StatelessWidget {
     required this.month,
     required this.days,
     required this.members,
+    this.onDayTap,
   });
 
   @override
@@ -83,10 +85,14 @@ class CalendarGrid extends StatelessWidget {
               );
             }
             final day = index - startWeekday + 1;
+            final entry = dayEntryMap[day];
+            final dateStr =
+                '$year-${month.toString().padLeft(2, '0')}-${day.toString().padLeft(2, '0')}';
             return CalendarDayCell(
               day: day,
-              entry: dayEntryMap[day],
+              entry: entry,
               members: members,
+              onTap: onDayTap != null ? () => onDayTap!(dateStr) : null,
             );
           },
         ),

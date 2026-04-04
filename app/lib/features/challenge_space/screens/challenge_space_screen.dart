@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../models/calendar_data.dart';
@@ -118,6 +119,10 @@ class _ChallengeSpaceBody extends ConsumerWidget {
     required this.onNextMonth,
   });
 
+  void _onDayTap(BuildContext context, String date) {
+    context.push('/challenges/$challengeId/verifications/$date');
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final params = CalendarParams(
@@ -156,12 +161,17 @@ class _ChallengeSpaceBody extends ConsumerWidget {
                 month: month,
                 days: calendarData.days,
                 members: calendarData.members,
+                onDayTap: (date) => _onDayTap(context, date),
               ),
             ),
           ),
           const SizedBox(height: 16),
           // 오늘 섹션
-          _TodaySection(now: now, calendarData: calendarAsync.valueOrNull),
+          _TodaySection(
+            now: now,
+            calendarData: calendarAsync.valueOrNull,
+            challengeId: challengeId,
+          ),
           const SizedBox(height: 24),
         ],
       ),
@@ -214,8 +224,13 @@ class _MonthNavigator extends StatelessWidget {
 class _TodaySection extends StatelessWidget {
   final DateTime now;
   final CalendarData? calendarData;
+  final String challengeId;
 
-  const _TodaySection({required this.now, this.calendarData});
+  const _TodaySection({
+    required this.now,
+    required this.challengeId,
+    this.calendarData,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -267,10 +282,11 @@ class _TodaySection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 12),
-          // 인증하기 버튼 — 이 슬라이스에서는 비활성(disabled) 상태
           ElevatedButton(
-            onPressed: null,
-            child: const Text('인증하기'),
+            onPressed: verifiedToday
+                ? null
+                : () => context.push('/challenges/$challengeId/verify'),
+            child: Text(verifiedToday ? '인증 완료' : '인증하기'),
           ),
         ],
       ),

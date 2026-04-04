@@ -53,7 +53,7 @@ async def get_calendar(
     membership_result = await db.execute(membership_stmt)
     if membership_result.first() is None:
         raise AppException(
-            status_code=400,
+            status_code=403,
             code="NOT_A_MEMBER",
             message="챌린지 참여자가 아닙니다.",
         )
