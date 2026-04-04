@@ -22,3 +22,6 @@ build/
 # Environment
 .env
 !.env.example
+
+# Local dev runtime
+.local-dev/
