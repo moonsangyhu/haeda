@@ -1,6 +1,6 @@
 ---
 name: flutter-builder
-description: Flutter MVP UI 구현 전용 에이전트 — feature-first 구조, Riverpod, GoRouter, dio 기반
+description: "Flutter MVP UI 구현 전용 에이전트 (feature-first, Riverpod, GoRouter, dio)"
 model: sonnet
 skills:
   - haeda-domain-context

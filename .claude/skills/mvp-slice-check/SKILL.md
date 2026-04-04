@@ -1,6 +1,6 @@
 ---
 name: mvp-slice-check
-description: 수직 슬라이스 완료 점검 체크리스트 — 수동 실행 전용
+description: "수직 슬라이스 완료 점검 체크리스트 (수동 실행 전용)"
 disable-model-invocation: true
 ---
 
@@ -12,29 +12,34 @@ disable-model-invocation: true
 ## 점검 항목
 
 ### 1. API 계약
+
 - [ ] 엔드포인트가 `docs/api-contract.md`에 정의되어 있는가
 - [ ] 요청/응답 스키마가 문서와 일치하는가
 - [ ] 에러 코드가 문서에 정의된 것만 사용하는가
 - [ ] 응답 envelope (`data` / `error`) 형식이 올바른가
 
 ### 2. 도메인 모델
+
 - [ ] DB 모델 필드가 `docs/domain-model.md`와 일치하는가
 - [ ] 제약 조건 (UNIQUE, NOT NULL, FK)이 적용되었는가
 - [ ] Alembic 마이그레이션이 생성되었는가
 
 ### 3. 백엔드
+
 - [ ] 라우터가 등록되었는가
 - [ ] 서비스 레이어에 비즈니스 로직이 분리되었는가
 - [ ] 인증(Bearer 토큰) 의존성이 적용되었는가
 - [ ] pytest 엔드포인트 테스트가 존재하는가
 
 ### 4. 프론트엔드
+
 - [ ] 화면이 `docs/user-flows.md`의 플로우와 일치하는가
 - [ ] API 호출이 올바른 엔드포인트를 사용하는가
 - [ ] 에러 상태(로딩, 빈 상태, 에러)가 처리되는가
 - [ ] widget test가 존재하는가
 
 ### 5. 통합
+
 - [ ] 프론트 → 백엔드 → DB 전체 흐름이 동작하는가
 - [ ] P1 기능이 포함되지 않았는가
 - [ ] 하드코딩된 시크릿이 없는가
@@ -42,6 +47,7 @@ disable-model-invocation: true
 ## 사용법
 
 슬라이스 이름과 함께 호출:
+
 ```
 이 슬라이스를 점검해줘: 챌린지 생성 (POST /challenges + 챌린지 생성 화면)
 ```

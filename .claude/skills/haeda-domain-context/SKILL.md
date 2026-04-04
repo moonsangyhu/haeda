@@ -1,11 +1,12 @@
 ---
 name: haeda-domain-context
-description: 해다 프로젝트의 제품 개념, 용어, 핵심 플로우, 계절 아이콘, MVP 범위 요약
+description: "해다 프로젝트의 제품 개념, 용어, 핵심 플로우, 계절 아이콘, MVP 범위 요약"
 ---
 
 # 해다 도메인 컨텍스트
 
 ## 제품 개념
+
 참여자 전원이 함께 인증해야 계절 아이콘이 완성되는 협력형 챌린지 앱.
 핵심 동기: "예쁜 달력을 함께 만들자" → 자연스러운 상호 격려.
 
@@ -18,14 +19,14 @@ description: 해다 프로젝트의 제품 개념, 용어, 핵심 플로우, 계
 | 전원 인증 | DayCompletion | 해당 날짜에 챌린지 참여자 전원이 인증 완료 |
 | 계절 아이콘 | season_icon_type | 전원 인증 시 달력에 표시되는 계절별 아이콘 |
 | 멤버 | ChallengeMember | 챌린지에 참여한 사용자 |
-| 달성률 | achievement_rate | (실제 인증 횟수 / 기대 인증 횟수) × 100 |
+| 달성률 | achievement_rate | (실제 인증 횟수 / 기대 인증 횟수) x 100 |
 | 초대 코드 | invite_code | 챌린지 참여용 8자리 코드 (자동 생성) |
 | 카테고리 | category | 챌린지의 자유 입력 속성 (VARCHAR, 독립 엔터티 아님) |
 
 ## 계절 아이콘 규칙
 
 | 계절 | 기간 | 아이콘 | season_icon_type |
-|------|------|--------|-----------------|
+|------|------|--------|------------------|
 | 봄 | 3~5월 | 🌸 | spring |
 | 여름 | 6~8월 | 🌿 | summer |
 | 가을 | 9~11월 | 🍁 | fall |
@@ -40,6 +41,7 @@ description: 해다 프로젝트의 제품 개념, 용어, 핵심 플로우, 계
 | 전원 인증 | 계절 아이콘 |
 
 ## P0 핵심 플로우
+
 1. 카카오 로그인 → 프로필 설정 → 내 페이지
 2. 챌린지 생성 → 초대 코드 공유
 3. 초대 링크로 챌린지 참여
@@ -49,12 +51,15 @@ description: 해다 프로젝트의 제품 개념, 용어, 핵심 플로우, 계
 7. 챌린지 종료 → 완료 화면 (달성률, 배지)
 
 ## P0 엔터티
+
 User, Challenge, ChallengeMember, Verification, DayCompletion, Comment
 
 ## MVP 제외
+
 관리자 대시보드, 랭킹, 앱 내 설문, 채팅, 템플릿, Apple 로그인
 
 ## 기술 스택
+
 - Frontend: Flutter (iOS/Android)
 - Backend: Python FastAPI
 - DB: PostgreSQL

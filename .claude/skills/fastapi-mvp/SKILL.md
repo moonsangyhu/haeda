@@ -1,6 +1,6 @@
 ---
 name: fastapi-mvp
-description: FastAPI MVP 구현 규칙 — REST naming, 응답 envelope, validation, auth, error format
+description: "FastAPI MVP 구현 규칙 (REST naming, 응답 envelope, validation, auth, error format)"
 ---
 
 # FastAPI MVP 규칙
@@ -47,6 +47,7 @@ server/
 ## 에러 코드
 
 대문자 스네이크케이스. `api-contract.md`에 정의된 코드만 사용:
+
 - 401: `UNAUTHORIZED`
 - 403: `FORBIDDEN`
 - 404: `CHALLENGE_NOT_FOUND`, `VERIFICATION_NOT_FOUND`, `INVALID_INVITE_CODE`

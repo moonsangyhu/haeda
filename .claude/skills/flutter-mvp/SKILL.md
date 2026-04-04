@@ -1,6 +1,6 @@
 ---
 name: flutter-mvp
-description: Flutter MVP 구현 규칙 — 디렉토리 구조, 상태관리, 라우팅, API 클라이언트
+description: "Flutter MVP 구현 규칙 (디렉토리 구조, 상태관리, 라우팅, API 클라이언트)"
 ---
 
 # Flutter MVP 규칙
@@ -28,6 +28,7 @@ lib/
 ```
 
 각 feature 디렉토리 내부:
+
 ```
 feature/
 ├── models/          # 응답 DTO (freezed)

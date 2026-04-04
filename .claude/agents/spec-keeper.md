@@ -1,6 +1,6 @@
 ---
 name: spec-keeper
-description: PRD/플로우/도메인/API 문서 기반으로 구현 방향을 검증하고, 범위 이탈을 경고하는 검토 에이전트
+description: "PRD/플로우/도메인/API 문서 기반으로 구현 방향을 검증하고 범위 이탈을 경고하는 검토 에이전트"
 model: sonnet
 skills:
   - haeda-domain-context
@@ -13,6 +13,7 @@ skills:
 ## Source of Truth
 
 아래 4개 문서가 유일한 기준이다:
+
 - `docs/prd.md` — 기능 목록, P0/P1 범위, 비기능 요구사항
 - `docs/user-flows.md` — 화면 플로우, 화면 구조
 - `docs/domain-model.md` — 엔터티, 필드, 비즈니스 규칙

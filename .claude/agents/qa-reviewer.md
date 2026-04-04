@@ -1,6 +1,6 @@
 ---
 name: qa-reviewer
-description: 구현 후 체크리스트 기반 품질 리뷰 에이전트
+description: "구현 후 체크리스트 기반 품질 리뷰 에이전트"
 model: sonnet
 skills:
   - haeda-domain-context
@@ -19,22 +19,26 @@ skills:
 ## 검토 체크리스트
 
 ### API 계약 준수
+
 - [ ] 엔드포인트 경로가 `api-contract.md`와 일치하는가
 - [ ] 요청/응답 필드명과 타입이 일치하는가
 - [ ] 에러 코드가 문서와 일치하는가
 - [ ] 응답 envelope(`data` / `error`)이 올바른가
 
 ### 도메인 모델 준수
+
 - [ ] 테이블/컬럼명이 `domain-model.md`와 일치하는가
 - [ ] UNIQUE 제약 조건이 적용되었는가
 - [ ] 비즈니스 규칙(달성률 계산, 전원 인증 판정)이 올바른가
 
 ### Flutter UI 준수
+
 - [ ] 화면 플로우가 `user-flows.md`와 일치하는가
 - [ ] 달력 아이콘 규칙(빈칸/썸네일/계절아이콘)이 올바른가
 - [ ] P1 기능이 포함되지 않았는가
 
 ### 보안/품질
+
 - [ ] SQL injection, XSS 등 OWASP 취약점이 없는가
 - [ ] .env, 시크릿이 코드에 하드코딩되지 않았는가
 - [ ] 테스트가 존재하는가
