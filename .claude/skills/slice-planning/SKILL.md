@@ -17,6 +17,12 @@ argument-hint: "[슬라이스명]"
 /slice-planning 챌린지 생성
 ```
 
+## 전제 조건
+
+- **Plan Mode에서 실행한다.** 이 스킬은 구현이 아니라 계획이다. Shift+Tab으로 Plan Mode를 확인한다.
+- 계획이 사용자에게 승인되기 전까지 코드를 작성하지 않는다.
+- 계획에 의심되는 부분이 있으면 `spec-keeper` 에이전트로 검증한 뒤 진행한다.
+
 ## 계획 절차
 
 ### Step 1: 범위 확인
@@ -85,4 +91,8 @@ argument-hint: "[슬라이스명]"
 1. (첫 번째 작업)
 2. (두 번째 작업)
 ...
+
+### 검증 계획
+- 이 슬라이스의 완료를 어떻게 증명할 것인가 (pytest 시나리오, flutter test 대상, smoke test curl 명령)
+- spec-keeper 확인 필요 여부: 예/아니오 (사유)
 ```
