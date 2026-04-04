@@ -12,6 +12,8 @@
 - `docs/domain-model.md` — 엔터티, 필드, 제약 조건, 비즈니스 규칙
 - `docs/api-contract.md` — REST 엔드포인트, 요청/응답 스키마, 에러 코드
 
+docs/ 파일은 원칙적으로 수정하지 않는다. 수정이 필요하면 사용자 승인 필수.
+
 ## MVP Guardrails
 
 - P0 범위만 구현한다. P1(공개 탐색, 푸시 알림, Apple 로그인)과 MVP 제외 기능은 만들지 않는다.
@@ -25,14 +27,22 @@
 - **Flutter**: feature-first 구조, Riverpod, GoRouter, dio. 상세 규칙은 `.claude/skills/flutter-mvp/`.
 - **FastAPI**: SQLAlchemy 2.0 async, Pydantic v2, Alembic. 상세 규칙은 `.claude/skills/fastapi-mvp/`.
 - **계절 아이콘**: 3~5월 spring, 6~8월 summer, 9~11월 fall, 12~2월 winter.
+- **경로별 규칙**: server/ 작업 시 `.claude/rules/server-guard.md`, app/ 작업 시 `.claude/rules/app-guard.md`가 자동 로딩된다.
 
 ## Workflow Rules
 
-- 작업 시작 전에 관련 docs를 읽고 spec alignment를 확인한다.
-- 불확실하면 `spec-keeper` 에이전트로 검토한다.
-- 수직 슬라이스 완료 시 `mvp-slice-check` 스킬로 점검한다.
+수직 슬라이스 개발 흐름:
+
+1. **계획**: `/slice-planning {슬라이스명}`으로 구현 계획 수립. docs에서 관련 엔드포인트/화면/엔터티 추출.
+2. **검증**: 계획이 불확실하면 `spec-keeper` 에이전트로 스펙 정합성 확인.
+3. **구현**: `backend-builder`로 API 구현 → `flutter-builder`로 UI 구현. 또는 필요에 따라 직접 구현.
+4. **점검**: `/mvp-slice-check {슬라이스명}`으로 완성도 점검. `/docs-drift-check`로 코드↔문서 정합성 확인.
+5. **리뷰**: `qa-reviewer` 에이전트로 품질 리뷰.
+
+기타:
 - `.env`, secrets, credentials는 코드에 하드코딩하지 않는다.
+- server/ 작업 시 app/ 코드를 건드리지 않는다. 반대도 마찬가지.
 
 ## Out of Scope (지금은 하지 않는 것)
 
-hooks 설정, CI/CD 파이프라인, 배포 구성, 인프라(Docker/K8s), 모니터링 설정.
+CI/CD 파이프라인, 배포 구성, 인프라(Docker/K8s), 모니터링 설정.

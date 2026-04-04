@@ -10,7 +10,8 @@
       "Bash(command: *git push * --force*)",
       "Bash(command: sudo *)",
       "Bash(command: *DROP TABLE*)",
-      "Bash(command: *DROP DATABASE*)"
+      "Bash(command: *DROP DATABASE*)",
+      "Bash(command: *alembic downgrade*)"
     ]
   }
 }
