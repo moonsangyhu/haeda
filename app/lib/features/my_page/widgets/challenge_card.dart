@@ -30,7 +30,9 @@ class ChallengeCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      challenge.title,
+                      isCompleted
+                          ? '${challenge.title} (완료)'
+                          : challenge.title,
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
