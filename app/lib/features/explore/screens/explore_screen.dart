@@ -15,11 +15,23 @@ const _categories = [
   (label: '기타', value: '기타'),
 ];
 
-class ExploreScreen extends ConsumerWidget {
+class ExploreScreen extends ConsumerStatefulWidget {
   const ExploreScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExploreScreen> createState() => _ExploreScreenState();
+}
+
+class _ExploreScreenState extends ConsumerState<ExploreScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // 탭 진입 시마다 최신 공개 챌린지 목록을 fetch
+    Future.microtask(() => ref.invalidate(publicChallengesProvider));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final selectedCategory = ref.watch(selectedCategoryProvider);
     final challengesAsync = ref.watch(publicChallengesProvider);
 
