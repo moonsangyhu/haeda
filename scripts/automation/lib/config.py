@@ -50,6 +50,11 @@ PHASE_FAILED = "failed"
 # Max turns for verify phase (lightweight: just run docker + smoke)
 MAX_TURNS_VERIFY = 15
 
+# Refinement pipeline (lighter than slice phases)
+MAX_TURNS_ANALYZE = 10
+MAX_TURNS_IMPLEMENT = 30
+MAX_TURNS_VERIFY_REFINE = 15
+
 # Task statuses
 STATUS_PENDING = "pending"
 STATUS_RUNNING = "running"

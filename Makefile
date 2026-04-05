@@ -45,3 +45,56 @@ slice-setup:
 	$(PYTHON) -m venv .venv-automation
 	.venv-automation/bin/pip install claude-agent-sdk
 	@echo "Setup complete. Use: PYTHON=.venv-automation/bin/python make slice-auto"
+
+# --------------------------------------------------------------------------
+# Refinement Pipeline
+# Usage:
+#   make refine REQUEST="fix badge spacing on completed cards"
+#   make refine REQUEST_FILE=requests/badge-fix.md
+#   make refine REQUEST_FILE=requests/badge-fix.md AUTO_PUSH=1
+#   make refine-status RUN=refine-20260405-001
+#   make refine-resume RUN=refine-20260405-001
+#   make refine-clean RUN=refine-20260405-001
+#   make refine-list
+# --------------------------------------------------------------------------
+
+REQUEST ?=
+REQUEST_FILE ?=
+RUN ?=
+AUTO_PUSH ?= 0
+
+.PHONY: refine refine-status refine-resume refine-clean refine-list
+
+refine:
+ifdef REQUEST_FILE
+	$(PYTHON) $(AUTOMATION)/run_refine.py --request-file "$(REQUEST_FILE)" --auto-push $(AUTO_PUSH)
+else ifdef REQUEST
+	$(PYTHON) $(AUTOMATION)/run_refine.py --request "$(REQUEST)" --auto-push $(AUTO_PUSH)
+else
+	@echo "Usage:"
+	@echo "  make refine REQUEST=\"short request text\""
+	@echo "  make refine REQUEST_FILE=path/to/request.md"
+	@echo "  make refine REQUEST_FILE=path/to/request.md AUTO_PUSH=1"
+	@exit 1
+endif
+
+refine-status:
+ifndef RUN
+	$(error RUN is required. Usage: make refine-status RUN=refine-20260405-001)
+endif
+	$(PYTHON) $(AUTOMATION)/run_refine.py --run $(RUN) --status
+
+refine-resume:
+ifndef RUN
+	$(error RUN is required. Usage: make refine-resume RUN=refine-20260405-001)
+endif
+	$(PYTHON) $(AUTOMATION)/run_refine.py --run $(RUN) --resume
+
+refine-clean:
+ifndef RUN
+	$(error RUN is required. Usage: make refine-clean RUN=refine-20260405-001)
+endif
+	$(PYTHON) $(AUTOMATION)/run_refine.py --run $(RUN) --clean
+
+refine-list:
+	$(PYTHON) $(AUTOMATION)/run_refine.py --list
