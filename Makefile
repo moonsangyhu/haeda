@@ -61,7 +61,7 @@ slice-setup:
 REQUEST ?=
 REQUEST_FILE ?=
 RUN ?=
-AUTO_PUSH ?= 0
+AUTO_PUSH ?= 1
 
 .PHONY: refine refine-status refine-resume refine-clean refine-list
 

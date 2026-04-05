@@ -600,8 +600,8 @@ def main() -> None:
     parser.add_argument(
         "--auto-push",
         type=int,
-        default=0,
-        help="0=commit only (default), 1=commit+push",
+        default=1,
+        help="1=commit+push (default), 0=commit only",
     )
     parser.add_argument("--resume", action="store_true", help="Resume a failed/interrupted run")
     parser.add_argument("--status", action="store_true", help="Show run status")

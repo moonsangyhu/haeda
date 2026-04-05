@@ -80,8 +80,8 @@ User-request-driven feedback loop for UI/UX polish and detail fixes:
 - `make refine REQUEST_FILE=requests/fix.md AUTO_PUSH=1` — with auto-push
 - `make refine-status RUN=refine-20260405-001` / `refine-resume` / `refine-clean` / `refine-list`
 
-Flow: analyze -> implement -> verify -> report -> commit -> push(optional).
-Max 1 remediation retry. Default: commit only, push with `AUTO_PUSH=1`.
+Flow: analyze -> implement -> verify -> report -> commit -> push.
+Max 1 remediation retry. Default: commit+push. Disable push with `AUTO_PUSH=0`.
 State/artifacts in `automation/runs/refine-*` (gitignored). Details: `scripts/automation/run_refine.py`.
 
 Misc:
