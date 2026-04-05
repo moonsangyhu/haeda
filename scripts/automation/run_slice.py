@@ -24,6 +24,8 @@ import logging
 import re
 import shutil
 import sys
+import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 # Add lib to path
@@ -56,6 +58,103 @@ logging.basicConfig(
 )
 log = logging.getLogger("run_slice")
 
+DEFAULT_WATCH_INTERVAL = 10
+
+
+# ---------------------------------------------------------------------------
+# Progress Reporter — async heartbeat that prints compact status every N sec
+# ---------------------------------------------------------------------------
+
+def _elapsed(iso_ts: str | None) -> str:
+    """Compute human-readable elapsed time from an ISO timestamp to now."""
+    if not iso_ts:
+        return "-"
+    try:
+        start = datetime.fromisoformat(iso_ts)
+        delta = datetime.now(timezone.utc) - start
+        secs = int(delta.total_seconds())
+        if secs < 0:
+            return "0s"
+        if secs < 60:
+            return f"{secs}s"
+        mins, secs = divmod(secs, 60)
+        return f"{mins}m{secs:02d}s"
+    except (ValueError, TypeError):
+        return "?"
+
+
+def _task_label(run: RunState, role: str) -> str:
+    """Build a compact label like 'running(42s)' for a task."""
+    task = run.get_task_state(role)
+    status = task.status
+    if status == "running":
+        return f"running({_elapsed(task.started_at)})"
+    if status == "done":
+        return f"done({_elapsed(task.started_at)})"
+    if status == "failed":
+        return "FAILED"
+    return status  # pending / skipped
+
+
+def format_heartbeat(run: RunState) -> str:
+    """Format a single compact heartbeat line."""
+    ts = datetime.now().strftime("%H:%M:%S")
+    be = _task_label(run, "backend")
+    fe = _task_label(run, "frontend")
+    qa = _task_label(run, "qa")
+    elapsed = _elapsed(run.started_at)
+    return (
+        f"[{ts}] {run.slice_name} | phase={run.phase} | retry={run.retry_count} | "
+        f"backend={be} | frontend={fe} | qa={qa} | total={elapsed}"
+    )
+
+
+class ProgressReporter:
+    """Async background task that prints heartbeat lines at a fixed interval.
+
+    Reads from the in-memory RunState object — no extra disk I/O.
+    Does NOT inflate state files or store anything.
+    """
+
+    def __init__(self, run: RunState, interval: float = DEFAULT_WATCH_INTERVAL):
+        self._run = run
+        self._interval = interval
+        self._task: asyncio.Task | None = None
+        self._last_phase: str | None = None
+
+    def start(self) -> None:
+        if self._interval <= 0:
+            return
+        self._task = asyncio.create_task(self._loop())
+
+    async def stop(self) -> None:
+        if self._task and not self._task.done():
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+        # Print final heartbeat
+        self._print()
+
+    def notify_phase_change(self) -> None:
+        """Call when phase changes to get an immediate extra heartbeat."""
+        phase = self._run.phase
+        if phase != self._last_phase:
+            self._last_phase = phase
+            self._print()
+
+    def _print(self) -> None:
+        print(format_heartbeat(self._run), flush=True)
+
+    async def _loop(self) -> None:
+        try:
+            while True:
+                await asyncio.sleep(self._interval)
+                self._print()
+        except asyncio.CancelledError:
+            pass
+
 
 def detect_next_slice() -> str:
     """Auto-detect the next slice number from existing test reports."""
@@ -77,35 +176,37 @@ def detect_next_slice() -> str:
 
 
 def show_status(slice_name: str) -> None:
-    """Show current status of a slice run."""
+    """Show current status of a slice run (compact format, same as heartbeat)."""
     rd = run_dir(slice_name)
     if not (rd / "run.json").exists():
         print(f"No run found for {slice_name}")
         return
 
     run = RunState.load(rd)
-    print(f"Slice:   {run.slice_name}")
-    print(f"Status:  {run.status}")
-    print(f"Phase:   {run.phase}")
-    print(f"QA:      {run.qa_verdict or 'N/A'}")
-    print(f"Retries: {run.retry_count}")
-    print(f"Started: {run.started_at or 'N/A'}")
-    print(f"Ended:   {run.finished_at or 'N/A'}")
 
+    # Compact one-liner (same format as heartbeat)
+    print(format_heartbeat(run))
+
+    # Extra detail block
+    print(f"\n  started: {run.started_at or 'N/A'}")
+    if run.finished_at:
+        print(f"  ended:   {run.finished_at}")
+    if run.qa_verdict:
+        print(f"  qa:      {run.qa_verdict}")
     if run.error:
-        print(f"Error:   {run.error}")
+        print(f"  error:   {run.error}")
 
-    # Show task states
     for role in ("backend", "frontend", "qa"):
         task = run.get_task_state(role)
-        print(f"\n  {role}:")
-        print(f"    status: {task.status}")
-        if task.started_at:
-            print(f"    started: {task.started_at}")
-        if task.finished_at:
-            print(f"    finished: {task.finished_at}")
+        if task.status == "pending":
+            continue
+        extra = []
         if task.exit_code is not None:
-            print(f"    exit_code: {task.exit_code}")
+            extra.append(f"exit={task.exit_code}")
+        if task.error:
+            extra.append(f"err={task.error[:60]}")
+        suffix = f" ({', '.join(extra)})" if extra else ""
+        print(f"  {role}: {task.status}{suffix}")
 
 
 def clean_run(slice_name: str) -> None:
@@ -119,7 +220,11 @@ def clean_run(slice_name: str) -> None:
     print(f"Cleaned worktrees for {slice_name}")
 
 
-async def run_orchestrator(slice_name: str, resume: bool = False) -> None:
+async def run_orchestrator(
+    slice_name: str,
+    resume: bool = False,
+    watch_interval: float = DEFAULT_WATCH_INTERVAL,
+) -> None:
     """Main orchestration loop for a single slice."""
     rd = ensure_run_dirs(slice_name)
 
@@ -132,12 +237,25 @@ async def run_orchestrator(slice_name: str, resume: bool = False) -> None:
         run.save()
         log.info("Starting new run for %s", slice_name)
 
+    # Banner
+    print(f"\n{'=' * 60}")
+    print(f"  Slice:     {slice_name}")
+    print(f"  Run dir:   {rd}")
+    print(f"  Heartbeat: every {watch_interval}s" if watch_interval > 0 else "  Heartbeat: off")
+    print(f"{'=' * 60}\n")
+
+    # Start heartbeat reporter
+    reporter = ProgressReporter(run, interval=watch_interval)
+    reporter.start()
+
     plan = {}
 
     try:
         # PLAN phase
         if run.phase in ("plan", "pending"):
+            reporter.notify_phase_change()
             plan = await phase_plan(run)
+            reporter.notify_phase_change()
             if plan.get("all_p0_complete"):
                 print("\n=== ALL P0 FEATURES COMPLETE ===")
                 print("No more slices to implement.")
@@ -156,32 +274,43 @@ async def run_orchestrator(slice_name: str, resume: bool = False) -> None:
 
         # BUILD phase
         if run.phase in ("plan", "build"):
+            reporter.notify_phase_change()
             await phase_build(run, plan)
+            reporter.notify_phase_change()
 
         # MERGE phase
         if run.phase in ("build", "merge"):
+            reporter.notify_phase_change()
             await phase_merge(run)
+            reporter.notify_phase_change()
 
         # QA phase
         if run.phase in ("merge", "qa"):
+            reporter.notify_phase_change()
             qa_data = await phase_qa(run, plan)
+            reporter.notify_phase_change()
             verdict = qa_data.get("verdict", "incomplete")
 
             if verdict == "complete":
                 await phase_complete(run, plan)
+                reporter.notify_phase_change()
                 _print_final(run)
                 return
 
             # Not complete — try remediation
             if run.retry_count < MAX_REMEDIATION_RETRIES:
+                reporter.notify_phase_change()
                 await phase_remediate(run, qa_data)
+                reporter.notify_phase_change()
 
                 # Re-run QA
                 qa_data = await phase_qa(run, plan, is_re_review=True)
+                reporter.notify_phase_change()
                 verdict = qa_data.get("verdict", "incomplete")
 
                 if verdict == "complete":
                     await phase_complete(run, plan)
+                    reporter.notify_phase_change()
                     _print_final(run)
                     return
 
@@ -206,11 +335,15 @@ async def run_orchestrator(slice_name: str, resume: bool = False) -> None:
                     pass
 
             if run.retry_count < MAX_REMEDIATION_RETRIES:
+                reporter.notify_phase_change()
                 await phase_remediate(run, qa_data)
+                reporter.notify_phase_change()
                 qa_data = await phase_qa(run, plan, is_re_review=True)
+                reporter.notify_phase_change()
 
                 if qa_data.get("verdict") == "complete":
                     await phase_complete(run, plan)
+                    reporter.notify_phase_change()
                     _print_final(run)
                     return
 
@@ -223,6 +356,8 @@ async def run_orchestrator(slice_name: str, resume: bool = False) -> None:
             run.mark_failed(str(e))
         _print_final(run)
         sys.exit(1)
+    finally:
+        await reporter.stop()
 
 
 def _print_final(run: RunState) -> None:
@@ -281,6 +416,17 @@ def main():
         action="store_true",
         help="Show what would be done without executing",
     )
+    parser.add_argument(
+        "--watch-interval", "-w",
+        type=float,
+        default=DEFAULT_WATCH_INTERVAL,
+        help=f"Heartbeat interval in seconds (default: {DEFAULT_WATCH_INTERVAL})",
+    )
+    parser.add_argument(
+        "--quiet", "-q",
+        action="store_true",
+        help="Disable heartbeat output",
+    )
     args = parser.parse_args()
 
     # Determine slice name
@@ -309,7 +455,8 @@ def main():
         return
 
     # Run orchestrator
-    asyncio.run(run_orchestrator(slice_name, resume=args.resume))
+    interval = 0 if args.quiet else args.watch_interval
+    asyncio.run(run_orchestrator(slice_name, resume=args.resume, watch_interval=interval))
 
 
 if __name__ == "__main__":

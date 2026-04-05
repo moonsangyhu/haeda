@@ -1,23 +1,26 @@
 # Haeda Slice Automation
 # Usage:
-#   make slice-auto                    # auto-detect + run next slice
-#   make slice-auto SLICE=slice-07     # run specific slice
-#   make slice-status SLICE=slice-07   # show status
-#   make slice-resume SLICE=slice-07   # resume interrupted run
-#   make slice-clean SLICE=slice-07    # clean artifacts + worktrees
-#   make slice-setup                   # install Agent SDK (optional)
+#   make slice-auto                         # auto-detect + run next slice
+#   make slice-auto SLICE=slice-07          # run specific slice
+#   make slice-auto SLICE=slice-07 WATCH=5  # custom heartbeat interval
+#   make slice-auto SLICE=slice-07 WATCH=0  # disable heartbeat
+#   make slice-status SLICE=slice-07        # show status
+#   make slice-resume SLICE=slice-07        # resume interrupted run
+#   make slice-clean SLICE=slice-07         # clean artifacts + worktrees
+#   make slice-setup                        # install Agent SDK (optional)
 
 PYTHON ?= python3
 AUTOMATION = scripts/automation
 SLICE ?=
+WATCH ?= 10
 
 .PHONY: slice-auto slice-status slice-resume slice-clean slice-setup
 
 slice-auto:
 ifdef SLICE
-	$(PYTHON) $(AUTOMATION)/run_slice.py --slice $(SLICE)
+	$(PYTHON) $(AUTOMATION)/run_slice.py --slice $(SLICE) --watch-interval $(WATCH)
 else
-	$(PYTHON) $(AUTOMATION)/run_slice.py --auto
+	$(PYTHON) $(AUTOMATION)/run_slice.py --auto --watch-interval $(WATCH)
 endif
 
 slice-status:
