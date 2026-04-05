@@ -25,3 +25,8 @@ build/
 
 # Local dev runtime
 .local-dev/
+
+# Slice automation runtime
+automation/runs/*/logs/
+automation/runs/*/prompts/
+.venv-automation/

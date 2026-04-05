@@ -1,0 +1,12 @@
+[project]
+name = "haeda-slice-automation"
+version = "0.1.0"
+description = "Single-slice automation orchestrator for Haeda MVP"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+sdk = ["claude-agent-sdk>=0.1.0"]
+
+[project.scripts]
+run-slice = "run_slice:main"
