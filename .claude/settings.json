@@ -1,5 +1,15 @@
 {
   "permissions": {
+    "allow": [
+      "Read",
+      "Edit",
+      "Write",
+      "Glob",
+      "Grep",
+      "Bash",
+      "Agent",
+      "NotebookEdit"
+    ],
     "deny": [
       "Read(file_path: **/.env)",
       "Read(file_path: **/.env.*)",
