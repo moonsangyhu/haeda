@@ -246,6 +246,70 @@ def _resolve_resume_phase(run: RunState) -> str:
     return "build"
 
 
+def _resolve_next_action(run: RunState) -> dict:
+    """Determine the next action based on current run state.
+
+    Returns a dict with keys: action, command, reason, next_slice.
+    """
+    from lib.phases import _get_git_status
+    from lib.config import TEST_REPORTS_DIR
+
+    git = _get_git_status()
+    is_complete = run.status == "complete"
+    is_incomplete = run.status == "incomplete"
+
+    # INCOMPLETE / FAILED → remediation or resume
+    if not is_complete:
+        if run.status == "failed":
+            return {
+                "action": "Resume the failed run",
+                "command": f"make slice-resume SLICE={run.slice_name}",
+                "reason": run.error or "run failed",
+                "next_slice": None,
+            }
+        if is_incomplete:
+            return {
+                "action": "Resume to complete verification",
+                "command": f"make slice-resume SLICE={run.slice_name}",
+                "reason": run.error or "completion gates not met",
+                "next_slice": None,
+            }
+        return {
+            "action": "Run is still in progress",
+            "command": f"make slice-status SLICE={run.slice_name}",
+            "reason": f"current phase: {run.phase}",
+            "next_slice": None,
+        }
+
+    # COMPLETE but needs commit
+    next_slice = detect_next_slice()
+    next_cmd = f"make slice-auto SLICE={next_slice}"
+
+    if git["needs_commit"]:
+        return {
+            "action": "Commit changes, then start next slice",
+            "command": f"git add -A && git commit -m 'feat: implement {run.slice_name}' && {next_cmd}",
+            "reason": f"{git['dirty_count']} uncommitted files",
+            "next_slice": next_slice,
+        }
+
+    if git["needs_push"]:
+        return {
+            "action": "Push changes, then start next slice",
+            "command": f"git push && {next_cmd}",
+            "reason": f"{git['ahead_count']} commits ahead of remote",
+            "next_slice": next_slice,
+        }
+
+    # COMPLETE + clean → ready for next slice
+    return {
+        "action": "Start next slice",
+        "command": next_cmd,
+        "reason": f"{run.slice_name} complete, next P0 feature",
+        "next_slice": next_slice,
+    }
+
+
 def clean_run(slice_name: str) -> None:
     """Clean up a slice run (artifacts + worktrees)."""
     rd = run_dir(slice_name)
@@ -333,12 +397,13 @@ async def run_orchestrator(
             await phase_merge(run)
             reporter.notify_phase_change()
 
-        # Helper: verify → complete sequence
+        # Helper: verify → complete sequence (with next action)
         async def _verify_and_complete():
             reporter.notify_phase_change()
             await phase_verify(run)
             reporter.notify_phase_change()
-            await phase_complete(run, plan)
+            next_action = _resolve_next_action(run)
+            await phase_complete(run, plan, next_action=next_action)
             reporter.notify_phase_change()
             _print_final(run)
 
@@ -418,13 +483,14 @@ async def run_orchestrator(
 
 
 def _print_final(run: RunState) -> None:
-    """Print final status summary with git status and verify info."""
+    """Print final status summary with git status, verify info, and next action."""
     from lib.phases import _get_git_status
     from lib.config import TEST_REPORTS_DIR
 
     rd = run._run_dir
     git = _get_git_status()
     report_exists = (TEST_REPORTS_DIR / f"{run.slice_name}-test-report.md").exists()
+    next_action = _resolve_next_action(run)
 
     print(f"\n{'=' * 60}")
     print(f"  Slice:    {run.slice_name}")
@@ -439,17 +505,12 @@ def _print_final(run: RunState) -> None:
     if run.error:
         print(f"  Error:    {run.error}")
 
-    # Next actions
-    actions = []
-    if git["needs_commit"]:
-        actions.append("git add -A && git commit")
-    if git["needs_push"]:
-        actions.append("git push")
-    if not report_exists and run.status != "failed":
-        actions.append("generate test-report")
-
-    if actions:
-        print(f"\n  Next:     {' → '.join(actions)}")
+    # Next action block
+    print(f"\n  --- Next Action ---")
+    print(f"  {next_action['action']}")
+    if next_action.get("next_slice"):
+        print(f"  Next slice: {next_action['next_slice']}")
+    print(f"  Run: {next_action['command']}")
 
     print(f"\n  Artifacts: {rd}")
     if (rd / "results" / "summary.md").exists():

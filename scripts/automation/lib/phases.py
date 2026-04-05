@@ -558,8 +558,8 @@ def _get_git_status() -> dict:
     }
 
 
-async def phase_complete(run: RunState, plan: dict) -> None:
-    """COMPLETE: Final gate check + summary. No auto-push by default."""
+async def phase_complete(run: RunState, plan: dict, next_action: dict | None = None) -> None:
+    """COMPLETE: Final gate check + summary with next action. No auto-push."""
     log.info("=== PHASE: COMPLETE ===")
 
     rd = run._run_dir
@@ -576,10 +576,14 @@ async def phase_complete(run: RunState, plan: dict) -> None:
         run.save()
     else:
         run.transition(PHASE_COMPLETE)
+        if next_action and next_action.get("next_slice"):
+            run.next_slice_name = next_action["next_slice"]
+            run.save()
 
     # Build summary
+    is_complete = not gate_failures
     summary = [
-        f"# {run.slice_name} — {'Complete' if not gate_failures else 'Incomplete'}",
+        f"# {run.slice_name} — {'Complete' if is_complete else 'Incomplete'}",
         f"\n## Goal\n{plan.get('goal', 'N/A')}",
         f"\n## QA Verdict: {run.qa_verdict}",
         f"Local Verify: {run.verify_status or 'not run'}",
@@ -605,10 +609,19 @@ async def phase_complete(run: RunState, plan: dict) -> None:
         f"- Needs push: {git_status['needs_push']}",
     ])
 
-    if git_status["needs_commit"]:
-        summary.append(f"\n**Action required**: Run `git add -A && git commit` or `/role-scoped-commit-push`")
-    if git_status["needs_push"]:
-        summary.append(f"**Action required**: Run `git push`")
+    # Next Action section
+    if next_action:
+        summary.extend([
+            f"\n## Next Action",
+            f"- Action: {next_action['action']}",
+            f"- Reason: {next_action['reason']}",
+        ])
+        if next_action.get("next_slice"):
+            summary.append(f"- Next slice: {next_action['next_slice']}")
+        summary.append(f"- Command: `{next_action['command']}`")
+    elif is_complete:
+        summary.append(f"\n## Next Action")
+        summary.append(f"- Run `/next-slice-planning` to determine next slice")
 
     summary.extend([
         f"\n## Artifacts",
