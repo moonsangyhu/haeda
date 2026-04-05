@@ -1,6 +1,6 @@
 ---
 name: fix
-description: Lightweight bug fix flow. Analyze → fix → test → commit → push → rebuild. No approval gates.
+description: Lightweight bug fix flow. Analyze → fix → QA → report → commit → push → rebuild. No approval gates.
 user_invocable: true
 disable_model_invocation: true
 ---
@@ -40,7 +40,9 @@ Apply the minimal change to fix the bug. Rules:
 - Do NOT touch files unrelated to the bug
 - Follow existing code patterns
 
-## Step 3: Test
+## Step 3: QA
+
+### 3-1. Run Tests
 
 Run tests for the affected area:
 
@@ -48,21 +50,70 @@ Run tests for the affected area:
 - **server/ changed**: `cd server && uv run pytest -v --tb=short`
 - **Both**: run both
 
-If tests fail:
-- Attempt to fix (max 2 retries)
-- If still failing after 2 retries, STOP and ask user
+### 3-2. Spawn QA Agent
 
-## Step 4: Commit & Push
+Spawn `qa-reviewer` agent with:
+- Bug description and root cause from Step 1
+- Changed files from Step 2
+- Test results from 3-1
+
+### 3-3. Handle QA Verdict
+
+| Verdict | Action |
+|---------|--------|
+| **Complete** | Proceed to Step 4 |
+| **Partial / Incomplete** | Fix issues, re-run QA (max 2 retries) |
+
+After 2 failed retries, STOP and ask user.
+
+## Step 4: Report
+
+Generate a fix report at `docs/reports/YYYY-MM-DD-fix-<slug>.md`.
+
+The `<slug>` is derived from the bug description (lowercase, hyphens, max 50 chars).
+
+### Report Template
+
+```markdown
+# Fix Report: {summary}
+
+- Date: {YYYY-MM-DD}
+- Area: {frontend / backend / both}
+- Status: {complete / partial}
+
+## Bug
+{user's original description}
+
+## Root Cause
+{diagnosis from Step 1}
+
+## Changed Files
+- {file path} — {brief description of change}
+
+## Fix Details
+{what was changed and why}
+
+## QA Results
+- Backend tests: {N passed, M failed / N/A}
+- Frontend tests: {N passed, M failed / N/A}
+- Lint: {pass / N issues}
+- QA verdict: {complete / partial / incomplete}
+
+## Remaining Risks
+- {risk description, or "None identified"}
+```
+
+## Step 5: Commit & Push
 
 ```bash
-git add <changed files>
+git add <changed files> docs/reports/{report-file}
 git commit -m "fix: <concise description>
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 git push origin main
 ```
 
-## Step 5: Rebuild & Verify
+## Step 6: Rebuild & Verify
 
 - **app/ changed**: `docker compose up --build -d frontend`
 - **server/ changed**: `docker compose up --build -d backend`
@@ -79,7 +130,7 @@ curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
 
 If health check fails, print logs and STOP.
 
-## Step 6: Summary
+## Step 7: Summary
 
 ```
 ## Bug Fix Complete
@@ -89,6 +140,8 @@ If health check fails, print logs and STOP.
 | Bug | {description} |
 | Root cause | {cause} |
 | Fix | {what changed} |
+| QA | complete |
+| Report | docs/reports/{filename} |
 | Commit | {hash} |
 | Tests | {N passed, M failed} |
 | Push | done |
@@ -101,7 +154,7 @@ If health check fails, print logs and STOP.
 ## Guardrails
 
 - No approval gates — runs fully automatic
-- Only STOP on: test failure (after 2 retries), health check failure
-- Do not modify `docs/` files
+- Only STOP on: QA failure (after 2 retries), health check failure
+- Do not modify `docs/` files (except `docs/reports/`)
 - Do not add features — fix only
 - Do not touch unrelated files
