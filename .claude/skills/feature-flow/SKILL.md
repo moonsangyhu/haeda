@@ -7,7 +7,8 @@ disable_model_invocation: true
 
 # Feature Flow — Enforced Feature Workflow
 
-All feature work MUST follow this 7-step workflow. No step may be skipped.
+All feature work MUST follow this 8-step workflow. No step may be skipped.
+**Auto-proceed mode**: All steps run end-to-end without user approval gates. Only STOP for user input when: QA fails 2 times, push conditions are not met, or a health check fails.
 
 Argument: `<requirement description>`
 
@@ -62,23 +63,17 @@ Print the following to the user:
 - api-contract.md: {endpoints}
 ```
 
-### 1-4. Ask for Approval
+### 1-4. Print & Proceed
 
-**STOP and ask the user**: "요구사항이 맞는지 확인해주세요. 수정할 부분이 있으면 말씀해주세요."
-
-Do NOT proceed to Step 2 without user approval.
+Print the scope document for visibility, then **auto-proceed to Step 2**. Do not wait for approval.
 
 ---
 
 ## Step 2: Plan
 
-### 2-1. Enter Plan Mode
+### 2-1. Create Implementation Plan
 
-Announce: "Plan Mode로 전환합니다."
-
-### 2-2. Create Implementation Plan
-
-Based on the approved requirements, create a plan:
+Based on the requirements, create a plan internally (do NOT enter Plan Mode):
 
 - **If single area (frontend only or backend only)**:
   - List files to create/modify
@@ -91,11 +86,9 @@ Based on the approved requirements, create a plan:
   - List subagents: `backend-builder` + `flutter-builder` (parallel via Agent teams)
   - Define integration test strategy
 
-### 2-3. Ask for Approval
+### 2-2. Print & Proceed
 
-**STOP and ask the user**: "구현 계획을 승인해주세요."
-
-Do NOT proceed to Step 3 without user approval.
+Print the plan summary for visibility, then **auto-proceed to Step 3**. Do not wait for approval.
 
 ---
 
@@ -234,15 +227,10 @@ Evaluate whether the work is ready to push:
 
 ### If Eligible
 
-Print:
+**Auto-proceed to Step 7.** Print a one-line summary for visibility:
 ```
-Push 조건 충족. 커밋 & 푸시를 진행할까요?
-- 변경 파일: {N}개
-- QA: complete
-- 테스트: all passed
+Push 조건 충족 — 자동 진행 (변경 {N}개, QA complete, tests passed)
 ```
-
-**STOP and ask the user for confirmation.**
 
 ### If Not Eligible
 
@@ -259,7 +247,7 @@ Push 조건 미충족:
 
 ## Step 7: Commit & Push
 
-Only execute after user approval in Step 6.
+Auto-execute when push conditions are met.
 
 ### 7-1. Stage and Commit
 
@@ -341,4 +329,4 @@ These rules apply at ALL steps:
 - **Plan first**: Never start implementation without an approved plan.
 - **QA before push**: Never push without QA verdict "complete".
 - **Report before push**: Never push without a report in docs/reports/.
-- **User approval gates**: Steps 1, 2, 6 require explicit user approval before proceeding.
+- **Auto-proceed**: All steps run without user approval. Only STOP when: QA fails 2 times, push conditions are not met, or health check fails.
