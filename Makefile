@@ -67,9 +67,9 @@ AUTO_PUSH ?= 0
 
 refine:
 ifdef REQUEST_FILE
-	$(PYTHON) $(AUTOMATION)/run_refine.py --request-file "$(REQUEST_FILE)" --auto-push $(AUTO_PUSH)
+	$(PYTHON) $(AUTOMATION)/run_refine.py --request-file "$(REQUEST_FILE)" --auto-push $(AUTO_PUSH) --watch-interval $(WATCH)
 else ifdef REQUEST
-	$(PYTHON) $(AUTOMATION)/run_refine.py --request "$(REQUEST)" --auto-push $(AUTO_PUSH)
+	$(PYTHON) $(AUTOMATION)/run_refine.py --request "$(REQUEST)" --auto-push $(AUTO_PUSH) --watch-interval $(WATCH)
 else
 	@echo "Usage:"
 	@echo "  make refine REQUEST=\"short request text\""

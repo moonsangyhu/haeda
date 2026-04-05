@@ -66,6 +66,103 @@ logging.basicConfig(
 )
 log = logging.getLogger("run_refine")
 
+DEFAULT_WATCH_INTERVAL = 10
+
+
+# ---------------------------------------------------------------------------
+# Progress Reporter — async heartbeat (mirrors run_slice.py pattern)
+# ---------------------------------------------------------------------------
+
+_PHASE_ACTIONS = {
+    "pending": "starting",
+    "analyze": "analyzing",
+    "implement": "implementing",
+    "verify": "verifying",
+    "report": "reporting",
+    "commit": "committing",
+    "push": "pushing",
+    "complete": "done",
+    "failed": "failed",
+}
+
+
+def _elapsed(iso_ts: str | None) -> str:
+    if not iso_ts:
+        return "-"
+    try:
+        start = datetime.fromisoformat(iso_ts)
+        delta = datetime.now(timezone.utc) - start
+        secs = int(delta.total_seconds())
+        if secs < 0:
+            return "0s"
+        if secs < 60:
+            return f"{secs}s"
+        mins, secs = divmod(secs, 60)
+        return f"{mins}m{secs:02d}s"
+    except (ValueError, TypeError):
+        return "?"
+
+
+def format_heartbeat(run: RefineState) -> str:
+    """Format a single compact heartbeat line for refinement."""
+    ts = datetime.now().strftime("%H:%M:%S")
+    action = _PHASE_ACTIONS.get(run.phase, run.phase)
+    area = run.affected_area or "?"
+    elapsed = _elapsed(run.started_at)
+    verdict = run.verify_verdict or "-"
+    retry = run.retry_count
+
+    return (
+        f"[{ts}] {run.run_id} | phase={run.phase}:{action} | "
+        f"area={area} | verify={verdict} | retry={retry} | total={elapsed}"
+    )
+
+
+class ProgressReporter:
+    """Async background task that prints heartbeat lines at a fixed interval.
+
+    Reads from the in-memory RefineState — no extra disk I/O.
+    """
+
+    def __init__(self, run: RefineState, interval: float = DEFAULT_WATCH_INTERVAL):
+        self._run = run
+        self._interval = interval
+        self._task: asyncio.Task | None = None
+        self._last_phase: str | None = None
+
+    def start(self) -> None:
+        if self._interval <= 0:
+            return
+        self._task = asyncio.create_task(self._loop())
+
+    async def stop(self) -> None:
+        if self._task and not self._task.done():
+            self._task.cancel()
+            try:
+                await self._task
+            except asyncio.CancelledError:
+                pass
+        # Print final heartbeat
+        self._print()
+
+    def notify_phase_change(self) -> None:
+        """Call on phase change for an immediate extra heartbeat."""
+        phase = self._run.phase
+        if phase != self._last_phase:
+            self._last_phase = phase
+            self._print()
+
+    def _print(self) -> None:
+        print(format_heartbeat(self._run), flush=True)
+
+    async def _loop(self) -> None:
+        try:
+            while True:
+                await asyncio.sleep(self._interval)
+                self._print()
+        except asyncio.CancelledError:
+            pass
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -164,6 +261,7 @@ async def run_refinement(
     auto_push: bool = False,
     run_id: str | None = None,
     resume: bool = False,
+    watch_interval: float = DEFAULT_WATCH_INTERVAL,
 ) -> None:
     """Main refinement orchestration loop."""
 
@@ -228,8 +326,13 @@ async def run_refinement(
     print(f"  Run:      {run.run_id}")
     print(f"  Request:  {short_req}")
     print(f"  Push:     {'auto' if auto_push else 'manual (commit only)'}")
+    print(f"  Heartbeat: every {watch_interval}s" if watch_interval > 0 else "  Heartbeat: off")
     print(f"  Run dir:  {rd}")
     print(f"{'=' * 60}\n")
+
+    # Start heartbeat reporter
+    reporter = ProgressReporter(run, interval=watch_interval)
+    reporter.start()
 
     analysis = {}
     verify_data = {}
@@ -248,15 +351,13 @@ async def run_refinement(
     try:
         # ANALYZE
         if run.phase in ("analyze", "pending"):
+            reporter.notify_phase_change()
             analysis = await phase_analyze(
                 run,
                 user_criteria=user_criteria,
                 user_out_of_scope=user_oos,
             )
-            print(
-                f"  [analyze] area={analysis.get('affected_area')}, "
-                f"summary={analysis.get('summary', '')[:60]}"
-            )
+            reporter.notify_phase_change()
 
         # Load analysis if resuming past analyze
         if not analysis and run.analysis_file:
@@ -271,13 +372,15 @@ async def run_refinement(
 
         # IMPLEMENT
         if run.phase in ("analyze", "implement"):
+            reporter.notify_phase_change()
             await phase_implement(run, analysis)
-            print(f"  [implement] done")
+            reporter.notify_phase_change()
 
         # VERIFY
         if run.phase in ("implement", "verify"):
+            reporter.notify_phase_change()
             verify_data = await phase_verify(run, analysis)
-            print(f"  [verify] {verify_data.get('verdict', '?')}")
+            reporter.notify_phase_change()
 
             # Remediation loop (max 1 retry)
             if (
@@ -289,9 +392,11 @@ async def run_refinement(
                 log.info(
                     "Verify failed — remediation attempt %d", run.retry_count
                 )
+                reporter.notify_phase_change()
                 await phase_implement(run, analysis, is_remediation=True)
+                reporter.notify_phase_change()
                 verify_data = await phase_verify(run, analysis)
-                print(f"  [verify retry] {verify_data.get('verdict', '?')}")
+                reporter.notify_phase_change()
 
             if verify_data.get("verdict") != "passed":
                 run.mark_failed(
@@ -310,32 +415,32 @@ async def run_refinement(
 
         # REPORT
         if run.phase in ("verify", "report"):
+            reporter.notify_phase_change()
             phase_report(run, analysis, verify_data or {})
-            print(f"  [report] generated")
+            reporter.notify_phase_change()
 
         # COMMIT
         if run.phase in ("report", "commit"):
+            reporter.notify_phase_change()
             commit_hash = phase_commit(run, analysis)
-            if commit_hash:
-                print(f"  [commit] {commit_hash}")
-            else:
-                print(f"  [commit] no in-scope changes")
+            reporter.notify_phase_change()
 
         # PUSH
         if run.phase in ("commit", "push"):
+            reporter.notify_phase_change()
             if run.auto_push:
-                ok = phase_push(run)
-                print(f"  [push] {'done' if ok else 'FAILED'}")
+                phase_push(run)
             else:
                 run.push_status = "skipped"
                 run.save()
-                print(f"  [push] skipped (use AUTO_PUSH=1 to enable)")
+            reporter.notify_phase_change()
 
         # COMPLETE
         run.status = "complete"
         run.phase = "complete"
         run.finished_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
         run.save()
+        reporter.notify_phase_change()
 
         _print_final(run)
 
@@ -345,6 +450,8 @@ async def run_refinement(
             run.mark_failed(str(e))
         _print_final(run)
         sys.exit(1)
+    finally:
+        await reporter.stop()
 
 
 def _resolve_resume_phase(run: RefineState) -> str:
@@ -500,6 +607,13 @@ def main() -> None:
     parser.add_argument("--status", action="store_true", help="Show run status")
     parser.add_argument("--clean", action="store_true", help="Remove run artifacts")
     parser.add_argument("--list", action="store_true", help="List all refinement runs")
+    parser.add_argument(
+        "--watch-interval", "-w",
+        type=float,
+        default=DEFAULT_WATCH_INTERVAL,
+        help=f"Heartbeat interval in seconds (default: {DEFAULT_WATCH_INTERVAL})",
+    )
+    parser.add_argument("--quiet", "-q", action="store_true", help="Disable heartbeat output")
 
     args = parser.parse_args()
 
@@ -520,6 +634,9 @@ def main() -> None:
         clean_run(args.run)
         return
 
+    # Resolve watch interval
+    interval = 0 if args.quiet else args.watch_interval
+
     if args.resume:
         if not args.run:
             parser.error("--run required with --resume")
@@ -535,6 +652,7 @@ def main() -> None:
                 run_id=args.run,
                 auto_push=bool(args.auto_push),
                 resume=True,
+                watch_interval=interval,
             )
         )
         return
@@ -562,6 +680,7 @@ def main() -> None:
             request_text,
             request_file=request_file_path,
             auto_push=bool(args.auto_push),
+            watch_interval=interval,
         )
     )
 
