@@ -108,6 +108,8 @@ class _ChallengeSpaceScreenState
         ),
         data: (detail) => _ChallengeSpaceBody(
           challengeId: widget.challengeId,
+          startDate: detail.startDate,
+          endDate: detail.endDate,
           year: _year,
           month: _month,
           onPreviousMonth: _previousMonth,
@@ -120,6 +122,8 @@ class _ChallengeSpaceScreenState
 
 class _ChallengeSpaceBody extends ConsumerWidget {
   final String challengeId;
+  final String startDate; // YYYY-MM-DD
+  final String endDate;   // YYYY-MM-DD
   final int year;
   final int month;
   final VoidCallback onPreviousMonth;
@@ -127,6 +131,8 @@ class _ChallengeSpaceBody extends ConsumerWidget {
 
   const _ChallengeSpaceBody({
     required this.challengeId,
+    required this.startDate,
+    required this.endDate,
     required this.year,
     required this.month,
     required this.onPreviousMonth,
@@ -134,6 +140,45 @@ class _ChallengeSpaceBody extends ConsumerWidget {
   });
 
   void _onDayTap(BuildContext context, String date) {
+    final tapped = DateTime.parse(date);
+    final start = DateTime.parse(startDate);
+    final today = DateTime.now();
+    final tappedDay = DateTime(tapped.year, tapped.month, tapped.day);
+    final startDay = DateTime(start.year, start.month, start.day);
+    final todayDay = DateTime(today.year, today.month, today.day);
+
+    if (tappedDay.isBefore(startDay)) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: const Text('챌린지 시작 전 날짜입니다.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
+    if (tappedDay.isAfter(todayDay)) {
+      showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          content: const Text('아직 도래하지 않은 날짜입니다.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+
     context.push('/challenges/$challengeId/verifications/$date');
   }
 

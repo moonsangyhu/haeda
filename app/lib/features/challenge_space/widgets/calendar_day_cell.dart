@@ -19,7 +19,7 @@ class CalendarDayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: entry != null && entry!.verifiedMembers.isNotEmpty ? onTap : null,
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           border: Border.all(
