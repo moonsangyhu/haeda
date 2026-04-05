@@ -34,10 +34,37 @@ Auto-proceed to Step 2. Do not wait for approval.
 
 ## Step 2: Fix
 
-Apply the minimal change to fix the bug. Rules:
+Delegate the fix to the appropriate specialized agent based on the affected area.
+
+### Frontend only (app/)
+
+Spawn `flutter-builder` agent with:
+- Bug description and root cause from Step 1
+- Affected files list
+- Instruction: "fix only, no refactor, no feature additions"
+- Scope: `app/` only. NEVER touch `server/`.
+
+### Backend only (server/)
+
+Spawn `backend-builder` agent with:
+- Bug description and root cause from Step 1
+- Affected files list
+- Instruction: "fix only, no refactor, no feature additions"
+- Scope: `server/` only. NEVER touch `app/`.
+
+### Cross-Layer (both)
+
+Spawn both agents in parallel:
+1. `backend-builder` agent — fixes server/ changes
+2. `flutter-builder` agent — fixes app/ changes
+Wait for both to complete.
+
+### Agent Rules
+- Each agent works ONLY in its designated directory
+- No agent may modify `docs/`
+- No agent may run `git commit`, `git add`, or `git push`
 - Do NOT refactor surrounding code
 - Do NOT add features beyond the fix
-- Do NOT touch files unrelated to the bug
 - Follow existing code patterns
 
 ## Step 3: QA
