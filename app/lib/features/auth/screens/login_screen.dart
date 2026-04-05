@@ -1,11 +1,14 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../providers/auth_provider.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -52,6 +55,22 @@ class LoginScreen extends StatelessWidget {
                   ),
                 ),
               ),
+              if (kDebugMode)
+                TextButton(
+                  onPressed: () async {
+                    final user = await ref
+                        .read(authStateProvider.notifier)
+                        .devLogin();
+                    if (context.mounted) {
+                      if (user.isNew) {
+                        context.go('/profile-setup');
+                      } else {
+                        context.go('/my-page');
+                      }
+                    }
+                  },
+                  child: const Text('Dev Login'),
+                ),
               const SizedBox(height: 40),
             ],
           ),

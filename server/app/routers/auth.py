@@ -4,6 +4,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.exceptions import AppException
@@ -30,6 +31,33 @@ async def kakao_login(
     profile_image_url = profile.get("profile_image_url")
 
     user, is_new = await auth_service.login_or_register(db, kakao_id, nickname, profile_image_url)
+
+    access_token = auth_service.create_access_token(user.id)
+    refresh_token = auth_service.create_refresh_token(user.id)
+
+    return DataResponse(
+        data=AuthLoginResponse(
+            access_token=access_token,
+            refresh_token=refresh_token,
+            user=UserWithIsNew(
+                id=user.id,
+                nickname=user.nickname,
+                profile_image_url=user.profile_image_url,
+                is_new=is_new,
+            ),
+        )
+    )
+
+
+@router.post("/dev-login", response_model=DataResponse[AuthLoginResponse])
+async def dev_login(
+    db: AsyncSession = Depends(get_db),
+):
+    if not settings.DEBUG:
+        raise AppException(403, "FORBIDDEN", "Not available in production.")
+
+    DEV_KAKAO_ID = 9999999999
+    user, is_new = await auth_service.login_or_register(db, DEV_KAKAO_ID, "dev_user", None)
 
     access_token = auth_service.create_access_token(user.id)
     refresh_token = auth_service.create_refresh_token(user.id)

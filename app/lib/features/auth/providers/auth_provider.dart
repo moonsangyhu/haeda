@@ -113,6 +113,31 @@ class AuthState extends _$AuthState {
     }
   }
 
+  /// 개발 환경 전용: Kakao OAuth 없이 고정 테스트 계정으로 로그인
+  Future<AuthUser> devLogin() async {
+    state = const AsyncLoading();
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.post('/auth/dev-login');
+      final loginData = AuthLoginData.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+      final storage = ref.read(tokenStorageProvider);
+      await storage.saveTokens(
+        accessToken: loginData.accessToken,
+        refreshToken: loginData.refreshToken,
+      );
+      state = AsyncData(loginData.user);
+      return loginData.user;
+    } on DioException catch (e, st) {
+      state = AsyncError(e.error ?? e, st);
+      rethrow;
+    } catch (e, st) {
+      state = AsyncError(e, st);
+      rethrow;
+    }
+  }
+
   /// 로그아웃 — 토큰 삭제 및 상태 초기화
   Future<void> logout() async {
     final storage = ref.read(tokenStorageProvider);
