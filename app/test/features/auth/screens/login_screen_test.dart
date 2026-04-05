@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
+import 'package:haeda/features/auth/models/auth_models.dart';
+import 'package:haeda/features/auth/providers/auth_provider.dart';
 import 'package:haeda/features/auth/screens/login_screen.dart';
 
-Widget _buildTestApp({String? navigatedTo}) {
-  String? captured;
+Widget _buildTestApp({List<Override> overrides = const []}) {
   final router = GoRouter(
     initialLocation: '/login',
     routes: [
@@ -14,15 +16,23 @@ Widget _buildTestApp({String? navigatedTo}) {
       ),
       GoRoute(
         path: '/kakao-oauth',
-        builder: (context, state) {
-          captured = '/kakao-oauth';
-          return const Scaffold(body: Text('카카오 OAuth'));
-        },
+        builder: (context, state) => const Scaffold(body: Text('카카오 OAuth')),
+      ),
+      GoRoute(
+        path: '/my-page',
+        builder: (context, state) => const Scaffold(body: Text('내 페이지')),
+      ),
+      GoRoute(
+        path: '/profile-setup',
+        builder: (context, state) => const Scaffold(body: Text('프로필 설정')),
       ),
     ],
   );
 
-  return MaterialApp.router(routerConfig: router);
+  return ProviderScope(
+    overrides: overrides,
+    child: MaterialApp.router(routerConfig: router),
+  );
 }
 
 void main() {
@@ -45,15 +55,55 @@ void main() {
       expect(find.text('카카오로 시작하기'), findsOneWidget);
     });
 
-    testWidgets('"카카오로 시작하기" 버튼 탭 시 /kakao-oauth로 이동한다',
+    testWidgets(
+        'KAKAO_APP_KEY 미설정 시 "카카오로 시작하기" 버튼 탭 시 devLogin 호출 후 /my-page로 이동한다',
         (tester) async {
-      await tester.pumpWidget(_buildTestApp());
+      // In test environment, KakaoConfig.appKey is always 'KAKAO_APP_KEY_NOT_SET'
+      // so the button should call devLogin() and navigate based on isNew
+      await tester.pumpWidget(
+        _buildTestApp(overrides: [
+          authStateProvider.overrideWith(
+            () => _MockAuthNotifier(isNew: false),
+          ),
+        ]),
+      );
       await tester.pumpAndSettle();
 
       await tester.tap(find.text('카카오로 시작하기'));
       await tester.pumpAndSettle();
 
-      expect(find.text('카카오 OAuth'), findsOneWidget);
+      expect(find.text('내 페이지'), findsOneWidget);
+    });
+
+    testWidgets(
+        'KAKAO_APP_KEY 미설정 시 isNew=true 이면 /profile-setup으로 이동한다',
+        (tester) async {
+      await tester.pumpWidget(
+        _buildTestApp(overrides: [
+          authStateProvider.overrideWith(
+            () => _MockAuthNotifier(isNew: true),
+          ),
+        ]),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('카카오로 시작하기'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('프로필 설정'), findsOneWidget);
     });
   });
+}
+
+class _MockAuthNotifier extends AuthState {
+  _MockAuthNotifier({required this.isNew});
+  final bool isNew;
+
+  @override
+  AsyncValue<AuthUser?> build() => const AsyncData(null);
+
+  @override
+  Future<AuthUser> devLogin() async {
+    return AuthUser(id: 'test-user', isNew: isNew);
+  }
 }

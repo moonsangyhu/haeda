@@ -267,8 +267,38 @@ def phase_report(run: RefineState, analysis: dict, verify: dict) -> None:
     run.save()
 
 
+def _find_commits_since(since_iso: str) -> list[str]:
+    """Find commit hashes created after the given ISO timestamp.
+
+    Detects commits Claude made during implement phase (despite being told not to).
+    """
+    result = subprocess.run(
+        ["git", "log", "--since", since_iso, "--format=%H", "--reverse"],
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+    )
+    return [h.strip() for h in result.stdout.strip().split("\n") if h.strip()]
+
+
+def _get_head_short() -> str:
+    result = subprocess.run(
+        ["git", "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=str(REPO_ROOT),
+    )
+    return result.stdout.strip()
+
+
 def phase_commit(run: RefineState, analysis: dict) -> str | None:
-    """COMMIT: Scoped git commit. Returns commit hash or None."""
+    """COMMIT: Scoped git commit. Returns commit hash or None.
+
+    Handles two cases:
+    1. Normal: uncommitted changes exist → stage scoped files → commit
+    2. Claude already committed: no uncommitted changes but new commits
+       exist since run started → adopt the latest commit hash
+    """
     log.info("=== PHASE: COMMIT ===")
     run.transition("commit")
 
@@ -287,73 +317,89 @@ def phase_commit(run: RefineState, analysis: dict) -> str | None:
         line = line.strip()
         if not line:
             continue
-        # Parse: "XY path" or "XY path -> newpath"
         path = line[3:].split(" -> ")[-1]
         all_changed.append(path)
 
-    if not all_changed:
-        log.info("No changes to commit")
-        return None
+    # Case 1: uncommitted changes exist → stage and commit
+    if all_changed:
+        scope_prefixes = []
+        if area in ("frontend", "both"):
+            scope_prefixes.extend(_SCOPE_PATHS["frontend"])
+        if area in ("backend", "both"):
+            scope_prefixes.extend(_SCOPE_PATHS["backend"])
 
-    # Filter by scope
-    scope_prefixes = []
-    if area in ("frontend", "both"):
-        scope_prefixes.extend(_SCOPE_PATHS["frontend"])
-    if area in ("backend", "both"):
-        scope_prefixes.extend(_SCOPE_PATHS["backend"])
+        scoped = [f for f in all_changed if any(f.startswith(p) for p in scope_prefixes)]
 
-    scoped = [f for f in all_changed if any(f.startswith(p) for p in scope_prefixes)]
+        if not scoped:
+            log.info("No in-scope changes to commit (changed: %d, in-scope: 0)", len(all_changed))
+            # Fall through to case 2 check
+        else:
+            for f in scoped:
+                subprocess.run(["git", "add", f], cwd=str(REPO_ROOT))
 
-    if not scoped:
-        log.info("No in-scope changes to commit (changed: %d, in-scope: 0)", len(all_changed))
-        return None
+            if area == "frontend":
+                prefix = "refine(front)"
+            elif area == "backend":
+                prefix = "refine(backend)"
+            else:
+                prefix = "refine"
 
-    # Stage files individually
-    for f in scoped:
-        subprocess.run(["git", "add", f], cwd=str(REPO_ROOT))
+            msg = (
+                f"{prefix}: {summary}\n\n"
+                f"Refinement run: {run.run_id}\n\n"
+                f"Co-Authored-By: Claude <noreply@anthropic.com>"
+            )
 
-    # Commit message
-    if area == "frontend":
-        prefix = "refine(front)"
-    elif area == "backend":
-        prefix = "refine(backend)"
-    else:
-        prefix = "refine"
+            result = subprocess.run(
+                ["git", "commit", "-m", msg],
+                capture_output=True,
+                text=True,
+                cwd=str(REPO_ROOT),
+            )
 
-    msg = (
-        f"{prefix}: {summary}\n\n"
-        f"Refinement run: {run.run_id}\n\n"
-        f"Co-Authored-By: Claude <noreply@anthropic.com>"
-    )
+            if result.returncode != 0:
+                err = result.stderr.strip()[:200]
+                log.error("Commit failed: %s", err)
+                run.error = f"Commit failed: {err}"
+                run.save()
+                return None
 
+            commit_hash = _get_head_short()
+            run.commit_hash = commit_hash
+            run.save()
+            log.info("Committed: %s (%d files)", commit_hash, len(scoped))
+            return commit_hash
+
+    # Case 2: Claude already committed during implement phase
+    # Check for commits made since run started
+    if run.started_at:
+        new_commits = _find_commits_since(run.started_at)
+        if new_commits:
+            commit_hash = _get_head_short()
+            run.commit_hash = commit_hash
+            run.save()
+            log.info(
+                "Adopted existing commit(s): %s (%d commit(s) since run start)",
+                commit_hash,
+                len(new_commits),
+            )
+            return commit_hash
+
+    log.info("No changes to commit")
+    return None
+
+
+def _has_unpushed_commits() -> bool:
+    """Check if there are commits ahead of remote."""
     result = subprocess.run(
-        ["git", "commit", "-m", msg],
+        ["git", "rev-list", "--count", "@{u}..HEAD"],
         capture_output=True,
         text=True,
         cwd=str(REPO_ROOT),
     )
-
     if result.returncode != 0:
-        err = result.stderr.strip()[:200]
-        log.error("Commit failed: %s", err)
-        run.error = f"Commit failed: {err}"
-        run.save()
-        return None
-
-    # Get commit hash
-    hash_result = subprocess.run(
-        ["git", "rev-parse", "--short", "HEAD"],
-        capture_output=True,
-        text=True,
-        cwd=str(REPO_ROOT),
-    )
-    commit_hash = hash_result.stdout.strip()
-
-    run.commit_hash = commit_hash
-    run.save()
-
-    log.info("Committed: %s (%d files)", commit_hash, len(scoped))
-    return commit_hash
+        return True  # No upstream → needs push
+    return int(result.stdout.strip()) > 0
 
 
 def phase_push(run: RefineState) -> bool:
@@ -365,6 +411,13 @@ def phase_push(run: RefineState) -> bool:
         run.push_status = "skipped"
         run.save()
         log.info("Push skipped (AUTO_PUSH=0)")
+        return True
+
+    # Skip if nothing to push
+    if not _has_unpushed_commits():
+        run.push_status = "skipped"
+        run.save()
+        log.info("Nothing to push — already up to date")
         return True
 
     result = subprocess.run(

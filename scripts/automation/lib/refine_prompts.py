@@ -111,8 +111,8 @@ def generate_implement_prompt(
 Run after changes: {test_cmd}
 Ensure all tests pass. Fix any test failures before finishing.
 
-### Important
-- Do NOT run git commit or git push.
+### CRITICAL
+- Do NOT run git commit, git add, or git push. The pipeline handles all git operations.
 - Do NOT modify any files in docs/.
 """
 
@@ -158,8 +158,8 @@ Reason: {failure_reason}
 ### Verification
 Run: {test_cmd}
 
-### Important
-- Do NOT run git commit or git push.
+### CRITICAL
+- Do NOT run git commit, git add, or git push. The pipeline handles all git operations.
 """
 
 

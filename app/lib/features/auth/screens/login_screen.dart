@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/auth_provider.dart';
+import 'kakao_oauth_screen.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});
@@ -38,7 +39,22 @@ class LoginScreen extends ConsumerWidget {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: () => context.push('/kakao-oauth'),
+                  onPressed: () async {
+                    if (KakaoConfig.appKey == 'KAKAO_APP_KEY_NOT_SET') {
+                      final user = await ref
+                          .read(authStateProvider.notifier)
+                          .devLogin();
+                      if (context.mounted) {
+                        if (user.isNew) {
+                          context.go('/profile-setup');
+                        } else {
+                          context.go('/my-page');
+                        }
+                      }
+                    } else {
+                      context.push('/kakao-oauth');
+                    }
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFEE500),
                     foregroundColor: const Color(0xFF191919),
