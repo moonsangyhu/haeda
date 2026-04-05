@@ -1,15 +1,21 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_exception.dart';
 
-// TODO: auth 슬라이스 완성 후 실제 토큰 관리로 교체
-const _testAccessToken = '11111111-1111-1111-1111-111111111111';
 const _baseUrl = 'http://localhost:8000/api/v1';
 
-class AuthInterceptor extends Interceptor {
+class AuthInterceptor extends QueuedInterceptorsWrapper {
   @override
-  void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    options.headers['Authorization'] = 'Bearer $_testAccessToken';
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    const storage = FlutterSecureStorage();
+    final token = await storage.read(key: 'access_token');
+    if (token != null) {
+      options.headers['Authorization'] = 'Bearer $token';
+    }
     handler.next(options);
   }
 }
