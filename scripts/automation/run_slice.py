@@ -47,6 +47,7 @@ from lib.phases import (
     phase_plan,
     phase_qa,
     phase_remediate,
+    phase_verify,
 )
 from lib.state import RunState
 from lib.worktree import cleanup_all
@@ -237,6 +238,10 @@ def _resolve_resume_phase(run: RunState) -> str:
     if run.qa_verdict and run.qa_verdict != "complete":
         return "qa"
 
+    # QA complete but verify not passed → resume from verify
+    if run.qa_verdict == "complete" and run.verify_status != "passed":
+        return "verify"
+
     # Fallback: re-run from build
     return "build"
 
@@ -263,11 +268,11 @@ async def run_orchestrator(
     # Load or create state
     if resume and (rd / "run.json").exists():
         run = RunState.load(rd)
-        if run.phase == "failed":
+        if run.phase in ("failed", "incomplete"):
             resolved = _resolve_resume_phase(run)
             log.info(
-                "Resuming %s: phase was 'failed' (error: %s) → resuming from '%s'",
-                slice_name, (run.error or "?")[:80], resolved,
+                "Resuming %s: phase was '%s' (error: %s) → resuming from '%s'",
+                slice_name, run.phase, (run.error or "?")[:80], resolved,
             )
             run.phase = resolved
             run.status = resolved
@@ -328,6 +333,15 @@ async def run_orchestrator(
             await phase_merge(run)
             reporter.notify_phase_change()
 
+        # Helper: verify → complete sequence
+        async def _verify_and_complete():
+            reporter.notify_phase_change()
+            await phase_verify(run)
+            reporter.notify_phase_change()
+            await phase_complete(run, plan)
+            reporter.notify_phase_change()
+            _print_final(run)
+
         # QA phase
         if run.phase in ("merge", "qa"):
             reporter.notify_phase_change()
@@ -336,9 +350,7 @@ async def run_orchestrator(
             verdict = qa_data.get("verdict", "incomplete")
 
             if verdict == "complete":
-                await phase_complete(run, plan)
-                reporter.notify_phase_change()
-                _print_final(run)
+                await _verify_and_complete()
                 return
 
             # Not complete — try remediation
@@ -353,9 +365,7 @@ async def run_orchestrator(
                 verdict = qa_data.get("verdict", "incomplete")
 
                 if verdict == "complete":
-                    await phase_complete(run, plan)
-                    reporter.notify_phase_change()
-                    _print_final(run)
+                    await _verify_and_complete()
                     return
 
             # Still not complete after remediation
@@ -364,6 +374,11 @@ async def run_orchestrator(
                 "Manual intervention required."
             )
             _print_final(run)
+
+        # VERIFY phase (resume directly into verify)
+        if run.phase == "verify":
+            await _verify_and_complete()
+            return
 
         # REMEDIATE phase (resume into remediate)
         if run.phase == "remediate":
@@ -386,9 +401,7 @@ async def run_orchestrator(
                 reporter.notify_phase_change()
 
                 if qa_data.get("verdict") == "complete":
-                    await phase_complete(run, plan)
-                    reporter.notify_phase_change()
-                    _print_final(run)
+                    await _verify_and_complete()
                     return
 
             run.mark_failed("Remediation exhausted. Manual intervention required.")
@@ -405,26 +418,46 @@ async def run_orchestrator(
 
 
 def _print_final(run: RunState) -> None:
-    """Print final status summary."""
+    """Print final status summary with git status and verify info."""
+    from lib.phases import _get_git_status
+    from lib.config import TEST_REPORTS_DIR
+
     rd = run._run_dir
-    print(f"\n{'=' * 50}")
-    print(f"Slice:   {run.slice_name}")
-    print(f"Status:  {run.status}")
-    print(f"Phase:   {run.phase}")
-    print(f"QA:      {run.qa_verdict or 'N/A'}")
-    print(f"Retries: {run.retry_count}")
+    git = _get_git_status()
+    report_exists = (TEST_REPORTS_DIR / f"{run.slice_name}-test-report.md").exists()
+
+    print(f"\n{'=' * 60}")
+    print(f"  Slice:    {run.slice_name}")
+    print(f"  Status:   {run.status}")
+    print(f"  Phase:    {run.phase}")
+    print(f"  QA:       {run.qa_verdict or 'N/A'}")
+    print(f"  Verify:   {run.verify_status or 'N/A'}")
+    print(f"  Retries:  {run.retry_count}")
+    print(f"  Report:   {'YES' if report_exists else 'MISSING'}")
+    print(f"  Git:      {git['dirty_count']} uncommitted, {git['ahead_count']} unpushed")
 
     if run.error:
-        print(f"Error:   {run.error}")
+        print(f"  Error:    {run.error}")
 
-    print(f"\nArtifacts: {rd}")
-    print(f"  run.json          — compact state")
+    # Next actions
+    actions = []
+    if git["needs_commit"]:
+        actions.append("git add -A && git commit")
+    if git["needs_push"]:
+        actions.append("git push")
+    if not report_exists and run.status != "failed":
+        actions.append("generate test-report")
+
+    if actions:
+        print(f"\n  Next:     {' → '.join(actions)}")
+
+    print(f"\n  Artifacts: {rd}")
     if (rd / "results" / "summary.md").exists():
-        print(f"  results/summary.md — final summary")
-    if (rd / "results" / "qa-summary.md").exists():
-        print(f"  results/qa-summary.md — QA details")
-    print(f"  logs/             — full Claude output")
-    print(f"{'=' * 50}")
+        print(f"    results/summary.md")
+    if (rd / "results" / "verify-summary.md").exists():
+        print(f"    results/verify-summary.md")
+    print(f"    logs/")
+    print(f"{'=' * 60}")
 
 
 def main():

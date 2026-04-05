@@ -257,6 +257,67 @@ Output ONLY a JSON object (no markdown fences):
 """
 
 
+def generate_verify_prompt(slice_name: str) -> str:
+    """Prompt for post-QA local stack verification.
+
+    Runs docker compose, smoke tests, and generates test-report.
+    """
+    return f"""## {slice_name} Post-QA Local Verification
+
+### Task
+Verify the full stack works locally after QA approval.
+
+### Steps (execute in order)
+
+1. **Start local stack**
+   ```bash
+   docker compose down 2>/dev/null; docker compose up --build -d
+   ```
+   Wait for all services to be healthy:
+   ```bash
+   docker compose ps
+   ```
+   All 3 services (db, backend, frontend) must show "healthy" or "Up".
+
+2. **Backend health check**
+   ```bash
+   curl -sf http://localhost:8000/health
+   ```
+
+3. **Backend tests**
+   ```bash
+   cd server && uv run pytest -v --tb=short
+   ```
+
+4. **Frontend tests**
+   ```bash
+   cd app && flutter test
+   ```
+
+5. **Generate test report**
+   Write a test report to `test-reports/{slice_name}-test-report.md` with:
+   - Slice name and date
+   - Backend test results (passed/failed counts)
+   - Frontend test results (passed/failed counts)
+   - Local stack status (services healthy)
+   - Verdict: complete / partial / incomplete
+
+### Output
+Output ONLY a JSON object (no markdown fences):
+{{{{
+  "stack_healthy": true or false,
+  "backend_health": true or false,
+  "tests_backend": "N passed, M failed",
+  "tests_frontend": "N passed, M failed",
+  "test_report_written": true or false,
+  "test_report_path": "test-reports/{slice_name}-test-report.md",
+  "smoke_passed": true or false,
+  "verdict": "passed" or "failed",
+  "failure_reason": null or "description"
+}}}}
+"""
+
+
 def generate_continuation_prompt(
     slice_name: str,
     role: str,

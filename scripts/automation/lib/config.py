@@ -42,8 +42,12 @@ PHASE_BUILD = "build"
 PHASE_MERGE = "merge"
 PHASE_QA = "qa"
 PHASE_REMEDIATE = "remediate"
+PHASE_VERIFY = "verify"  # post-QA: test-report + local stack + smoke
 PHASE_COMPLETE = "complete"
 PHASE_FAILED = "failed"
+
+# Max turns for verify phase (lightweight: just run docker + smoke)
+MAX_TURNS_VERIFY = 15
 
 # Task statuses
 STATUS_PENDING = "pending"

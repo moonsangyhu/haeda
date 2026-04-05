@@ -20,6 +20,7 @@ from .config import (
     MAX_TURNS_PLAN,
     MAX_TURNS_QA,
     MAX_TURNS_REMEDIATE,
+    MAX_TURNS_VERIFY,
     PHASE_BUILD,
     PHASE_COMPLETE,
     PHASE_FAILED,
@@ -27,7 +28,9 @@ from .config import (
     PHASE_PLAN,
     PHASE_QA,
     PHASE_REMEDIATE,
+    PHASE_VERIFY,
     REPO_ROOT,
+    TEST_REPORTS_DIR,
 )
 from .prompts import (
     generate_backend_prompt,
@@ -37,6 +40,7 @@ from .prompts import (
     generate_qa_prompt,
     generate_re_review_prompt,
     generate_remediate_prompt,
+    generate_verify_prompt,
     save_prompt,
 )
 from .state import RunState, TaskState
@@ -444,29 +448,175 @@ async def phase_remediate(run: RunState, qa_data: dict) -> None:
             log.warning("Remediation failed for %s (exit %d)", role, result.exit_code)
 
 
+async def phase_verify(run: RunState) -> dict:
+    """VERIFY: Post-QA local stack verification + test-report generation.
+
+    Starts docker compose, runs smoke tests, writes test-report to repo.
+    Returns verify result dict.
+    """
+    log.info("=== PHASE: VERIFY (local stack + smoke + test-report) ===")
+    run.transition(PHASE_VERIFY)
+
+    rd = run._run_dir
+    prompt = generate_verify_prompt(run.slice_name)
+    save_prompt(prompt, rd / "prompts" / "verify.md")
+
+    result = await run_claude(
+        prompt=prompt,
+        cwd=REPO_ROOT,
+        log_file=rd / "logs" / "verify.log",
+        allowed_tools=["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
+        max_turns=MAX_TURNS_VERIFY,
+    )
+
+    # Parse result
+    try:
+        verify_data = _parse_json_result(result.result_text)
+    except (json.JSONDecodeError, ValueError):
+        log.warning("Could not parse verify JSON")
+        verify_data = {"verdict": "failed", "failure_reason": "Failed to parse verify output"}
+
+    verdict = verify_data.get("verdict", "failed")
+    run.verify_status = verdict
+
+    # Save verify summary
+    verify_summary = [
+        f"# Verify Result — {run.slice_name}",
+        f"\nVerdict: **{verdict}**",
+        f"Stack healthy: {verify_data.get('stack_healthy', '?')}",
+        f"Backend health: {verify_data.get('backend_health', '?')}",
+        f"Backend tests: {verify_data.get('tests_backend', '?')}",
+        f"Frontend tests: {verify_data.get('tests_frontend', '?')}",
+        f"Smoke passed: {verify_data.get('smoke_passed', '?')}",
+        f"Test report written: {verify_data.get('test_report_written', '?')}",
+    ]
+    if verify_data.get("failure_reason"):
+        verify_summary.append(f"Failure: {verify_data['failure_reason']}")
+
+    (rd / "results" / "verify-summary.md").write_text("\n".join(verify_summary) + "\n")
+    run.save()
+
+    return verify_data
+
+
+def _check_completion_gates(run: RunState) -> list[str]:
+    """Check all gates required for complete status. Returns list of failures."""
+    failures = []
+
+    # Gate 1: test-report exists in repo
+    report_path = TEST_REPORTS_DIR / f"{run.slice_name}-test-report.md"
+    if not report_path.exists():
+        failures.append(f"test-report missing: {report_path}")
+
+    # Gate 2: verify phase passed
+    if run.verify_status != "passed":
+        failures.append(f"local verification: {run.verify_status or 'not run'}")
+
+    # Gate 3: all tasks done
+    for role in ("backend", "frontend", "qa"):
+        task = run.get_task_state(role)
+        if task.status != "done" or (task.exit_code is not None and task.exit_code != 0):
+            failures.append(f"{role} task: status={task.status} exit={task.exit_code}")
+
+    # Gate 4: QA verdict
+    if run.qa_verdict != "complete":
+        failures.append(f"qa verdict: {run.qa_verdict}")
+
+    # Gate 5: main worktree has expected changes
+    import subprocess
+    for check_dir in ("server/app", "app/lib"):
+        check_path = REPO_ROOT / check_dir
+        if not check_path.exists():
+            failures.append(f"main worktree missing: {check_dir}/")
+
+    return failures
+
+
+def _get_git_status() -> dict:
+    """Get compact git status for summary."""
+    import subprocess
+
+    dirty = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    dirty_files = [l.strip() for l in dirty.stdout.strip().split("\n") if l.strip()]
+
+    # Check if ahead of remote
+    ahead = subprocess.run(
+        ["git", "rev-list", "--count", "@{u}..HEAD"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    ahead_count = int(ahead.stdout.strip()) if ahead.returncode == 0 else 0
+
+    return {
+        "dirty_count": len(dirty_files),
+        "dirty_files": dirty_files[:10],  # cap at 10 for compactness
+        "ahead_count": ahead_count,
+        "needs_commit": len(dirty_files) > 0,
+        "needs_push": ahead_count > 0,
+    }
+
+
 async def phase_complete(run: RunState, plan: dict) -> None:
-    """COMPLETE: Commit, push, and generate final summary."""
+    """COMPLETE: Final gate check + summary. No auto-push by default."""
     log.info("=== PHASE: COMPLETE ===")
-    run.transition(PHASE_COMPLETE)
 
     rd = run._run_dir
 
-    # Commit + push
-    pushed = commit_and_push(run.slice_name)
+    # Check all completion gates
+    gate_failures = _check_completion_gates(run)
+    git_status = _get_git_status()
 
+    if gate_failures:
+        log.warning("Completion gates failed: %s", gate_failures)
+        run.status = "incomplete"
+        run.phase = "incomplete"
+        run.error = f"Gates failed: {'; '.join(gate_failures)}"
+        run.save()
+    else:
+        run.transition(PHASE_COMPLETE)
+
+    # Build summary
     summary = [
-        f"# {run.slice_name} — Complete",
+        f"# {run.slice_name} — {'Complete' if not gate_failures else 'Incomplete'}",
         f"\n## Goal\n{plan.get('goal', 'N/A')}",
-        f"\n## Verdict: {run.qa_verdict}",
+        f"\n## QA Verdict: {run.qa_verdict}",
+        f"Local Verify: {run.verify_status or 'not run'}",
         f"Retries: {run.retry_count}",
-        f"Git push: {'OK' if pushed else 'FAILED (manual push required)'}",
+        f"\n## Completion Gates",
+    ]
+
+    if gate_failures:
+        for f in gate_failures:
+            summary.append(f"- FAIL: {f}")
+    else:
+        summary.append("- All gates passed")
+
+    test_report_path = TEST_REPORTS_DIR / f"{run.slice_name}-test-report.md"
+    summary.extend([
+        f"\n## Test Report",
+        f"- Path: {test_report_path}",
+        f"- Exists: {test_report_path.exists()}",
+        f"\n## Git Status",
+        f"- Uncommitted files: {git_status['dirty_count']}",
+        f"- Commits ahead of remote: {git_status['ahead_count']}",
+        f"- Needs commit: {git_status['needs_commit']}",
+        f"- Needs push: {git_status['needs_push']}",
+    ])
+
+    if git_status["needs_commit"]:
+        summary.append(f"\n**Action required**: Run `git add -A && git commit` or `/role-scoped-commit-push`")
+    if git_status["needs_push"]:
+        summary.append(f"**Action required**: Run `git push`")
+
+    summary.extend([
         f"\n## Artifacts",
         f"- Run state: run.json",
         f"- QA summary: {run.qa_summary_file}",
-        f"- Backend log: logs/backend.log",
-        f"- Frontend log: logs/frontend.log",
-        f"- QA log: logs/qa.log",
-    ]
+        f"- Verify summary: results/verify-summary.md",
+        f"- Logs: logs/",
+    ])
 
     (rd / "results" / "summary.md").write_text("\n".join(summary) + "\n")
     run.summary_file = "results/summary.md"
@@ -474,6 +624,7 @@ async def phase_complete(run: RunState, plan: dict) -> None:
     run.finished_at = _now()
     run.save()
 
-    if not pushed:
-        log.warning("Auto-push failed. Run 'git push' manually.")
-    log.info("Slice %s completed successfully!", run.slice_name)
+    if gate_failures:
+        log.warning("Slice %s: incomplete — %d gate(s) failed", run.slice_name, len(gate_failures))
+    else:
+        log.info("Slice %s completed successfully!", run.slice_name)

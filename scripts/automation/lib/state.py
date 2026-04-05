@@ -64,6 +64,7 @@ class RunState:
     phase: str = "plan"
     retry_count: int = 0
     qa_verdict: Optional[str] = None  # complete | partial | incomplete
+    verify_status: Optional[str] = None  # passed | failed | skipped
     next_slice_name: Optional[str] = None
 
     # Pointer paths (relative to run dir)
