@@ -17,5 +17,9 @@
   "statusLine": {
     "type": "command",
     "command": "echo \"ctx:${CLAUDE_CONTEXT_WINDOW_USED_PERCENTAGE}% | ${CLAUDE_WORKTREE_BRANCH:-$(git branch --show-current)} | ${CLAUDE_SESSION_NAME:-unnamed}\""
+  },
+  "enabledPlugins": {
+    "frontend-design@claude-plugins-official": true,
+    "oh-my-claudecode@omc": true
   }
 }

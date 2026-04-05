@@ -20,7 +20,7 @@ class ChallengeCompletionScreen extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => context.go('/my-page'),
         ),
         title: const Text('챌린지 완료'),
       ),

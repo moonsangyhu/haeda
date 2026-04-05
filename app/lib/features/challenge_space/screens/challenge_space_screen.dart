@@ -64,7 +64,7 @@ class _ChallengeSpaceScreenState
       appBar: AppBar(
         leading: IconButton(
           icon: const EmojiIcon('⬅️'),
-          onPressed: () => Navigator.of(context).maybePop(),
+          onPressed: () => context.go('/my-page'),
         ),
         title: detailAsync.when(
           loading: () => const Text('챌린지'),
