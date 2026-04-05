@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'core/widgets/main_shell.dart';
 import 'features/auth/screens/splash_screen.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/kakao_oauth_screen.dart';
 import 'features/auth/screens/profile_setup_screen.dart';
 import 'features/my_page/screens/my_page_screen.dart';
+import 'features/explore/screens/explore_screen.dart';
+import 'features/notifications/screens/notifications_placeholder_screen.dart';
 import 'features/challenge_space/screens/challenge_space_screen.dart';
 import 'features/challenge_space/screens/create_verification_screen.dart';
 import 'features/challenge_space/screens/daily_verifications_screen.dart';
@@ -35,11 +38,39 @@ final _router = GoRouter(
       path: '/profile-setup',
       builder: (context, state) => const ProfileSetupScreen(),
     ),
-    // My Page (main screen)
-    GoRoute(
-      path: '/my-page',
-      builder: (context, state) => const MyPageScreen(),
+    // Bottom tab shell: 내 챌린지 / 탐색 / 알림
+    StatefulShellRoute.indexedStack(
+      builder: (context, state, navigationShell) =>
+          MainShell(navigationShell: navigationShell),
+      branches: [
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/my-page',
+              builder: (context, state) => const MyPageScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/explore',
+              builder: (context, state) => const ExploreScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/notifications',
+              builder: (context, state) =>
+                  const NotificationsPlaceholderScreen(),
+            ),
+          ],
+        ),
+      ],
     ),
+    // Detail screens (navigate away from shell)
     GoRoute(
       path: '/challenges/:id',
       builder: (context, state) {

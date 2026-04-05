@@ -1,8 +1,9 @@
+import base64
 import math
 import random
 import string
 import uuid
-from datetime import date
+from datetime import date, datetime, timezone
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -23,6 +24,8 @@ from app.schemas.challenge import (
     CompletionMyResult,
     CompletionResponse,
     JoinResponse,
+    PublicChallengeListItem,
+    PublicChallengeListResponse,
 )
 from app.schemas.user import UserBrief
 
@@ -251,7 +254,7 @@ async def create_challenge(
         verification_frequency=data.verification_frequency,
         photo_required=data.photo_required,
         invite_code=code,
-        is_public=False,
+        is_public=data.is_public,
         status="active",
     )
     db.add(challenge)
@@ -492,4 +495,87 @@ async def get_completion(
             all_completed_days=day_completions_count,
             season_icon_types=season_icon_types,
         ),
+    )
+
+
+def _encode_cursor(dt: datetime) -> str:
+    return base64.urlsafe_b64encode(dt.isoformat().encode()).decode()
+
+
+def _decode_cursor(cursor: str) -> datetime:
+    return datetime.fromisoformat(base64.urlsafe_b64decode(cursor.encode()).decode())
+
+
+async def get_public_challenges(
+    db: AsyncSession,
+    cursor: str | None,
+    limit: int,
+    category: str | None,
+) -> PublicChallengeListResponse:
+    # Clamp limit
+    limit = min(limit, 50)
+
+    # member_count subquery
+    member_count_subq = (
+        select(
+            ChallengeMember.challenge_id,
+            func.count(ChallengeMember.id).label("cnt"),
+        )
+        .group_by(ChallengeMember.challenge_id)
+        .subquery()
+    )
+
+    stmt = (
+        select(Challenge, User, func.coalesce(member_count_subq.c.cnt, 0).label("member_count"))
+        .join(User, Challenge.creator_id == User.id)
+        .outerjoin(member_count_subq, Challenge.id == member_count_subq.c.challenge_id)
+        .where(Challenge.is_public.is_(True))
+        .where(Challenge.status == "active")
+        .order_by(Challenge.created_at.desc())
+        .limit(limit + 1)
+    )
+
+    if category is not None:
+        stmt = stmt.where(Challenge.category == category)
+
+    if cursor is not None:
+        cursor_dt = _decode_cursor(cursor)
+        stmt = stmt.where(Challenge.created_at < cursor_dt)
+
+    result = await db.execute(stmt)
+    rows = result.all()
+
+    has_next = len(rows) > limit
+    rows = rows[:limit]
+
+    items: list[PublicChallengeListItem] = []
+    for row in rows:
+        challenge = row.Challenge
+        creator = row.User
+        member_count = row.member_count
+        items.append(
+            PublicChallengeListItem(
+                id=challenge.id,
+                title=challenge.title,
+                category=challenge.category,
+                start_date=challenge.start_date,
+                end_date=challenge.end_date,
+                member_count=member_count,
+                photo_required=challenge.photo_required,
+                creator=UserBrief(
+                    id=creator.id,
+                    nickname=creator.nickname,
+                    profile_image_url=creator.profile_image_url,
+                ),
+            )
+        )
+
+    next_cursor: str | None = None
+    if has_next and rows:
+        last_challenge = rows[-1].Challenge
+        next_cursor = _encode_cursor(last_challenge.created_at)
+
+    return PublicChallengeListResponse(
+        challenges=items,
+        next_cursor=next_cursor,
     )

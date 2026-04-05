@@ -16,7 +16,7 @@ docs/ files must not be modified in principle. User approval required if modific
 
 ## MVP Guardrails
 
-- Implement P0 scope only. Do not build P1 (public discovery, push notifications, Apple login) or features excluded from MVP.
+- Implement P0 + P1 scope. Do not build features beyond P1 (Apple login, admin dashboard, leaderboards, chat).
 - Do not add entities, endpoints, or screens not defined in the PRD.
 - If a decision corresponding to `docs/prd.md` §9 Open Questions is needed, confirm with user before implementing.
 

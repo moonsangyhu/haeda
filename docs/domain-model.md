@@ -161,6 +161,24 @@ User 1──N DeviceToken
 - UNIQUE(user_id, token)
 - `platform IN ('ios', 'android')`
 
+### 2.8 Notification — P1
+
+> P1: 인앱 알림 히스토리(F-19) 구현 시 추가.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | 고유 ID |
+| user_id | UUID | FK → User, NOT NULL | 수신자 |
+| type | VARCHAR(30) | NOT NULL | 알림 타입 (verification_reminder, member_verified, day_completed, challenge_completed) |
+| title | VARCHAR(200) | NOT NULL | 알림 제목 |
+| body | VARCHAR(500) | NOT NULL | 알림 본문 |
+| data_json | JSONB | | 추가 데이터 (challenge_id 등) |
+| is_read | BOOLEAN | NOT NULL, DEFAULT FALSE | 읽음 여부 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 생성일시 |
+
+**제약 조건:**
+- `type IN ('verification_reminder', 'member_verified', 'day_completed', 'challenge_completed')`
+
 ---
 
 ## 3. 인덱스 설계
@@ -184,6 +202,7 @@ User 1──N DeviceToken
 |--------|--------|------|
 | Challenge | idx_challenge_is_public | 공개 챌린지 탐색 |
 | DeviceToken | idx_device_user | 사용자별 디바이스 조회 |
+| Notification | idx_notification_user_created | 사용자별 알림 목록 (최신순) |
 
 ---
 

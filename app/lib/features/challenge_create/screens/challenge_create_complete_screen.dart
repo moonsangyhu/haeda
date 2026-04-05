@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 
 /// Flow 3 — 생성 완료 화면.
 /// 초대 코드 표시, 링크 복사, 챌린지로 이동 제공.
@@ -13,6 +14,10 @@ class ChallengeCreateCompleteScreen extends StatelessWidget {
     required this.challengeId,
     required this.inviteCode,
   });
+
+  void _shareInviteCode() {
+    Share.share('해다에서 함께 챌린지해요!\n\n챌린지 초대 코드: $inviteCode');
+  }
 
   Future<void> _copyInviteCode(BuildContext context) async {
     await Clipboard.setData(ClipboardData(text: inviteCode));
@@ -79,6 +84,16 @@ class ChallengeCreateCompleteScreen extends StatelessWidget {
                 icon: const Icon(Icons.copy),
                 label: const Text('링크 복사'),
                 style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(48),
+                ),
+              ),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                key: const Key('share_button'),
+                onPressed: _shareInviteCode,
+                icon: const Icon(Icons.share),
+                label: const Text('공유하기'),
+                style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                 ),
               ),

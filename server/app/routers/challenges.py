@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user_id
-from app.schemas.challenge import ChallengeCreate
+from app.schemas.challenge import ChallengeCreate, PublicChallengeListResponse
 from app.services import calendar_service, challenge_service, verification_service
 
 router = APIRouter(prefix="/challenges", tags=["challenges"])
@@ -25,6 +25,22 @@ async def create_challenge(
         db=db,
         user_id=user_id,
         data=body,
+    )
+    return {"data": result.model_dump()}
+
+
+@router.get("")
+async def list_public_challenges(
+    cursor: str | None = Query(default=None, description="페이지네이션 커서"),
+    limit: int = Query(default=20, ge=1, description="페이지 크기 (기본 20, 최대 50)"),
+    category: str | None = Query(default=None, description="카테고리 필터"),
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    result = await challenge_service.get_public_challenges(
+        db=db,
+        cursor=cursor,
+        limit=limit,
+        category=category,
     )
     return {"data": result.model_dump()}
 

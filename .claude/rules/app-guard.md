@@ -11,7 +11,7 @@ This file auto-loads when working in the app/ directory.
 
 1. Verify screen is defined in `docs/user-flows.md`
 2. Verify API response structure is defined in `docs/api-contract.md`
-3. Verify P0 scope — P1 features (discover tab, notification tab, push, Apple login) are forbidden
+3. Verify P0/P1 scope — features beyond P1 (Apple login, admin dashboard, etc.) are forbidden
 
 ## Code Rules
 
@@ -28,6 +28,6 @@ This file auto-loads when working in the app/ directory.
 - Do not modify docs/ files
 - Do not modify server/ (FastAPI) code
 - Do not create screens not in user-flows.md
-- Do not add bottom tab navigation (My Page is the main screen in P0)
+- Do not add features beyond P1 scope
 - Do not hardcode secrets in .env
 - Do not add unnecessary packages

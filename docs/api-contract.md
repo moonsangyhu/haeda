@@ -609,6 +609,58 @@
 
 ---
 
+### GET `/notifications` — 알림 목록 — P1
+
+> P1: 인앱 알림 히스토리(F-19) 구현 시 활성화.
+
+**Query Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| cursor | string | N | 페이지네이션 커서 |
+| limit | int | N | 페이지 크기 (기본 20, 최대 50) |
+
+**Response (200):**
+```json
+{
+  "data": {
+    "notifications": [
+      {
+        "id": "uuid",
+        "type": "member_verified",
+        "title": "string",
+        "body": "string",
+        "data": {
+          "challenge_id": "uuid"
+        },
+        "is_read": false,
+        "created_at": "2026-04-05T12:00:00Z"
+      }
+    ],
+    "next_cursor": "string | null"
+  }
+}
+```
+
+### PUT `/notifications/{id}/read` — 알림 읽음 처리 — P1
+
+**Response (200):**
+```json
+{
+  "data": {
+    "id": "uuid",
+    "is_read": true
+  }
+}
+```
+
+**에러:**
+| code | 조건 |
+|------|------|
+| NOTIFICATION_NOT_FOUND | 존재하지 않는 알림 |
+| FORBIDDEN | 본인의 알림이 아님 |
+
+---
+
 ## 7. 푸시 알림 이벤트 (서버 → 클라이언트) — P1
 
 | 이벤트 | 트리거 | 수신자 | payload |

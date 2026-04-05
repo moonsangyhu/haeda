@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:share_plus/share_plus.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../models/calendar_data.dart';
@@ -84,6 +85,19 @@ class _ChallengeSpaceScreenState
             ],
           ),
         ),
+        actions: [
+          if (detailAsync.valueOrNull != null)
+            IconButton(
+              icon: const Icon(Icons.share),
+              tooltip: '초대 코드 공유',
+              onPressed: () {
+                final detail = detailAsync.valueOrNull!;
+                Share.share(
+                  "해다에서 '${detail.title}' 챌린지에 함께해요!\n\n초대 코드: ${detail.inviteCode}",
+                );
+              },
+            ),
+        ],
       ),
       body: detailAsync.when(
         loading: () => const LoadingWidget(),
