@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../my_page/providers/my_challenges_provider.dart';
 
 /// Flow 3 — 생성 완료 화면.
 /// 초대 코드 표시, 링크 복사, 챌린지로 이동 제공.
-class ChallengeCreateCompleteScreen extends StatelessWidget {
+class ChallengeCreateCompleteScreen extends ConsumerWidget {
   final String challengeId;
   final String inviteCode;
 
@@ -29,7 +31,7 @@ class ChallengeCreateCompleteScreen extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('챌린지 생성 완료'),
@@ -93,14 +95,17 @@ class ChallengeCreateCompleteScreen extends StatelessWidget {
                   minimumSize: const Size.fromHeight(48),
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               FilledButton(
-                key: const Key('go_to_challenge_button'),
-                onPressed: () => context.go('/challenges/$challengeId'),
+                key: const Key('confirm_button'),
+                onPressed: () {
+                  ref.invalidate(myChallengesProvider);
+                  context.go('/my-page');
+                },
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                 ),
-                child: const Text('챌린지로 이동'),
+                child: const Text('확인'),
               ),
             ],
           ),
