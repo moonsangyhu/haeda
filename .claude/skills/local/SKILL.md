@@ -1,38 +1,38 @@
 ---
 name: local
-description: 로컬 개발 환경(DB, Backend, Frontend)을 docker compose로 한 번에 기동/중지/상태확인한다.
+description: Manage local dev environment (DB, Backend, Frontend) with docker compose — start/stop/status in one command.
 allowed-tools: "Bash Read Glob Grep"
 argument-hint: "[stop|status|reset|rebuild|rebuild backend|rebuild frontend]"
 ---
 
-# 로컬 개발 환경 관리 (Container-First)
+# Local Dev Environment Management (Container-First)
 
-`docker compose`로 전체 스택(DB + Backend + Frontend)을 관리한다.
+Manage the full stack (DB + Backend + Frontend) with `docker compose`.
 
-## 서브커맨드 분기
+## Subcommand Dispatch
 
-- 인자 없음 또는 `up` → **기동 (Start)**
-- `stop` → **중지 (Stop)**
-- `status` → **상태 확인 (Status)**
-- `reset` → **초기화 (Reset)** — 볼륨 삭제 후 재기동
-- `rebuild` → **재빌드 (Rebuild)** — 변경된 코드 반영하여 재빌드+재기동
-- `rebuild backend` → backend만 재빌드
-- `rebuild frontend` → frontend만 재빌드
+- No argument or `up` -> **Start**
+- `stop` -> **Stop**
+- `status` -> **Status Check**
+- `reset` -> **Reset** — delete volumes and restart
+- `rebuild` -> **Rebuild** — rebuild with code changes and restart
+- `rebuild backend` -> rebuild backend only
+- `rebuild frontend` -> rebuild frontend only
 
-인자: `$ARGUMENTS`
+Argument: `$ARGUMENTS`
 
 ---
 
-## Start (기동)
+## Start
 
-### Step 1: 전제조건 확인
+### Step 1: Prerequisites Check
 
 ```bash
 docker --version
 docker compose version
 ```
 
-하나라도 없으면 실패 → Docker Desktop 설치 안내 후 중단.
+If either is missing -> fail with Docker Desktop installation guidance.
 
 ### Step 2: docker compose up
 
@@ -40,17 +40,17 @@ docker compose version
 cd /Users/moonsang.yhu/Documents/haeda && docker compose up --build -d
 ```
 
-이 명령 하나로:
-1. PostgreSQL 기동 + healthcheck 대기
-2. Backend 이미지 빌드 → migration → seed → uvicorn 기동
-3. Frontend 이미지 빌드 (Flutter web build + nginx) → 서빙 시작
+This single command:
+1. Starts PostgreSQL + waits for healthcheck
+2. Builds backend image -> migration -> seed -> starts uvicorn
+3. Builds frontend image (Flutter web build + nginx) -> starts serving
 
-**중요**: 빌드는 시간이 걸릴 수 있다. 특히 최초 빌드 시 Flutter SDK 다운로드가 포함된다.
-Bash tool의 timeout을 600000 (10분)으로 설정한다.
+**Important**: Build may take time. First build includes Flutter SDK download.
+Set Bash tool timeout to 600000 (10 minutes).
 
-### Step 3: 기동 확인
+### Step 3: Startup Verification
 
-빌드 완료 후 health check를 실행한다:
+Run health checks after build completes:
 
 ```bash
 # DB
@@ -63,78 +63,78 @@ curl -s --max-time 10 http://localhost:8000/health
 curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
 ```
 
-### Step 4: 최종 요약
+### Step 4: Summary
 
 ```
-## 로컬 개발 환경 기동 결과 (Container-First)
+## Local Dev Environment Start Result (Container-First)
 
-| 서비스 | 상태 | URL |
-|--------|------|-----|
-| PostgreSQL | ✅ 기동됨 | localhost:5432 |
-| Backend | ✅ 기동됨 | http://localhost:8000 |
-| Frontend | ✅ 기동됨 | http://localhost:3000 |
+| Service | Status | URL |
+|---------|--------|-----|
+| PostgreSQL | Started | localhost:5432 |
+| Backend | Started | http://localhost:8000 |
+| Frontend | Started | http://localhost:3000 |
 
-### 확인 포인트
+### Endpoints
 - Swagger UI: http://localhost:8000/docs
-- Flutter 앱: http://localhost:3000
+- Flutter app: http://localhost:3000
 - Health: http://localhost:8000/health
 
-### 테스트 계정
-| 사용자 | Bearer Token |
-|--------|-------------|
-| 김철수 | 11111111-1111-1111-1111-111111111111 |
-| 이영희 | 22222222-2222-2222-2222-222222222222 |
-| 박지민 | 33333333-3333-3333-3333-333333333333 |
+### Test Accounts
+| User | Bearer Token |
+|------|-------------|
+| Kim Cheolsu | 11111111-1111-1111-1111-111111111111 |
+| Lee Younghee | 22222222-2222-2222-2222-222222222222 |
+| Park Jimin | 33333333-3333-3333-3333-333333333333 |
 
-### 명령어
-- 중지: `/local stop`
-- 상태: `/local status`
-- 초기화 (데이터 삭제 후 재기동): `/local reset`
-- 로그: `docker compose logs -f [backend|frontend|db]`
+### Commands
+- Stop: `/local stop`
+- Status: `/local status`
+- Reset (delete data and restart): `/local reset`
+- Logs: `docker compose logs -f [backend|frontend|db]`
 ```
 
-실패한 서비스가 있으면 ❌로 표시하고 `docker compose logs <서비스>` 명령을 안내한다.
+Mark failed services with "Failed" and provide `docker compose logs <service>` guidance.
 
 ---
 
-## Stop (중지)
+## Stop
 
 ```bash
 cd /Users/moonsang.yhu/Documents/haeda && docker compose down
 ```
 
-중지 후 상태를 요약한다. 데이터는 볼륨에 보존된다.
+Summarize status after stop. Data is preserved in volumes.
 
 ---
 
-## Status (상태 확인)
+## Status
 
 ```bash
-# 컨테이너 상태
+# Container status
 docker compose ps
 
-# 개별 health check
+# Individual health checks
 pg_isready -h localhost -p 5432 2>&1
 curl -s --max-time 3 http://localhost:8000/health 2>&1
 curl -s --max-time 3 -o /dev/null -w "%{http_code}" http://localhost:3000 2>&1
 ```
 
-출력 형식:
+Output format:
 ```
-## 로컬 개발 환경 상태
+## Local Dev Environment Status
 
-| 서비스 | 컨테이너 | 상태 | URL |
-|--------|----------|------|-----|
-| PostgreSQL | haeda-db-1 | ✅/❌ | localhost:5432 |
-| Backend | haeda-backend-1 | ✅/❌ | http://localhost:8000 |
-| Frontend | haeda-frontend-1 | ✅/❌ | http://localhost:3000 |
+| Service | Container | Status | URL |
+|---------|-----------|--------|-----|
+| PostgreSQL | haeda-db-1 | up/down | localhost:5432 |
+| Backend | haeda-backend-1 | up/down | http://localhost:8000 |
+| Frontend | haeda-frontend-1 | up/down | http://localhost:3000 |
 ```
 
 ---
 
-## Reset (초기화)
+## Reset
 
-볼륨을 삭제하고 재기동한다. DB 데이터가 모두 삭제된다.
+Delete volumes and restart. All DB data is deleted.
 
 ```bash
 cd /Users/moonsang.yhu/Documents/haeda && docker compose down -v && docker compose up --build -d
@@ -142,66 +142,66 @@ cd /Users/moonsang.yhu/Documents/haeda && docker compose down -v && docker compo
 
 ---
 
-## Rebuild (재빌드)
+## Rebuild
 
-슬라이스 구현 후 변경사항을 컨테이너에 반영한다. DB 데이터는 유지된다.
+Apply code changes to containers after slice implementation. DB data is preserved.
 
-### 인자 파싱
+### Argument Parsing
 
-- `rebuild` → 전체 재빌드 (backend + frontend)
-- `rebuild backend` → backend만 재빌드
-- `rebuild frontend` → frontend만 재빌드
+- `rebuild` -> full rebuild (backend + frontend)
+- `rebuild backend` -> backend only
+- `rebuild frontend` -> frontend only
 
-### 실행
+### Execution
 
-**전체 재빌드:**
+**Full rebuild:**
 ```bash
 cd /Users/moonsang.yhu/Documents/haeda && docker compose up --build -d backend frontend
 ```
 
-**backend만:**
+**Backend only:**
 ```bash
 cd /Users/moonsang.yhu/Documents/haeda && docker compose up --build -d backend
 ```
 
-**frontend만:**
+**Frontend only:**
 ```bash
 cd /Users/moonsang.yhu/Documents/haeda && docker compose up --build -d frontend
 ```
 
-Bash tool의 timeout을 600000 (10분)으로 설정한다. (frontend 빌드가 느릴 수 있음)
+Set Bash tool timeout to 600000 (10 minutes). (Frontend build may be slow)
 
-### 기동 확인
+### Startup Verification
 
-재빌드 대상 서비스의 health check를 실행한다:
+Run health checks for rebuilt services:
 
 ```bash
-# backend 재빌드 시
+# After backend rebuild
 curl -s --max-time 10 http://localhost:8000/health
 
-# frontend 재빌드 시
+# After frontend rebuild
 curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
 ```
 
-### 출력
+### Output
 
 ```
-## 재빌드 결과
+## Rebuild Result
 
-| 서비스 | 상태 | 소요 시간 |
-|--------|------|-----------|
-| Backend | ✅ 재빌드 완료 | ~Ns |
-| Frontend | ✅ 재빌드 완료 | ~Ns |
+| Service | Status | Duration |
+|---------|--------|----------|
+| Backend | Rebuilt | ~Ns |
+| Frontend | Rebuilt | ~Ns |
 
-브라우저에서 http://localhost:3000 을 새로고침하세요.
+Refresh http://localhost:3000 in your browser.
 ```
 
 ---
 
-## 주의사항
+## Notes
 
-- 최초 빌드는 Flutter SDK 다운로드로 10분 이상 걸릴 수 있다. 이후 빌드는 Docker 캐시로 빠르다.
-- Frontend 변경 후 반영: `docker compose up --build -d frontend`
-- Backend 변경 후 반영: `docker compose up --build -d backend`
-- DB 데이터 초기화: `/local reset`
-- 로그 확인: `docker compose logs -f backend`
+- First build may take 10+ minutes due to Flutter SDK download. Subsequent builds are fast with Docker cache.
+- After frontend changes: `docker compose up --build -d frontend`
+- After backend changes: `docker compose up --build -d backend`
+- Reset DB data: `/local reset`
+- Check logs: `docker compose logs -f backend`

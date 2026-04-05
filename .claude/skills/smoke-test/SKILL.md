@@ -1,31 +1,31 @@
 ---
 name: smoke-test
-description: 로컬 개발 환경 smoke test. Docker Postgres, FastAPI 백엔드, Flutter 웹을 순서대로 확인한다. 슬라이스 구현 후 통합 동작을 검증하거나, "smoke test 해줘"라고 요청받았을 때 사용한다.
+description: Local dev environment smoke test. Checks Docker Postgres, FastAPI backend, and Flutter web in order. Use after slice implementation to verify integration, or when asked to run a smoke test.
 allowed-tools: "Bash Read Glob Grep"
 ---
 
-# 로컬 Smoke Test
+# Local Smoke Test
 
-로컬 개발 환경에서 전체 스택이 정상 동작하는지 순서대로 확인한다.
-`docs/local-dev.md`의 실행 순서를 따른다.
+Verify the full stack works correctly in local dev environment, in order.
+Follows the execution order from `docs/local-dev.md`.
 
-## 사용법
+## Usage
 
 ```
-/smoke-test              # 전체 스택 점검
-/smoke-test backend      # 백엔드만 점검
-/smoke-test frontend     # 프론트엔드만 점검
+/smoke-test              # full stack check
+/smoke-test backend      # backend only
+/smoke-test frontend     # frontend only
 ```
 
-## 절대 원칙
+## Absolute Principles
 
-- 실제 명령을 실행하고 실제 응답을 확인한다. 성공을 가정하거나 추측하지 않는다.
-- 각 단계의 성공 조건이 충족되지 않으면 즉시 실패로 보고한다.
-- 이전 단계가 실패하면 다음 단계로 진행하지 않는다.
-- 서비스를 새로 시작하지 않는다 — 이미 실행 중인 서비스를 확인만 한다.
-  (서비스가 꺼져 있으면 실패로 보고하고 시작 명령을 안내한다)
+- Execute actual commands and verify actual responses. Do not assume or guess success.
+- If a step's success condition is not met, report failure immediately.
+- If a previous step fails, do not proceed to the next step.
+- Do not start services — only verify already-running services.
+  (If a service is down, report failure and provide start command guidance)
 
-## 점검 순서
+## Check Order
 
 ### Step 1: PostgreSQL
 
@@ -33,8 +33,8 @@ allowed-tools: "Bash Read Glob Grep"
 pg_isready -h localhost -p 5432
 ```
 
-- 성공 조건: "accepting connections" 출력
-- 실패 시: `docker compose up -d db` 안내
+- Success: "accepting connections" output
+- Failure: Guide to run `docker compose up -d db`
 
 ### Step 2: Backend Health
 
@@ -42,63 +42,63 @@ pg_isready -h localhost -p 5432
 curl -s http://localhost:8000/health
 ```
 
-- 성공 조건: `{"status":"ok"}` 응답
-- 실패 시: `cd server && uv run uvicorn app.main:app --reload --port 8000` 안내
+- Success: `{"status":"ok"}` response
+- Failure: Guide to run `cd server && uv run uvicorn app.main:app --reload --port 8000`
 
-### Step 3: API 기본 동작
+### Step 3: Basic API Operation
 
-테스트 사용자(김철수)로 API 호출:
+Test with test user (Kim Cheolsu):
 
 ```bash
 curl -s -H "Authorization: Bearer 11111111-1111-1111-1111-111111111111" \
   http://localhost:8000/api/v1/me/challenges
 ```
 
-- 성공 조건: HTTP 200 + `{"data": ...}` 응답
-- 실패 시: 시드 데이터 확인 → `cd server && uv run python seed.py` 안내
+- Success: HTTP 200 + `{"data": ...}` response
+- Failure: Check seed data -> Guide to run `cd server && uv run python seed.py`
 
-### Step 4: Backend 테스트
+### Step 4: Backend Tests
 
 ```bash
 cd server && uv run pytest -v --tb=short
 ```
 
-- 성공 조건: 모든 테스트 통과
-- 실패 시: 실패한 테스트 목록 보고
+- Success: All tests pass
+- Failure: Report failed test list
 
-### Step 5: Flutter 빌드 확인
+### Step 5: Flutter Build Check
 
 ```bash
 cd app && flutter pub get && flutter build web --no-tree-shake-icons
 ```
 
-- 성공 조건: 빌드 성공 (exit code 0)
-- 실패 시: 빌드 에러 보고
+- Success: Build succeeds (exit code 0)
+- Failure: Report build errors
 
-### Step 6: Flutter 테스트
+### Step 6: Flutter Tests
 
 ```bash
 cd app && flutter test
 ```
 
-- 성공 조건: 모든 테스트 통과
-- 실패 시: 실패한 테스트 목록 보고
+- Success: All tests pass
+- Failure: Report failed test list
 
-## 출력 형식
+## Output Format
 
 ```
-## Smoke Test 결과
+## Smoke Test Result
 
-### 환경
-- PostgreSQL: ✅/❌
-- Backend: ✅/❌
-- API: ✅/❌
-- Backend 테스트: ✅/❌ (N passed, M failed)
-- Flutter 빌드: ✅/❌
-- Flutter 테스트: ✅/❌ (N passed, M failed)
+### Environment
+- PostgreSQL: pass/fail
+- Backend: pass/fail
+- API: pass/fail
+- Backend tests: pass/fail (N passed, M failed)
+- Flutter build: pass/fail
+- Flutter tests: pass/fail (N passed, M failed)
 
-### 전체 결과: PASS / FAIL
+### Overall Result: PASS / FAIL
 
-### 실패 항목 (있을 경우)
-- (실패 단계 + 에러 메시지 + 해결 방법)
+### Failed Items (if any)
+- (Failed step + error message + resolution)
 ```

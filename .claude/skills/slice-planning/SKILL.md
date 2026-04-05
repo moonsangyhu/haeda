@@ -1,98 +1,98 @@
 ---
 name: slice-planning
-description: 수직 슬라이스 구현 전 계획 수립 가이드. 구현할 엔드포인트, 화면, 모델, 파일을 docs 기반으로 정리한다. 슬라이스 구현을 시작하기 전, 또는 "계획 세워줘"라고 요청받았을 때 사용한다.
+description: Pre-implementation planning guide for vertical slices. Organizes endpoints, screens, models, and files to implement based on docs. Use before starting slice implementation or when asked to create a plan.
 allowed-tools: "Read Glob Grep"
-argument-hint: "[슬라이스명]"
+argument-hint: "[slice-name]"
 ---
 
-# 수직 슬라이스 계획
+# Vertical Slice Planning
 
-구현을 시작하기 전에 이 가이드를 따라 계획을 세운다.
-목표: docs와 코드 사이의 gap을 구현 전에 파악하고, 작업 범위를 명확히 한다.
+Follow this guide to create a plan before starting implementation.
+Goal: Identify gaps between docs and code before implementation, and clarify work scope.
 
-## 사용법
+## Usage
 
-슬라이스 이름과 함께 호출한다:
+Call with the slice name:
 ```
-/slice-planning 챌린지 생성
+/slice-planning challenge-create
 ```
 
-## 전제 조건
+## Prerequisites
 
-- **Plan Mode에서 실행한다.** 이 스킬은 구현이 아니라 계획이다. Shift+Tab으로 Plan Mode를 확인한다.
-- 계획이 사용자에게 승인되기 전까지 코드를 작성하지 않는다.
-- 계획에 의심되는 부분이 있으면 `spec-keeper` 에이전트로 검증한 뒤 진행한다.
+- **Execute in Plan Mode.** This skill is for planning, not implementation. Verify Plan Mode with Shift+Tab.
+- Do not write code until the plan is approved by the user.
+- If there are questionable parts in the plan, verify with `spec-keeper` agent before proceeding.
 
-## 계획 절차
+## Planning Steps
 
-### Step 1: 범위 확인
+### Step 1: Scope Verification
 
-아래 문서를 읽고 이 슬라이스에 해당하는 부분을 추출한다:
+Read the following documents and extract parts relevant to this slice:
 
-1. **docs/prd.md** → 이 기능이 P0인지 확인. P1이면 중단.
-2. **docs/user-flows.md** → 관련 화면 플로우 식별
-3. **docs/api-contract.md** → 관련 엔드포인트 목록 추출
-4. **docs/domain-model.md** → 관련 엔터티/필드/비즈니스 규칙 추출
+1. **docs/prd.md** -> Verify this feature is P0. Stop if P1.
+2. **docs/user-flows.md** -> Identify related screen flows
+3. **docs/api-contract.md** -> Extract related endpoint list
+4. **docs/domain-model.md** -> Extract related entities/fields/business rules
 
-### Step 2: 백엔드 계획
+### Step 2: Backend Plan
 
-| 항목 | 내용 |
-|------|------|
-| 엔드포인트 | METHOD /path — 각각의 요청/응답 요약 |
-| DB 모델 | 테이블명, 주요 컬럼, 제약 조건 |
-| 서비스 로직 | 비즈니스 규칙 (domain-model.md §4 참조) |
-| 마이그레이션 | 새 테이블/컬럼 필요 여부 |
-| 파일 생성 계획 | server/app/ 하위 경로 |
+| Item | Content |
+|------|---------|
+| Endpoints | METHOD /path — request/response summary for each |
+| DB models | Table name, key columns, constraints |
+| Service logic | Business rules (domain-model.md §4 reference) |
+| Migration | Whether new tables/columns needed |
+| File plan | Paths under server/app/ |
 
-### Step 3: 프론트엔드 계획
+### Step 3: Frontend Plan
 
-| 항목 | 내용 |
-|------|------|
-| 화면 | 화면명, user-flows.md의 어떤 플로우에 해당하는지 |
-| 라우팅 | GoRouter 경로 |
-| API 호출 | 어떤 엔드포인트를 어떤 시점에 호출하는지 |
-| Provider | 필요한 Riverpod provider 목록 |
-| 모델 | freezed DTO 목록 |
-| 파일 생성 계획 | lib/features/ 하위 경로 |
+| Item | Content |
+|------|---------|
+| Screens | Screen name, which flow in user-flows.md |
+| Routing | GoRouter paths |
+| API calls | Which endpoints called at what timing |
+| Providers | Required Riverpod provider list |
+| Models | freezed DTO list |
+| File plan | Paths under lib/features/ |
 
-### Step 4: 체크포인트
+### Step 4: Checkpoint
 
-아래 질문에 모두 "예"여야 구현을 시작한다:
+All questions below must be "yes" before starting implementation:
 
-- [ ] 모든 엔드포인트가 api-contract.md에 정의되어 있는가?
-- [ ] 모든 엔터티/필드가 domain-model.md에 정의되어 있는가?
-- [ ] 모든 화면이 user-flows.md에 정의되어 있는가?
-- [ ] P1 또는 MVP 제외 기능이 포함되지 않았는가?
-- [ ] Open Questions(PRD §9)에 해당하는 미결 사항이 없는가?
+- [ ] All endpoints are defined in api-contract.md?
+- [ ] All entities/fields are defined in domain-model.md?
+- [ ] All screens are defined in user-flows.md?
+- [ ] No P1 or MVP-excluded features are included?
+- [ ] No unresolved items from Open Questions (PRD §9)?
 
-"아니오"가 있으면 구현 전에 사용자에게 확인한다.
+If any answer is "no", confirm with user before implementing.
 
-## 출력 형식
+## Output Format
 
 ```
-## 슬라이스 계획: {슬라이스 이름}
+## Slice Plan: {slice name}
 
-### 범위 확인
-- P0 여부: ✅/❌
-- 관련 플로우: (user-flows.md 플로우 번호)
-- 관련 엔드포인트: (목록)
-- 관련 엔터티: (목록)
+### Scope Verification
+- P0 status: yes/no
+- Related flows: (user-flows.md flow numbers)
+- Related endpoints: (list)
+- Related entities: (list)
 
-### 백엔드 계획
-(Step 2 테이블)
+### Backend Plan
+(Step 2 table)
 
-### 프론트엔드 계획
-(Step 3 테이블)
+### Frontend Plan
+(Step 3 table)
 
-### 체크포인트
-(Step 4 체크리스트 결과)
+### Checkpoint
+(Step 4 checklist results)
 
-### 예상 작업 순서
-1. (첫 번째 작업)
-2. (두 번째 작업)
+### Expected Work Order
+1. (First task)
+2. (Second task)
 ...
 
-### 검증 계획
-- 이 슬라이스의 완료를 어떻게 증명할 것인가 (pytest 시나리오, flutter test 대상, smoke test curl 명령)
-- spec-keeper 확인 필요 여부: 예/아니오 (사유)
+### Verification Plan
+- How to prove this slice is complete (pytest scenarios, flutter test targets, smoke test curl commands)
+- spec-keeper verification needed: yes/no (reason)
 ```

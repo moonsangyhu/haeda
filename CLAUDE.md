@@ -1,99 +1,99 @@
-# Haeda (해다)
+# Haeda
 
-협력형 챌린지 앱 — 참여자 전원이 인증해야 계절 아이콘이 완성되는 달력 기반 동기부여 서비스.
-병원 파일럿(4주) 대상 MVP 개발 중. Flutter + FastAPI + PostgreSQL + 카카오 OAuth.
+Collaborative challenge app — a calendar-based motivation service where seasonal icons are completed only when all participants verify.
+Currently building MVP for a hospital pilot (4 weeks). Flutter + FastAPI + PostgreSQL + Kakao OAuth.
 
 ## Source of Truth
 
-모든 구현 판단의 기준은 아래 4개 문서다. 코드와 문서가 충돌하면 문서가 맞다.
+All implementation decisions are based on these 4 documents. When code and docs conflict, docs are correct.
 
-- `docs/prd.md` — 기능 목록, P0/P1 범위, 비기능 요구사항, 성공 지표
-- `docs/user-flows.md` — 화면 플로우, 화면 구조
-- `docs/domain-model.md` — 엔터티, 필드, 제약 조건, 비즈니스 규칙
-- `docs/api-contract.md` — REST 엔드포인트, 요청/응답 스키마, 에러 코드
+- `docs/prd.md` — feature list, P0/P1 scope, non-functional requirements, success metrics
+- `docs/user-flows.md` — screen flows, screen structure
+- `docs/domain-model.md` — entities, fields, constraints, business rules
+- `docs/api-contract.md` — REST endpoints, request/response schemas, error codes
 
-docs/ 파일은 원칙적으로 수정하지 않는다. 수정이 필요하면 사용자 승인 필수.
+docs/ files must not be modified in principle. User approval required if modification is needed.
 
 ## MVP Guardrails
 
-- P0 범위만 구현한다. P1(공개 탐색, 푸시 알림, Apple 로그인)과 MVP 제외 기능은 만들지 않는다.
-- PRD에 없는 엔터티, 엔드포인트, 화면을 임의로 추가하지 않는다.
-- `docs/prd.md` §9 Open Questions에 해당하는 결정이 필요하면 구현 전에 사용자에게 확인한다.
+- Implement P0 scope only. Do not build P1 (public discovery, push notifications, Apple login) or features excluded from MVP.
+- Do not add entities, endpoints, or screens not defined in the PRD.
+- If a decision corresponding to `docs/prd.md` §9 Open Questions is needed, confirm with user before implementing.
 
 ## Implementation Rules
 
-- **용어**: 코드의 클래스명, 변수명, API 경로는 docs의 영문 용어를 따른다 (Challenge, Verification, DayCompletion, ChallengeMember, Comment).
-- **API 계약**: 경로, 필드명, 타입, 에러 코드는 `api-contract.md`를 그대로 구현한다. 응답은 `{"data": ...}` / `{"error": {"code": "...", "message": "..."}}` envelope을 사용한다.
-- **Flutter**: feature-first 구조, Riverpod, GoRouter, dio. 상세 규칙은 `.claude/skills/flutter-mvp/`.
-- **FastAPI**: SQLAlchemy 2.0 async, Pydantic v2, Alembic. 상세 규칙은 `.claude/skills/fastapi-mvp/`.
-- **계절 아이콘**: 3~5월 spring, 6~8월 summer, 9~11월 fall, 12~2월 winter.
-- **경로별 규칙**: server/ 작업 시 `.claude/rules/server-guard.md`, app/ 작업 시 `.claude/rules/app-guard.md`가 자동 로딩된다.
+- **Terminology**: Class names, variable names, and API paths in code follow the English terms from docs (Challenge, Verification, DayCompletion, ChallengeMember, Comment).
+- **API contract**: Paths, field names, types, and error codes must match `api-contract.md` exactly. Responses use `{"data": ...}` / `{"error": {"code": "...", "message": "..."}}` envelope.
+- **Flutter**: Feature-first structure, Riverpod, GoRouter, dio. Detailed rules in `.claude/skills/flutter-mvp/`.
+- **FastAPI**: SQLAlchemy 2.0 async, Pydantic v2, Alembic. Detailed rules in `.claude/skills/fastapi-mvp/`.
+- **Season icons**: Mar-May spring, Jun-Aug summer, Sep-Nov fall, Dec-Feb winter.
+- **Path-specific rules**: `.claude/rules/server-guard.md` auto-loads for server/ work, `.claude/rules/app-guard.md` auto-loads for app/ work.
 
 ## Workflow Rules
 
-수직 슬라이스 개발 흐름:
+Vertical slice development flow:
 
-1. **계획 (Plan-first)**: Shift+Tab으로 Plan Mode 진입 후 `/slice-planning {슬라이스명}` 실행. 계획이 승인될 때까지 구현하지 않는다.
-2. **스펙 검증**: `spec-keeper` 에이전트로 계획의 스펙 정합성 확인. P0 범위·엔터티·에러코드 불일치 시 구현 진입 금지.
-3. **구현**: `backend-builder`로 API 구현 → `flutter-builder`로 UI 구현. 또는 필요에 따라 직접 구현.
-4. **점검**: `/mvp-slice-check {슬라이스명}`으로 완성도 점검. `/docs-drift-check`로 코드↔문서 정합성 확인.
-5. **리뷰**: `qa-reviewer` 에이전트로 품질 리뷰.
-6. **보완 루프**: QA가 "부분 완료/미완료" 판정 시, 출력된 보완 프롬프트를 해당 탭(backend/frontend)에 붙여넣어 수정 → QA 재검토. "완료"까지 반복. 프롬프트 재생성이 필요하면 `/qa-remediation {슬라이스명}`.
-7. **통합 확인**: `/smoke-test`로 로컬 환경에서 전체 스택 동작 확인.
-8. **결과 기록**: `/slice-test-report {슬라이스명}`으로 테스트 결과서를 `test-reports/`에 저장. git 커밋 대상.
-9. **다음 슬라이스 전환**: "완료" 판정 시 QA가 출력한 다음 슬라이스 프롬프트를 각 탭에 붙여넣어 다음 cycle 시작. 또는 `/next-slice-planning`으로 수동 생성.
+1. **Plan (Plan-first)**: Enter Plan Mode with Shift+Tab, then run `/slice-planning {slice-name}`. Do not implement until the plan is approved.
+2. **Spec verification**: Use `spec-keeper` agent to verify spec consistency of the plan. Block implementation if P0 scope, entities, or error codes don't match.
+3. **Implementation**: Implement API with `backend-builder` -> implement UI with `flutter-builder`. Or implement directly as needed.
+4. **Check**: Run `/mvp-slice-check {slice-name}` for completeness check. Run `/docs-drift-check` for code-docs consistency.
+5. **Review**: Quality review with `qa-reviewer` agent.
+6. **Remediation loop**: If QA verdict is "partial" or "incomplete", paste the remediation prompt into the relevant tab (backend/frontend) to fix -> QA re-review. Repeat until "complete". Use `/qa-remediation {slice-name}` if prompt regeneration is needed.
+7. **Integration check**: Run `/smoke-test` to verify full stack operation in local environment.
+8. **Record results**: Run `/slice-test-report {slice-name}` to save test report to `test-reports/`. Git commit target.
+9. **Next slice transition**: On "complete" verdict, paste the next-slice prompts output by QA into each tab to start next cycle. Or manually generate with `/next-slice-planning`.
 
-### 검증 원칙
+### Verification Principles
 
-- **"작동함을 증명해라."** 모든 슬라이스는 실제 테스트 실행 결과로 완료를 판정한다.
-- mock 성공, fallback 경로 성공, 빌드만 통과는 "작동 증명"이 아니다.
-- pytest/flutter test 출력의 passed/failed 숫자를 인용해야 한다.
-- 실제 확인한 것과 미확인 항목을 구분한다. 추정으로 "완료"를 선언하지 않는다.
-- smoke test 없이 슬라이스 완료 판정을 내리지 않는다.
+- **"Prove it works."** Every slice is judged complete by actual test execution results.
+- Mock success, fallback path success, or build-only pass is NOT "proof of working".
+- Must cite passed/failed counts from pytest/flutter test output.
+- Distinguish between actually verified items and unverified items. Do not declare "complete" by estimation.
+- Do not declare slice complete without smoke test.
 
-### 세션 네이밍
+### Session Naming
 
-- 슬라이스 작업 시 `claude -n slice-{NN}-{layer}` 형식으로 세션을 시작한다 (예: `claude -n slice-04-backend`).
-- 병렬 worktree 작업 시 `claude --worktree slice-{NN} -n slice-{NN}` 형식을 사용한다.
-- 세부 규칙은 `docs/worktree-runbook.md` 참조.
+- Start sessions in `claude -n slice-{NN}-{layer}` format for slice work (e.g., `claude -n slice-04-backend`).
+- Use `claude --worktree slice-{NN} -n slice-{NN}` format for parallel worktree work.
+- See `docs/worktree-runbook.md` for detailed rules.
 
-### Slice 자동화 (MVP)
+### Slice Automation (MVP)
 
-단일 slice를 자동으로 구현·검증하는 오케스트레이터:
-- `make slice-auto` — 다음 slice 자동 감지 + plan → build → qa → complete
-- `make slice-auto SLICE=slice-07` — 특정 slice 실행
-- `make slice-status SLICE=slice-07` — 상태 확인
-- `make slice-resume SLICE=slice-07` — 중단 후 재개
-- `make slice-clean SLICE=slice-07` — 아티팩트 정리
+Orchestrator that automatically implements and verifies a single slice:
+- `make slice-auto` — auto-detect next slice + plan -> build -> qa -> complete
+- `make slice-auto SLICE=slice-07` — run specific slice
+- `make slice-status SLICE=slice-07` — check status
+- `make slice-resume SLICE=slice-07` — resume after interruption
+- `make slice-clean SLICE=slice-07` — clean artifacts
 
-규칙:
-- remediation 자동 재시도 최대 1회. 이후 실패 시 수동 개입.
-- 상태 파일(`automation/runs/<slice>/run.json`)은 compact pointer-based. 로그는 별도 파일.
-- backend/frontend는 git worktree에서 병렬 실행. app↔server 교차 수정 금지.
-- Agent SDK 우선, CLI fallback. 상세: `scripts/automation/`.
+Rules:
+- Max 1 auto-retry for remediation. Manual intervention after failure.
+- State files (`automation/runs/<slice>/run.json`) are compact pointer-based. Logs in separate files.
+- backend/frontend run in parallel via git worktrees. No cross-modification between app/ and server/.
+- Agent SDK preferred, CLI fallback. Details: `scripts/automation/`.
 
-기타:
-- `.env`, secrets, credentials는 코드에 하드코딩하지 않는다.
-- server/ 작업 시 app/ 코드를 건드리지 않는다. 반대도 마찬가지.
-- **로컬 환경 (Container-First)**: `docker compose up --build -d`로 전체 스택 기동. `/local`로 동일. `/local stop`으로 중지, `/local status`로 상태 확인, `/local reset`으로 초기화.
+Misc:
+- Do not hardcode `.env`, secrets, or credentials in code.
+- Do not touch app/ code when working on server/. Vice versa.
+- **Local environment (Container-First)**: Start full stack with `docker compose up --build -d`. Same as `/local`. Stop with `/local stop`, check status with `/local status`, reset with `/local reset`.
 
-## CLAUDE.md 갱신 규칙
+## CLAUDE.md Update Rules
 
-이 파일은 프로젝트의 작업 규칙서다. 아래 경우에 갱신한다:
+This file is the project's working rulebook. Update in these cases:
 
-- **반복 실수**: Claude가 같은 실수를 2회 이상 하면, 방지 규칙을 추가한다.
-- **새 패턴 확정**: 팀이 새로운 코딩 패턴이나 워크플로를 채택하면 반영한다.
-- **규칙 폐기**: 더 이상 유효하지 않은 규칙은 삭제한다. 주석 처리하지 않는다.
+- **Repeated mistakes**: If Claude makes the same mistake 2+ times, add a prevention rule.
+- **New pattern established**: When the team adopts a new coding pattern or workflow, reflect it.
+- **Rule deprecated**: Delete rules that are no longer valid. Do not comment them out.
 
-갱신하지 않는 것:
-- 구현 세부사항 (코드에서 확인 가능한 것)
-- 일회성 디버깅 기록 (test-reports/에 남긴다)
-- 상세 절차 (skills/ 또는 docs/에 분리한다)
+Do NOT update with:
+- Implementation details (verifiable from code)
+- One-off debugging records (keep in test-reports/)
+- Detailed procedures (separate into skills/ or docs/)
 
-CLAUDE.md는 짧고 강하게 유지한다. 200줄 이하 목표.
+Keep CLAUDE.md short and strong. Target under 200 lines.
 
-## Out of Scope (지금은 하지 않는 것)
+## Out of Scope
 
-CI/CD 파이프라인, 배포 구성, 프로덕션 인프라(K8s), 모니터링 설정.
+CI/CD pipelines, deployment configuration, production infrastructure (K8s), monitoring setup.
 
-> **예외**: 로컬 개발용 `docker compose`는 허용. `docker compose up --build`로 전체 스택 기동. 프로덕션 최적화·CI/CD 연동은 범위 밖.
+> **Exception**: Local development `docker compose` is allowed. Start full stack with `docker compose up --build`. Production optimization and CI/CD integration are out of scope.

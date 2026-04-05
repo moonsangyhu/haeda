@@ -3,20 +3,20 @@ paths:
   - "docs/**"
 ---
 
-# Docs 보호 규칙
+# Docs Protection Rules
 
-docs/ 디렉토리는 이 프로젝트의 **Source of Truth**이다.
+The docs/ directory is the **Source of Truth** for this project.
 
-## 규칙
+## Rules
 
-- docs/ 파일은 원칙적으로 수정하지 않는다.
-- 코드와 문서가 충돌하면 **문서가 맞다** — 코드를 수정한다.
-- docs 수정이 불가피한 경우, 반드시 사용자에게 사유를 설명하고 명시적 승인을 받는다.
-- 오탈자 수정조차도 사용자 확인 후 진행한다.
+- docs/ files must not be modified in principle.
+- When code and docs conflict, **docs are correct** — modify the code.
+- If docs modification is unavoidable, explain the reason to the user and get explicit approval.
+- Even typo corrections require user confirmation before proceeding.
 
-## 포함 파일
+## Included Files
 
-- `prd.md` — 기능 목록, P0/P1 범위, 비기능 요구사항
-- `user-flows.md` — 화면 플로우, 화면 구조
-- `domain-model.md` — 엔터티, 필드, 비즈니스 규칙
-- `api-contract.md` — REST 엔드포인트, 요청/응답 스키마, 에러 코드
+- `prd.md` — feature list, P0/P1 scope, non-functional requirements
+- `user-flows.md` — screen flows, screen structure
+- `domain-model.md` — entities, fields, business rules
+- `api-contract.md` — REST endpoints, request/response schemas, error codes

@@ -1,66 +1,66 @@
 ---
 name: haeda-domain-context
-description: 해다 프로젝트의 제품 개념, 용어, 핵심 플로우, 계절 아이콘, MVP 범위 요약
+description: Haeda project product concepts, terminology, core flows, season icons, and MVP scope summary
 ---
 
-# 해다 도메인 컨텍스트
+# Haeda Domain Context
 
-## 제품 개념
+## Product Concept
 
-참여자 전원이 함께 인증해야 계절 아이콘이 완성되는 협력형 챌린지 앱.
-핵심 동기: "예쁜 달력을 함께 만들자" → 자연스러운 상호 격려.
+Collaborative challenge app where seasonal icons are completed only when all participants verify.
+Core motivation: "Let's build a beautiful calendar together" -> natural mutual encouragement.
 
-## 용어 정의
+## Terminology
 
-| 용어 | 영문 | 설명 |
-|------|------|------|
-| 챌린지 | Challenge | 앱의 핵심 단위. 생성·참여·인증·댓글·달력이 모두 챌린지 안에서 발생 |
-| 인증 | Verification | 사진(선택/필수) + 일기 텍스트 제출 |
-| 전원 인증 | DayCompletion | 해당 날짜에 챌린지 참여자 전원이 인증 완료 |
-| 계절 아이콘 | season_icon_type | 전원 인증 시 달력에 표시되는 계절별 아이콘 |
-| 멤버 | ChallengeMember | 챌린지에 참여한 사용자 |
-| 달성률 | achievement_rate | (실제 인증 횟수 / 기대 인증 횟수) x 100 |
-| 초대 코드 | invite_code | 챌린지 참여용 8자리 코드 (자동 생성) |
-| 카테고리 | category | 챌린지의 자유 입력 속성 (VARCHAR, 독립 엔터티 아님) |
+| Korean | English | Description |
+|--------|---------|-------------|
+| Challenge | Challenge | Core unit of the app. Creation, participation, verification, comments, and calendar all happen within a challenge |
+| Verification | Verification | Photo (optional/required) + diary text submission |
+| All-verified | DayCompletion | All challenge participants verified on that date |
+| Season icon | season_icon_type | Seasonal icon displayed on calendar when all-verified |
+| Member | ChallengeMember | User participating in a challenge |
+| Achievement rate | achievement_rate | (actual verifications / expected verifications) x 100 |
+| Invite code | invite_code | 8-character code for challenge participation (auto-generated) |
+| Category | category | Free-input attribute of a challenge (VARCHAR, not a separate entity) |
 
-## 계절 아이콘 규칙
+## Season Icon Rules
 
-| 계절 | 기간 | 아이콘 | season_icon_type |
-|------|------|--------|------------------|
-| 봄 | 3~5월 | 🌸 | spring |
-| 여름 | 6~8월 | 🌿 | summer |
-| 가을 | 9~11월 | 🍁 | fall |
-| 겨울 | 12~2월 | ❄️ | winter |
+| Season | Period | Icon | season_icon_type |
+|--------|--------|------|------------------|
+| Spring | Mar-May | �� | spring |
+| Summer | Jun-Aug | 🌿 | summer |
+| Fall | Sep-Nov | 🍁 | fall |
+| Winter | Dec-Feb | ❄️ | winter |
 
-## 달력 표시 규칙
+## Calendar Display Rules
 
-| 상태 | 표시 |
-|------|------|
-| 아무도 인증 안 함 | 빈 칸 |
-| 일부 인증 | 인증자 프로필 사진 썸네일 |
-| 전원 인증 | 계절 아이콘 |
+| State | Display |
+|-------|---------|
+| No one verified | Empty cell |
+| Some verified | Verifier profile photo thumbnails |
+| All verified | Season icon |
 
-## P0 핵심 플로우
+## P0 Core Flows
 
-1. 카카오 로그인 → 프로필 설정 → 내 페이지
-2. 챌린지 생성 → 초대 코드 공유
-3. 초대 링크로 챌린지 참여
-4. 챌린지 공간(달력 뷰) 조회
-5. 인증 제출 (사진 + 일기)
-6. 인증 상세 조회 + 댓글 작성
-7. 챌린지 종료 → 완료 화면 (달성률, 배지)
+1. Kakao login -> profile setup -> my page
+2. Challenge creation -> share invite code
+3. Join challenge via invite link
+4. Challenge space (calendar view)
+5. Submit verification (photo + diary)
+6. View verification detail + write comment
+7. Challenge completion -> result screen (achievement rate, badge)
 
-## P0 엔터티
+## P0 Entities
 
 User, Challenge, ChallengeMember, Verification, DayCompletion, Comment
 
-## MVP 제외
+## MVP Excluded
 
-관리자 대시보드, 랭킹, 앱 내 설문, 채팅, 템플릿, Apple 로그인
+Admin dashboard, rankings, in-app surveys, chat, templates, Apple login
 
-## 기술 스택
+## Tech Stack
 
 - Frontend: Flutter (iOS/Android)
 - Backend: Python FastAPI
 - DB: PostgreSQL
-- Auth: 카카오 OAuth
+- Auth: Kakao OAuth

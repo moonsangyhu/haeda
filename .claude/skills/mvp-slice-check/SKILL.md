@@ -1,53 +1,53 @@
 ---
 name: mvp-slice-check
-description: 수직 슬라이스 완료 점검 체크리스트 (수동 실행 전용)
+description: Vertical slice completion checklist (manual execution only)
 disable-model-invocation: true
 ---
 
-# MVP 수직 슬라이스 점검
+# MVP Vertical Slice Check
 
-하나의 수직 슬라이스(기능 단위)가 완료되었는지 확인하는 체크리스트.
-사용자가 `/mvp-slice-check` 또는 직접 호출할 때만 실행한다.
+Checklist to verify whether a vertical slice (feature unit) is complete.
+Execute only when user calls `/mvp-slice-check` or invokes directly.
 
-## 점검 항목
+## Check Items
 
-### 1. API 계약
+### 1. API Contract
 
-- [ ] 엔드포인트가 `docs/api-contract.md`에 정의되어 있는가
-- [ ] 요청/응답 스키마가 문서와 일치하는가
-- [ ] 에러 코드가 문서에 정의된 것만 사용하는가
-- [ ] 응답 envelope (`data` / `error`) 형식이 올바른가
+- [ ] Endpoint is defined in `docs/api-contract.md`
+- [ ] Request/response schema matches docs
+- [ ] Error codes use only those defined in docs
+- [ ] Response envelope (`data` / `error`) format is correct
 
-### 2. 도메인 모델
+### 2. Domain Model
 
-- [ ] DB 모델 필드가 `docs/domain-model.md`와 일치하는가
-- [ ] 제약 조건 (UNIQUE, NOT NULL, FK)이 적용되었는가
-- [ ] Alembic 마이그레이션이 생성되었는가
+- [ ] DB model fields match `docs/domain-model.md`
+- [ ] Constraints (UNIQUE, NOT NULL, FK) are applied
+- [ ] Alembic migration is created
 
-### 3. 백엔드
+### 3. Backend
 
-- [ ] 라우터가 등록되었는가
-- [ ] 서비스 레이어에 비즈니스 로직이 분리되었는가
-- [ ] 인증(Bearer 토큰) 의존성이 적용되었는가
-- [ ] pytest 엔드포인트 테스트가 존재하는가
+- [ ] Router is registered
+- [ ] Business logic is separated into service layer
+- [ ] Auth (Bearer token) dependency is applied
+- [ ] pytest endpoint tests exist
 
-### 4. 프론트엔드
+### 4. Frontend
 
-- [ ] 화면이 `docs/user-flows.md`의 플로우와 일치하는가
-- [ ] API 호출이 올바른 엔드포인트를 사용하는가
-- [ ] 에러 상태(로딩, 빈 상태, 에러)가 처리되는가
-- [ ] widget test가 존재하는가
+- [ ] Screen matches `docs/user-flows.md` flow
+- [ ] API calls use correct endpoints
+- [ ] Error states (loading, empty, error) are handled
+- [ ] Widget tests exist
 
-### 5. 통합
+### 5. Integration
 
-- [ ] 프론트 → 백엔드 → DB 전체 흐름이 동작하는가
-- [ ] P1 기능이 포함되지 않았는가
-- [ ] 하드코딩된 시크릿이 없는가
+- [ ] Full flow works: frontend -> backend -> DB
+- [ ] No P1 features included
+- [ ] No hardcoded secrets
 
-## 사용법
+## Usage
 
-슬라이스 이름과 함께 호출:
+Call with the slice name:
 
 ```
-이 슬라이스를 점검해줘: 챌린지 생성 (POST /challenges + 챌린지 생성 화면)
+Check this slice: challenge creation (POST /challenges + challenge creation screen)
 ```
