@@ -209,6 +209,38 @@ def show_status(slice_name: str) -> None:
         print(f"  {role}: {task.status}{suffix}")
 
 
+def _resolve_resume_phase(run: RunState) -> str:
+    """When phase=failed, determine which phase to actually resume from.
+
+    Inspects task states and artifacts to find the last successful phase,
+    then returns the next phase to attempt.
+    """
+    rd = run._run_dir
+
+    # No plan → start from plan
+    if not (rd / "results" / "plan-summary.md").exists():
+        return "plan"
+
+    be = run.get_task_state("backend")
+    fe = run.get_task_state("frontend")
+    qa = run.get_task_state("qa")
+
+    # Either build task not done → resume build
+    if be.status != "done" or fe.status != "done":
+        return "build"
+
+    # Build done but QA never ran → merge then QA
+    if qa.status == "pending":
+        return "merge"
+
+    # QA ran but not complete → re-run QA (or remediate if retries left)
+    if run.qa_verdict and run.qa_verdict != "complete":
+        return "qa"
+
+    # Fallback: re-run from build
+    return "build"
+
+
 def clean_run(slice_name: str) -> None:
     """Clean up a slice run (artifacts + worktrees)."""
     rd = run_dir(slice_name)
@@ -231,7 +263,19 @@ async def run_orchestrator(
     # Load or create state
     if resume and (rd / "run.json").exists():
         run = RunState.load(rd)
-        log.info("Resuming %s from phase: %s", slice_name, run.phase)
+        if run.phase == "failed":
+            resolved = _resolve_resume_phase(run)
+            log.info(
+                "Resuming %s: phase was 'failed' (error: %s) → resuming from '%s'",
+                slice_name, (run.error or "?")[:80], resolved,
+            )
+            run.phase = resolved
+            run.status = resolved
+            run.error = None
+            run.finished_at = None
+            run.save()
+        else:
+            log.info("Resuming %s from phase: %s", slice_name, run.phase)
     else:
         run = RunState.create(slice_name, rd)
         run.save()
