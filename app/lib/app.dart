@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'core/theme/app_theme.dart';
 import 'package:go_router/go_router.dart';
 import 'core/widgets/main_shell.dart';
 import 'features/auth/screens/splash_screen.dart';
@@ -157,10 +158,7 @@ class HaedaApp extends StatelessWidget {
     return MaterialApp.router(
       title: '해다',
       routerConfig: _router,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4CAF50)),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.theme,
     );
   }
 }

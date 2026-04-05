@@ -62,7 +62,7 @@ class ChallengeCreateCompleteScreen extends StatelessWidget {
                   color: Theme.of(context)
                       .colorScheme
                       .surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Text(
                   inviteCode,

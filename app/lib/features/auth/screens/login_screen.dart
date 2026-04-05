@@ -19,11 +19,12 @@ class LoginScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               const Spacer(),
-              const Text(
+              Text(
                 '해다',
                 style: TextStyle(
                   fontSize: 56,
                   fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.primary,
                 ),
               ),
               const SizedBox(height: 12),
@@ -31,7 +32,7 @@ class LoginScreen extends ConsumerWidget {
                 '협력형 챌린지 달력',
                 style: TextStyle(
                   fontSize: 18,
-                  color: Colors.grey[600],
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
               const Spacer(),
@@ -65,7 +66,7 @@ class LoginScreen extends ConsumerWidget {
                   '테스트 계정으로 로그인',
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -95,7 +96,7 @@ class LoginScreen extends ConsumerWidget {
                         },
                         style: OutlinedButton.styleFrom(
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                         ),
                         child: Text(

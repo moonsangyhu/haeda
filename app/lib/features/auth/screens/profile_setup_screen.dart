@@ -81,7 +81,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     children: [
                       CircleAvatar(
                         radius: 56,
-                        backgroundColor: Colors.grey[200],
+                        backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
                         backgroundImage: _selectedImage != null
                             ? FileImage(File(_selectedImage!.path))
                             : null,
@@ -137,7 +137,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                     onPressed: _isSubmitting ? null : _submit,
                     style: ElevatedButton.styleFrom(
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                     ),
                     child: _isSubmitting

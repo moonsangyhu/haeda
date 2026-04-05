@@ -223,7 +223,7 @@ class _CreateVerificationBody extends StatelessWidget {
               height: 200,
               decoration: BoxDecoration(
                 color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(20),
                 border: Border.all(
                   color: theme.colorScheme.outline,
                   width: 1,
@@ -231,7 +231,7 @@ class _CreateVerificationBody extends StatelessWidget {
               ),
               child: photoBytes != null
                   ? ClipRRect(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(20),
                       child: Image.memory(
                         photoBytes!,
                         fit: BoxFit.cover,
@@ -272,7 +272,7 @@ class _CreateVerificationBody extends StatelessWidget {
             decoration: InputDecoration(
               hintText: '오늘의 인증 내용을 자유롭게 적어주세요.',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(16),
               ),
             ),
           ),
