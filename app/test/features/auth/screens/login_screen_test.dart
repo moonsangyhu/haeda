@@ -103,7 +103,7 @@ class _MockAuthNotifier extends AuthState {
   AsyncValue<AuthUser?> build() => const AsyncData(null);
 
   @override
-  Future<AuthUser> devLogin() async {
+  Future<AuthUser> devLogin({int userIndex = 1}) async {
     return AuthUser(id: 'test-user', isNew: isNew);
   }
 }

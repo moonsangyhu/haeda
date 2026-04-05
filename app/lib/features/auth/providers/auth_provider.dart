@@ -113,12 +113,15 @@ class AuthState extends _$AuthState {
     }
   }
 
-  /// 개발 환경 전용: Kakao OAuth 없이 고정 테스트 계정으로 로그인
-  Future<AuthUser> devLogin() async {
+  /// 개발 환경 전용: Kakao OAuth 없이 테스트 계정으로 로그인
+  Future<AuthUser> devLogin({int userIndex = 1}) async {
     state = const AsyncLoading();
     try {
       final dio = ref.read(dioProvider);
-      final response = await dio.post('/auth/dev-login');
+      final response = await dio.post(
+        '/auth/dev-login',
+        data: {'user_index': userIndex},
+      );
       final loginData = AuthLoginData.fromJson(
         response.data as Map<String, dynamic>,
       );

@@ -71,22 +71,45 @@ class LoginScreen extends ConsumerWidget {
                   ),
                 ),
               ),
-              if (kDebugMode)
-                TextButton(
-                  onPressed: () async {
-                    final user = await ref
-                        .read(authStateProvider.notifier)
-                        .devLogin();
-                    if (context.mounted) {
-                      if (user.isNew) {
-                        context.go('/profile-setup');
-                      } else {
-                        context.go('/my-page');
-                      }
-                    }
-                  },
-                  child: const Text('Dev Login'),
+              if (kDebugMode) ...[
+                const SizedBox(height: 16),
+                Text(
+                  '테스트 계정으로 로그인',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[500],
+                  ),
                 ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    for (final entry in const [
+                      (1, '김철수'),
+                      (2, '이영희'),
+                      (3, '박지민'),
+                    ])
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: OutlinedButton(
+                          onPressed: () async {
+                            final user = await ref
+                                .read(authStateProvider.notifier)
+                                .devLogin(userIndex: entry.$1);
+                            if (context.mounted) {
+                              if (user.isNew) {
+                                context.go('/profile-setup');
+                              } else {
+                                context.go('/my-page');
+                              }
+                            }
+                          },
+                          child: Text(entry.$2),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
               const SizedBox(height: 40),
             ],
           ),

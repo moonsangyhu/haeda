@@ -2,6 +2,7 @@ import uuid
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -49,15 +50,27 @@ async def kakao_login(
     )
 
 
+class DevLoginRequest(BaseModel):
+    user_index: int = 1
+
+
+_DEV_USERS = {
+    1: (1001, "김철수"),
+    2: (1002, "이영희"),
+    3: (1003, "박지민"),
+}
+
+
 @router.post("/dev-login", response_model=DataResponse[AuthLoginResponse])
 async def dev_login(
+    body: DevLoginRequest = DevLoginRequest(),
     db: AsyncSession = Depends(get_db),
 ):
     if not settings.DEBUG:
         raise AppException(403, "FORBIDDEN", "Not available in production.")
 
-    DEV_KAKAO_ID = 9999999999
-    user, is_new = await auth_service.login_or_register(db, DEV_KAKAO_ID, "dev_user", None)
+    kakao_id, nickname = _DEV_USERS.get(body.user_index, (9999999999, "dev_user"))
+    user, is_new = await auth_service.login_or_register(db, kakao_id, nickname, None)
 
     access_token = auth_service.create_access_token(user.id)
     refresh_token = auth_service.create_refresh_token(user.id)
