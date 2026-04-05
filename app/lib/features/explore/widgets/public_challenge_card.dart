@@ -50,11 +50,7 @@ class PublicChallengeCard extends StatelessWidget {
               // Date range + member count row
               Row(
                 children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  const Text('📅', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 4),
                   Text(
                     '${challenge.startDate} ~ ${challenge.endDate}',
@@ -63,11 +59,7 @@ class PublicChallengeCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Icon(
-                    Icons.people_outline,
-                    size: 14,
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  const Text('👥', style: TextStyle(fontSize: 12)),
                   const SizedBox(width: 4),
                   Text(
                     '${challenge.memberCount}명',
@@ -77,11 +69,7 @@ class PublicChallengeCard extends StatelessWidget {
                   ),
                   if (challenge.photoRequired) ...[
                     const SizedBox(width: 12),
-                    Icon(
-                      Icons.photo_camera_outlined,
-                      size: 14,
-                      color: theme.colorScheme.primary,
-                    ),
+                    const Text('📸', style: TextStyle(fontSize: 12)),
                     const SizedBox(width: 4),
                     Text(
                       '사진 필수',

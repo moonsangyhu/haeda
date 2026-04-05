@@ -51,7 +51,7 @@ class _ChallengeList extends StatelessWidget {
           child: FilledButton.icon(
             key: const Key('create_challenge_button'),
             onPressed: () => context.go('/create'),
-            icon: const Icon(Icons.add),
+            icon: const Text('➕', style: TextStyle(fontSize: 18)),
             label: const Text('챌린지 만들기'),
             style: FilledButton.styleFrom(
               minimumSize: const Size.fromHeight(48),

@@ -163,7 +163,10 @@ class _CreateVerificationScreenState
         title: Text(widget.date != null
             ? '${_formatDate(widget.date!)} 인증 작성'
             : '인증 작성'),
-        leading: const BackButton(),
+        leading: IconButton(
+          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
       ),
       body: detailAsync.when(
         loading: () => const LoadingWidget(),
@@ -309,10 +312,9 @@ class _PhotoPlaceholder extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Icon(
-          hasPhoto ? Icons.check_circle_outline : Icons.add_a_photo_outlined,
-          size: 48,
-          color: theme.colorScheme.onSurfaceVariant,
+        Text(
+          hasPhoto ? '✅' : '📸',
+          style: const TextStyle(fontSize: 48),
         ),
         const SizedBox(height: 8),
         Text(

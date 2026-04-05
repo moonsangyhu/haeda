@@ -44,7 +44,10 @@ class _ChallengeCreateStep1ScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('챌린지 만들기'),
-        leading: BackButton(onPressed: () => context.go('/')),
+        leading: IconButton(
+          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          onPressed: () => context.go('/'),
+        ),
       ),
       body: Form(
         key: _formKey,

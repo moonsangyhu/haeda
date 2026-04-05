@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'emoji_icon.dart';
 
 class AppErrorWidget extends StatelessWidget {
   final Object error;
@@ -18,7 +19,7 @@ class AppErrorWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const EmojiIcon('😢', size: 48),
             const SizedBox(height: 12),
             Text(
               '오류가 발생했습니다.',

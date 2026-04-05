@@ -100,7 +100,7 @@ class _KakaoOAuthScreenState extends ConsumerState<KakaoOAuthScreen> {
       appBar: AppBar(
         title: const Text('카카오 로그인'),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
           onPressed: () => context.pop(),
         ),
       ),

@@ -127,7 +127,7 @@ class _InvitePreviewBody extends ConsumerWidget {
 
         // 기간
         _InfoRow(
-          icon: Icons.calendar_month_outlined,
+          emoji: '📆',
           label: '기간',
           value:
               '${challenge.startDate} ~ ${challenge.endDate}',
@@ -136,7 +136,7 @@ class _InvitePreviewBody extends ConsumerWidget {
 
         // 인증 빈도
         _InfoRow(
-          icon: Icons.repeat,
+          emoji: '🔄',
           label: '인증 빈도',
           value: _formatFrequency(challenge.verificationFrequency),
         ),
@@ -144,7 +144,7 @@ class _InvitePreviewBody extends ConsumerWidget {
 
         // 사진 필수 여부
         _InfoRow(
-          icon: Icons.photo_camera_outlined,
+          emoji: '📸',
           label: '사진 필수',
           value: challenge.photoRequired ? '필수' : '선택',
         ),
@@ -152,7 +152,7 @@ class _InvitePreviewBody extends ConsumerWidget {
 
         // 참여자 수
         _InfoRow(
-          icon: Icons.group_outlined,
+          emoji: '👥',
           label: '현재 참여자',
           value: '${challenge.memberCount}명',
         ),
@@ -178,12 +178,12 @@ class _InvitePreviewBody extends ConsumerWidget {
 }
 
 class _InfoRow extends StatelessWidget {
-  final IconData icon;
+  final String emoji;
   final String label;
   final String value;
 
   const _InfoRow({
-    required this.icon,
+    required this.emoji,
     required this.label,
     required this.value,
   });
@@ -192,8 +192,7 @@ class _InfoRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 18,
-            color: Theme.of(context).colorScheme.onSurfaceVariant),
+        Text(emoji, style: const TextStyle(fontSize: 16)),
         const SizedBox(width: 8),
         Text(
           '$label: ',

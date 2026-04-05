@@ -123,7 +123,10 @@ class _ChallengeCreateStep2ScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('챌린지 만들기'),
-        leading: BackButton(onPressed: () => context.go('/create')),
+        leading: IconButton(
+          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          onPressed: () => context.go('/create'),
+        ),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16),
@@ -306,7 +309,7 @@ class _DatePickerTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.calendar_today_outlined, size: 18),
+            const Text('📅', style: TextStyle(fontSize: 16)),
             const SizedBox(width: 8),
             Text(label),
           ],

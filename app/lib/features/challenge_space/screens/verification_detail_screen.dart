@@ -33,7 +33,10 @@ class _VerificationDetailScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('인증 상세'),
-        leading: const BackButton(),
+        leading: IconButton(
+          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
       ),
       body: detailAsync.when(
         loading: () => const LoadingWidget(),
@@ -168,7 +171,7 @@ class _PhotoSection extends StatelessWidget {
             height: 200,
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: const Center(
-              child: Icon(Icons.broken_image_outlined, size: 48),
+              child: const Text('🖼️', style: TextStyle(fontSize: 48)),
             ),
           );
         },
@@ -390,7 +393,7 @@ class _CommentInputBar extends StatelessWidget {
                       )
                     : IconButton(
                         onPressed: onSend,
-                        icon: const Icon(Icons.send),
+                        icon: const Text('💬', style: TextStyle(fontSize: 20)),
                         color: theme.colorScheme.primary,
                       ),
               ],

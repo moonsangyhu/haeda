@@ -41,11 +41,7 @@ class ChallengeCreateCompleteScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.check_circle_outline,
-                size: 72,
-                color: Colors.green,
-              ),
+              const Text('✅', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 16),
               Text(
                 '생성 완료!',
@@ -81,7 +77,7 @@ class ChallengeCreateCompleteScreen extends StatelessWidget {
               OutlinedButton.icon(
                 key: const Key('copy_button'),
                 onPressed: () => _copyInviteCode(context),
-                icon: const Icon(Icons.copy),
+                icon: const Text('📋', style: TextStyle(fontSize: 18)),
                 label: const Text('링크 복사'),
                 style: OutlinedButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
@@ -91,7 +87,7 @@ class ChallengeCreateCompleteScreen extends StatelessWidget {
               FilledButton.icon(
                 key: const Key('share_button'),
                 onPressed: _shareInviteCode,
-                icon: const Icon(Icons.share),
+                icon: const Text('💌', style: TextStyle(fontSize: 18)),
                 label: const Text('공유하기'),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),

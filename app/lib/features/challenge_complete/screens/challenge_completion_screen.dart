@@ -18,7 +18,10 @@ class ChallengeCompletionScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: IconButton(
+          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: const Text('챌린지 완료'),
       ),
       body: resultAsync.when(

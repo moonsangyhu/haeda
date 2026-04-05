@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../core/widgets/emoji_icon.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../models/calendar_data.dart';
@@ -61,7 +62,10 @@ class _ChallengeSpaceScreenState
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackButton(),
+        leading: IconButton(
+          icon: const EmojiIcon('⬅️'),
+          onPressed: () => Navigator.of(context).maybePop(),
+        ),
         title: detailAsync.when(
           loading: () => const Text('챌린지'),
           error: (_, __) => const Text('챌린지'),
@@ -88,7 +92,7 @@ class _ChallengeSpaceScreenState
         actions: [
           if (detailAsync.valueOrNull != null)
             IconButton(
-              icon: const Icon(Icons.share),
+              icon: const EmojiIcon('💌'),
               tooltip: '초대 코드 공유',
               onPressed: () {
                 final detail = detailAsync.valueOrNull!;
@@ -259,7 +263,7 @@ class _MonthNavigator extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const Icon(Icons.chevron_left),
+            icon: const EmojiIcon('◀️'),
             onPressed: onPrevious,
             tooltip: '이전 달',
           ),
@@ -270,7 +274,7 @@ class _MonthNavigator extends StatelessWidget {
                 ),
           ),
           IconButton(
-            icon: const Icon(Icons.chevron_right),
+            icon: const EmojiIcon('▶️'),
             onPressed: onNext,
             tooltip: '다음 달',
           ),

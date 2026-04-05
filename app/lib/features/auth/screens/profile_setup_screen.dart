@@ -86,11 +86,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             ? FileImage(File(_selectedImage!.path))
                             : null,
                         child: _selectedImage == null
-                            ? Icon(
-                                Icons.person,
-                                size: 56,
-                                color: Colors.grey[400],
-                              )
+                            ? const Text('🧑', style: TextStyle(fontSize: 48))
                             : null,
                       ),
                       Positioned(
@@ -102,10 +98,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                             color: Theme.of(context).colorScheme.primary,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.camera_alt,
-                            size: 18,
-                            color: Colors.white,
+                          child: const Text(
+                            '📷',
+                            style: TextStyle(fontSize: 16),
                           ),
                         ),
                       ),
