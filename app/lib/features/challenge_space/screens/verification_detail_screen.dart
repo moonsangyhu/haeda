@@ -4,6 +4,7 @@ import '../../../core/widgets/error_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../models/comment_data.dart';
 import '../providers/comment_provider.dart';
+import '../providers/verification_provider.dart';
 
 class VerificationDetailScreen extends ConsumerStatefulWidget {
   final String verificationId;
@@ -91,7 +92,17 @@ class _VerificationDetailScreenState
     final success = await notifier.submit(content);
     if (success) {
       _commentController.clear();
+      final detail =
+          ref.read(verificationDetailProvider(widget.verificationId)).value;
       ref.invalidate(verificationDetailProvider(widget.verificationId));
+      if (detail != null) {
+        ref.invalidate(dailyVerificationsProvider(
+          DailyVerificationParams(
+            challengeId: detail.challengeId,
+            date: detail.date,
+          ),
+        ));
+      }
     }
   }
 }
