@@ -1,0 +1,17 @@
+{
+  "slice_name": "slice-07",
+  "status": "complete",
+  "phase": "complete",
+  "retry_count": 0,
+  "qa_verdict": null,
+  "next_slice_name": null,
+  "backend_task": "tasks/backend.json",
+  "frontend_task": "tasks/frontend.json",
+  "qa_task": "tasks/qa.json",
+  "summary_file": "results/summary.md",
+  "qa_summary_file": null,
+  "next_slice_file": null,
+  "started_at": "2026-04-05T00:29:54+00:00",
+  "finished_at": null,
+  "error": null
+}

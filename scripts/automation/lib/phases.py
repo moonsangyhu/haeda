@@ -170,11 +170,16 @@ async def _run_build_task(
     return result
 
 
+def _task_succeeded(task: TaskState) -> bool:
+    """Check if a task already completed successfully."""
+    return task.status == "done" and task.exit_code == 0
+
+
 async def phase_build(run: RunState, plan: dict) -> None:
     """BUILD: Run backend + frontend in parallel worktrees.
 
-    Per-role max turns: backend=50, frontend=30.
-    Max-turns errors get 1 automatic continuation retry before failing.
+    Task-aware: on resume, skips tasks that already succeeded.
+    Only reruns failed/pending tasks.
     """
     log.info("=== PHASE: BUILD ===")
     run.transition(PHASE_BUILD)
@@ -185,72 +190,107 @@ async def phase_build(run: RunState, plan: dict) -> None:
     screens = plan.get("screens", [])
     entities = plan.get("entities", [])
 
-    # Generate prompts
-    be_prompt = generate_backend_prompt(run.slice_name, goal, endpoints, entities)
-    fe_prompt = generate_frontend_prompt(run.slice_name, goal, screens, endpoints)
-    save_prompt(be_prompt, rd / "prompts" / "backend.md")
-    save_prompt(fe_prompt, rd / "prompts" / "frontend.md")
+    # Check existing task states for resume
+    existing_be = run.get_task_state("backend")
+    existing_fe = run.get_task_state("frontend")
+    be_skip = _task_succeeded(existing_be)
+    fe_skip = _task_succeeded(existing_fe)
 
-    # Create worktrees
-    be_wt, be_branch = create_worktree(run.slice_name, "backend")
-    fe_wt, fe_branch = create_worktree(run.slice_name, "frontend")
+    if be_skip and fe_skip:
+        log.info("BUILD: both tasks already done, skipping to next phase")
+        return
 
-    # Init task states
-    be_task = TaskState(
-        worktree_path=str(be_wt),
-        worktree_branch=be_branch,
-        prompt_file="prompts/backend.md",
-        log_file="logs/backend.log",
-    )
-    fe_task = TaskState(
-        worktree_path=str(fe_wt),
-        worktree_branch=fe_branch,
-        prompt_file="prompts/frontend.md",
-        log_file="logs/frontend.log",
-    )
+    if be_skip:
+        log.info("BUILD: backend already done (exit=0), rerunning frontend only")
+    if fe_skip:
+        log.info("BUILD: frontend already done (exit=0), rerunning backend only")
 
-    be_task.mark_running()
-    fe_task.mark_running()
-    run.save_task_state("backend", be_task)
-    run.save_task_state("frontend", fe_task)
+    # Generate prompts (only for tasks we'll run; reuse existing if present)
+    be_prompt = ""
+    fe_prompt = ""
+    if not be_skip:
+        be_prompt = generate_backend_prompt(run.slice_name, goal, endpoints, entities)
+        save_prompt(be_prompt, rd / "prompts" / "backend.md")
+    if not fe_skip:
+        fe_prompt = generate_frontend_prompt(run.slice_name, goal, screens, endpoints)
+        save_prompt(fe_prompt, rd / "prompts" / "frontend.md")
+
+    # Prepare worktrees + task states (only for tasks we'll run)
+    results: dict[str, RunResult] = {}
+    tasks_to_run: dict[str, TaskState] = {}
+
+    if not be_skip:
+        be_wt, be_branch = create_worktree(run.slice_name, "backend")
+        be_task = TaskState(
+            worktree_path=str(be_wt),
+            worktree_branch=be_branch,
+            prompt_file="prompts/backend.md",
+            log_file="logs/backend.log",
+        )
+        be_task.mark_running()
+        run.save_task_state("backend", be_task)
+        tasks_to_run["backend"] = be_task
+
+    if not fe_skip:
+        fe_wt, fe_branch = create_worktree(run.slice_name, "frontend")
+        fe_task = TaskState(
+            worktree_path=str(fe_wt),
+            worktree_branch=fe_branch,
+            prompt_file="prompts/frontend.md",
+            log_file="logs/frontend.log",
+        )
+        fe_task.mark_running()
+        run.save_task_state("frontend", fe_task)
+        tasks_to_run["frontend"] = fe_task
+
     run.save()
 
-    # Run backend + frontend in parallel (with per-role max turns)
-    be_result, fe_result = await asyncio.gather(
-        _run_build_task(run, "backend", be_prompt, be_wt, MAX_TURNS_BACKEND),
-        _run_build_task(run, "frontend", fe_prompt, fe_wt, MAX_TURNS_FRONTEND),
-    )
-
-    # Update task states
-    be_task.mark_done(be_result.exit_code)
-    fe_task.mark_done(fe_result.exit_code)
-    be_task.result_summary_file = "results/backend-summary.md"
-    fe_task.result_summary_file = "results/frontend-summary.md"
-    if be_result.is_max_turns:
-        be_task.error = "max_turns (even after continuation)"
-    if fe_result.is_max_turns:
-        fe_task.error = "max_turns (even after continuation)"
-    run.save_task_state("backend", be_task)
-    run.save_task_state("frontend", fe_task)
-
-    # Save compact summaries
-    for role, result in [("backend", be_result), ("frontend", fe_result)]:
-        max_t = MAX_TURNS_BACKEND if role == "backend" else MAX_TURNS_FRONTEND
-        status = "max_turns" if result.is_max_turns else f"exit={result.exit_code}"
-        (rd / "results" / f"{role}-summary.md").write_text(
-            f"# {role.title()} Result\n\n"
-            f"Status: {status} | turns: {result.num_turns or '?'}/{max_t}\n\n"
-            f"{result.result_text[:500]}\n"
+    # Build coroutines for tasks that need running
+    coros = {}
+    if "backend" in tasks_to_run:
+        coros["backend"] = _run_build_task(
+            run, "backend", be_prompt,
+            Path(tasks_to_run["backend"].worktree_path), MAX_TURNS_BACKEND,
+        )
+    if "frontend" in tasks_to_run:
+        coros["frontend"] = _run_build_task(
+            run, "frontend", fe_prompt,
+            Path(tasks_to_run["frontend"].worktree_path), MAX_TURNS_FRONTEND,
         )
 
-    if be_result.exit_code != 0 or fe_result.exit_code != 0:
-        failed = []
-        if be_result.exit_code != 0:
-            reason = "max_turns" if be_result.is_max_turns else f"exit={be_result.exit_code}"
-            failed.append(f"backend({reason})")
-        if fe_result.exit_code != 0:
-            reason = "max_turns" if fe_result.is_max_turns else f"exit={fe_result.exit_code}"
-            failed.append(f"frontend({reason})")
+    # Run in parallel
+    gathered = await asyncio.gather(*coros.values())
+    for role, result in zip(coros.keys(), gathered):
+        results[role] = result
+
+    # Update task states and save summaries for tasks we ran
+    failed = []
+    for role in ("backend", "frontend"):
+        if role in results:
+            result = results[role]
+            task = tasks_to_run[role]
+            task.mark_done(result.exit_code)
+            task.result_summary_file = f"results/{role}-summary.md"
+            if result.is_max_turns:
+                task.error = "max_turns (even after continuation)"
+            run.save_task_state(role, task)
+
+            max_t = MAX_TURNS_BACKEND if role == "backend" else MAX_TURNS_FRONTEND
+            status_str = "max_turns" if result.is_max_turns else f"exit={result.exit_code}"
+            (rd / "results" / f"{role}-summary.md").write_text(
+                f"# {role.title()} Result\n\n"
+                f"Status: {status_str} | turns: {result.num_turns or '?'}/{max_t}\n\n"
+                f"{result.result_text[:500]}\n"
+            )
+
+            if result.exit_code != 0:
+                reason = "max_turns" if result.is_max_turns else f"exit={result.exit_code}"
+                failed.append(f"{role}({reason})")
+        else:
+            # Skipped — log it
+            log.info("BUILD: %s reused previous result (skipped)", role)
+
+    if failed:
         run.mark_failed(f"Build failed: {', '.join(failed)}")
         raise RuntimeError(f"Build failed: {', '.join(failed)}")
 
