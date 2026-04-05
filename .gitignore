@@ -26,7 +26,6 @@ build/
 # Local dev runtime
 .local-dev/
 
-# Slice automation runtime
-automation/runs/*/logs/
-automation/runs/*/prompts/
+# Slice automation runtime (all run artifacts are ephemeral)
+automation/runs/
 .venv-automation/

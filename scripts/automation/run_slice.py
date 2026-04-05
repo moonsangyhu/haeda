@@ -367,14 +367,14 @@ async def run_orchestrator(
 ) -> None:
     """Main orchestration loop for a single slice."""
 
-    # Dirty repo guard: fail fast if uncommitted changes exist
-    is_clean, dirty_files = check_repo_clean()
+    # Dirty repo guard: fail fast if real (non-runtime) uncommitted changes exist
+    is_clean, real_dirty, runtime_dirty = check_repo_clean()
     if not is_clean:
         print(f"\n{'=' * 60}")
-        print(f"  ERROR: Repository has uncommitted changes ({len(dirty_files)} files)")
+        print(f"  ERROR: Repository has uncommitted changes ({len(real_dirty)} files)")
         print(f"  Cannot start slice automation on a dirty worktree.")
         print(f"\n  Dirty files (first 10):")
-        for f in dirty_files[:10]:
+        for f in real_dirty[:10]:
             print(f"    {f}")
         print(f"\n  Fix: commit or stash your changes first:")
         print(f"    git add -A && git commit -m 'wip: save progress'")
@@ -382,6 +382,8 @@ async def run_orchestrator(
         print(f"    git stash")
         print(f"{'=' * 60}")
         sys.exit(1)
+    if runtime_dirty:
+        log.info("Runtime artifacts found (%d files) — ignored by dirty guard", len(runtime_dirty))
 
     rd = ensure_run_dirs(slice_name)
 

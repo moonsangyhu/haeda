@@ -71,10 +71,21 @@ def _parse_json_result(text: str) -> dict:
         raise
 
 
-def check_repo_clean() -> tuple[bool, list[str]]:
-    """Check if the main worktree has uncommitted changes.
+# Paths that are automation runtime artifacts, not real repo changes.
+# These are gitignored, but filter as defense-in-depth.
+_RUNTIME_PREFIXES = (
+    "automation/runs/",
+    ".claude/worktrees/",
+    ".venv-automation/",
+)
 
-    Returns (is_clean, dirty_files).
+
+def check_repo_clean() -> tuple[bool, list[str], list[str]]:
+    """Check if the main worktree has real (non-runtime) uncommitted changes.
+
+    Returns (is_clean, real_dirty_files, runtime_dirty_files).
+    Runtime artifacts (automation/runs/, worktrees, etc.) are separated
+    so the caller can report them without blocking.
     """
     import subprocess
 
@@ -82,8 +93,19 @@ def check_repo_clean() -> tuple[bool, list[str]]:
         ["git", "status", "--porcelain"],
         capture_output=True, text=True, cwd=str(REPO_ROOT),
     )
-    dirty = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
-    return len(dirty) == 0, dirty
+    all_dirty = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+
+    real = []
+    runtime = []
+    for line in all_dirty:
+        # git status porcelain: "XY path" or "XY path -> path"
+        path = line[3:].split(" -> ")[-1]  # strip status prefix, handle renames
+        if any(path.startswith(p) for p in _RUNTIME_PREFIXES):
+            runtime.append(line)
+        else:
+            real.append(line)
+
+    return len(real) == 0, real, runtime
 
 
 def _find_prev_test_report(slice_name: str) -> Path | None:
@@ -646,14 +668,20 @@ def _check_completion_gates(run: RunState) -> list[str]:
 
 
 def _get_git_status() -> dict:
-    """Get compact git status for summary."""
+    """Get compact git status for summary (excludes runtime artifacts)."""
     import subprocess
 
     dirty = subprocess.run(
         ["git", "status", "--porcelain"],
         capture_output=True, text=True, cwd=str(REPO_ROOT),
     )
-    dirty_files = [l.strip() for l in dirty.stdout.strip().split("\n") if l.strip()]
+    all_files = [l.strip() for l in dirty.stdout.strip().split("\n") if l.strip()]
+
+    # Filter out runtime artifacts
+    real_files = [
+        f for f in all_files
+        if not any(f[3:].split(" -> ")[-1].startswith(p) for p in _RUNTIME_PREFIXES)
+    ]
 
     # Check if ahead of remote
     ahead = subprocess.run(
@@ -663,10 +691,10 @@ def _get_git_status() -> dict:
     ahead_count = int(ahead.stdout.strip()) if ahead.returncode == 0 else 0
 
     return {
-        "dirty_count": len(dirty_files),
-        "dirty_files": dirty_files[:10],  # cap at 10 for compactness
+        "dirty_count": len(real_files),
+        "dirty_files": real_files[:10],  # cap at 10 for compactness
         "ahead_count": ahead_count,
-        "needs_commit": len(dirty_files) > 0,
+        "needs_commit": len(real_files) > 0,
         "needs_push": ahead_count > 0,
     }
 
