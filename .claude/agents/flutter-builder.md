@@ -6,6 +6,7 @@ maxTurns: 30
 skills:
   - haeda-domain-context
   - flutter-mvp
+  - frontend-design
 ---
 
 # Flutter Builder
