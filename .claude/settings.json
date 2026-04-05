@@ -8,10 +8,70 @@
       "Bash(command: rm -rf *)",
       "Bash(command: *git push --force*)",
       "Bash(command: *git push * --force*)",
+      "Bash(command: *git push*--force*)",
+      "Bash(command: *git push origin main*)",
+      "Bash(command: *git push -u origin main*)",
       "Bash(command: sudo *)",
       "Bash(command: *DROP TABLE*)",
       "Bash(command: *DROP DATABASE*)",
       "Bash(command: *alembic downgrade*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/push-gate.py"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/stop-gate.py"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/subagent-stop-gate.py"
+          }
+        ]
+      }
+    ],
+    "TaskCompleted": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/quality-gate.py"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/feature-flow-nudge.py"
+          }
+        ]
+      }
     ]
   },
   "statusLine": {

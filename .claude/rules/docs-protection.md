@@ -20,3 +20,7 @@ The docs/ directory is the **Source of Truth** for this project.
 - `user-flows.md` — screen flows, screen structure
 - `domain-model.md` — entities, fields, business rules
 - `api-contract.md` — REST endpoints, request/response schemas, error codes
+
+## Exceptions
+
+- `docs/reports/` — feature-flow 워크플로에서 자동 생성되는 보고서 디렉토리. 자유롭게 생성/수정 가능.
