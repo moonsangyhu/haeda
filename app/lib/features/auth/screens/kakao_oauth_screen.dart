@@ -4,14 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/api/api_exception.dart';
-
-class KakaoConfig {
-  static const appKey = String.fromEnvironment(
-    'KAKAO_APP_KEY',
-    defaultValue: 'KAKAO_APP_KEY_NOT_SET',
-  );
-  static const redirectUri = 'https://haeda.app/auth/kakao/callback';
-}
+import '../../../core/config/kakao_config.dart';
 
 class KakaoOAuthScreen extends ConsumerStatefulWidget {
   const KakaoOAuthScreen({super.key});

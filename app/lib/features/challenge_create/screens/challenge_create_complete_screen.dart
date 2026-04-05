@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../my_page/providers/my_challenges_provider.dart';
+import '../../../core/widgets/invite_share_buttons.dart';
 
 /// Flow 3 — 생성 완료 화면.
-/// 초대 코드 표시, 링크 복사, 챌린지로 이동 제공.
+/// 초대 코드 표시, 코드 복사, 카카오톡 공유, 확인 제공.
 class ChallengeCreateCompleteScreen extends ConsumerWidget {
   final String challengeId;
   final String inviteCode;
@@ -16,19 +15,6 @@ class ChallengeCreateCompleteScreen extends ConsumerWidget {
     required this.challengeId,
     required this.inviteCode,
   });
-
-  void _shareInviteCode() {
-    Share.share('해다에서 함께 챌린지해요!\n\n챌린지 초대 코드: $inviteCode');
-  }
-
-  Future<void> _copyInviteCode(BuildContext context) async {
-    await Clipboard.setData(ClipboardData(text: inviteCode));
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('초대 코드가 클립보드에 복사되었습니다.')),
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -43,7 +29,7 @@ class ChallengeCreateCompleteScreen extends ConsumerWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text('✅', style: TextStyle(fontSize: 72)),
+              const Text('\u2705', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 16),
               Text(
                 '생성 완료!',
@@ -76,25 +62,7 @@ class ChallengeCreateCompleteScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              OutlinedButton.icon(
-                key: const Key('copy_button'),
-                onPressed: () => _copyInviteCode(context),
-                icon: const Text('📋', style: TextStyle(fontSize: 18)),
-                label: const Text('링크 복사'),
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
-              ),
-              const SizedBox(height: 12),
-              FilledButton.icon(
-                key: const Key('share_button'),
-                onPressed: _shareInviteCode,
-                icon: const Text('💌', style: TextStyle(fontSize: 18)),
-                label: const Text('공유하기'),
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(48),
-                ),
-              ),
+              InviteShareButtons(inviteCode: inviteCode),
               const SizedBox(height: 24),
               FilledButton(
                 key: const Key('confirm_button'),

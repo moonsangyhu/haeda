@@ -56,11 +56,18 @@ void main() {
     expect(find.text(testInviteCode), findsOneWidget);
   });
 
-  testWidgets('[링크 복사] 버튼이 존재한다', (tester) async {
+  testWidgets('[코드 복사] 버튼이 존재한다', (tester) async {
     await tester.pumpWidget(buildDirect());
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('copy_button')), findsOneWidget);
+    expect(find.byKey(const Key('copy_code_button')), findsOneWidget);
+  });
+
+  testWidgets('[카카오톡으로 공유] 버튼이 존재한다', (tester) async {
+    await tester.pumpWidget(buildDirect());
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('kakao_share_button')), findsOneWidget);
   });
 
   testWidgets('[확인] 버튼이 존재한다', (tester) async {

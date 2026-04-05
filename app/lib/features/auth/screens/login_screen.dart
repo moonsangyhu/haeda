@@ -1,9 +1,8 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/config/kakao_config.dart';
 import '../providers/auth_provider.dart';
-import 'kakao_oauth_screen.dart';
 
 class LoginScreen extends ConsumerWidget {
   const LoginScreen({super.key});

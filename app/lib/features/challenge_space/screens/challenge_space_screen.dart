@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:share_plus/share_plus.dart';
 import '../../../core/widgets/emoji_icon.dart';
+import '../../../core/widgets/invite_share_buttons.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../models/calendar_data.dart';
@@ -96,8 +96,15 @@ class _ChallengeSpaceScreenState
               tooltip: '초대 코드 공유',
               onPressed: () {
                 final detail = detailAsync.valueOrNull!;
-                Share.share(
-                  "해다에서 '${detail.title}' 챌린지에 함께해요!\n\n초대 코드: ${detail.inviteCode}",
+                showModalBottomSheet(
+                  context: context,
+                  builder: (ctx) => Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+                    child: InviteShareButtons(
+                      inviteCode: detail.inviteCode,
+                      challengeTitle: detail.title,
+                    ),
+                  ),
                 );
               },
             ),
