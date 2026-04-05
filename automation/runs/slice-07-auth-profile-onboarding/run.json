@@ -8,10 +8,10 @@
   "backend_task": "tasks/backend.json",
   "frontend_task": "tasks/frontend.json",
   "qa_task": "tasks/qa.json",
-  "summary_file": null,
+  "summary_file": "results/summary.md",
   "qa_summary_file": "results/qa-summary.md",
   "next_slice_file": null,
   "started_at": "2026-04-05T00:40:22+00:00",
-  "finished_at": null,
+  "finished_at": "2026-04-05T01:09:24+00:00",
   "error": null
 }
