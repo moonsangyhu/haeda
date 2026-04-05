@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -25,6 +25,7 @@ class _CreateVerificationScreenState
     extends ConsumerState<CreateVerificationScreen> {
   final _diaryController = TextEditingController();
   XFile? _selectedPhoto;
+  Uint8List? _photoBytes;
   final _imagePicker = ImagePicker();
 
   @override
@@ -41,8 +42,10 @@ class _CreateVerificationScreenState
       imageQuality: 85,
     );
     if (photo != null) {
+      final bytes = await photo.readAsBytes();
       setState(() {
         _selectedPhoto = photo;
+        _photoBytes = bytes;
       });
     }
   }
@@ -60,7 +63,8 @@ class _CreateVerificationScreenState
         ref.read(verificationSubmitProvider(widget.challengeId).notifier);
     final result = await notifier.submit(
       diaryText: diaryText,
-      photoPath: _selectedPhoto?.path,
+      photoBytes: _photoBytes,
+      photoFileName: _selectedPhoto?.name,
     );
 
     if (!mounted) return;
@@ -139,7 +143,7 @@ class _CreateVerificationScreenState
         error: (_, __) => const Center(child: Text('챌린지 정보를 불러올 수 없습니다.')),
         data: (detail) => _CreateVerificationBody(
           photoRequired: detail.photoRequired,
-          selectedPhoto: _selectedPhoto,
+          photoBytes: _photoBytes,
           diaryController: _diaryController,
           isLoading: submitState.isLoading,
           onPickPhoto: _pickPhoto,
@@ -152,7 +156,7 @@ class _CreateVerificationScreenState
 
 class _CreateVerificationBody extends StatelessWidget {
   final bool photoRequired;
-  final XFile? selectedPhoto;
+  final Uint8List? photoBytes;
   final TextEditingController diaryController;
   final bool isLoading;
   final VoidCallback onPickPhoto;
@@ -160,7 +164,7 @@ class _CreateVerificationBody extends StatelessWidget {
 
   const _CreateVerificationBody({
     required this.photoRequired,
-    required this.selectedPhoto,
+    required this.photoBytes,
     required this.diaryController,
     required this.isLoading,
     required this.onPickPhoto,
@@ -169,7 +173,7 @@ class _CreateVerificationBody extends StatelessWidget {
 
   bool get _canSubmit {
     if (isLoading) return false;
-    if (photoRequired && selectedPhoto == null) return false;
+    if (photoRequired && photoBytes == null) return false;
     return true;
   }
 
@@ -195,11 +199,11 @@ class _CreateVerificationBody extends StatelessWidget {
                   width: 1,
                 ),
               ),
-              child: selectedPhoto != null
+              child: photoBytes != null
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(12),
-                      child: Image.file(
-                        File(selectedPhoto!.path),
+                      child: Image.memory(
+                        photoBytes!,
                         fit: BoxFit.cover,
                         errorBuilder: (_, __, ___) => const _PhotoPlaceholder(
                           hasPhoto: true,

@@ -71,15 +71,19 @@ class VerificationSubmitNotifier
 
   Future<VerificationCreateResult?> submit({
     required String diaryText,
-    String? photoPath,
+    List<int>? photoBytes,
+    String? photoFileName,
   }) async {
     state = const VerificationSubmitState(isLoading: true);
 
     try {
       final formData = FormData.fromMap({
         'diary_text': diaryText,
-        if (photoPath != null)
-          'photo': await MultipartFile.fromFile(photoPath),
+        if (photoBytes != null)
+          'photo': MultipartFile.fromBytes(
+            photoBytes,
+            filename: photoFileName ?? 'photo.jpg',
+          ),
       });
 
       final response = await _dio.post(
