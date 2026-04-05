@@ -13,8 +13,13 @@ import '../providers/verification_provider.dart';
 
 class CreateVerificationScreen extends ConsumerStatefulWidget {
   final String challengeId;
+  final String? date; // YYYY-MM-DD, null이면 오늘
 
-  const CreateVerificationScreen({super.key, required this.challengeId});
+  const CreateVerificationScreen({
+    super.key,
+    required this.challengeId,
+    this.date,
+  });
 
   @override
   ConsumerState<CreateVerificationScreen> createState() =>
@@ -23,6 +28,15 @@ class CreateVerificationScreen extends ConsumerStatefulWidget {
 
 class _CreateVerificationScreenState
     extends ConsumerState<CreateVerificationScreen> {
+  String _formatDate(String dateStr) {
+    try {
+      final parsed = DateTime.parse(dateStr);
+      return '${parsed.month}월 ${parsed.day}일';
+    } catch (_) {
+      return dateStr;
+    }
+  }
+
   final _diaryController = TextEditingController();
   XFile? _selectedPhoto;
   Uint8List? _photoBytes;
@@ -65,6 +79,7 @@ class _CreateVerificationScreenState
       diaryText: diaryText,
       photoBytes: _photoBytes,
       photoFileName: _selectedPhoto?.name,
+      date: widget.date,
     );
 
     if (!mounted) return;
@@ -80,11 +95,13 @@ class _CreateVerificationScreenState
   }
 
   void _showSuccessDialog(VerificationCreateResult result) {
-    final now = DateTime.now();
+    final targetDate = widget.date != null
+        ? DateTime.parse(widget.date!)
+        : DateTime.now();
     final calendarParams = CalendarParams(
       challengeId: widget.challengeId,
-      year: now.year,
-      month: now.month,
+      year: targetDate.year,
+      month: targetDate.month,
     );
 
     showDialog<void>(
@@ -115,8 +132,16 @@ class _CreateVerificationScreenState
           TextButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
-              // 달력 데이터 갱신 후 뒤로가기
+              // 달력 및 일별 인증 데이터 갱신 후 뒤로가기
               ref.invalidate(calendarProvider(calendarParams));
+              if (widget.date != null) {
+                ref.invalidate(dailyVerificationsProvider(
+                  DailyVerificationParams(
+                    challengeId: widget.challengeId,
+                    date: widget.date!,
+                  ),
+                ));
+              }
               context.pop();
             },
             child: const Text('확인'),
@@ -135,7 +160,9 @@ class _CreateVerificationScreenState
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('인증 작성'),
+        title: Text(widget.date != null
+            ? '${_formatDate(widget.date!)} 인증 작성'
+            : '인증 작성'),
         leading: const BackButton(),
       ),
       body: detailAsync.when(

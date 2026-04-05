@@ -82,7 +82,11 @@ final _router = GoRouter(
       path: '/challenges/:id/verify',
       builder: (context, state) {
         final challengeId = state.pathParameters['id']!;
-        return CreateVerificationScreen(challengeId: challengeId);
+        final date = state.uri.queryParameters['date'];
+        return CreateVerificationScreen(
+          challengeId: challengeId,
+          date: date,
+        );
       },
     ),
     GoRoute(

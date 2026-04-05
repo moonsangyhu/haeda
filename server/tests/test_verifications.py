@@ -81,7 +81,7 @@ async def test_create_verification_duplicate(
         )
 
     assert resp.status_code == 409
-    assert resp.json()["error"]["code"] == "ALREADY_VERIFIED_TODAY"
+    assert resp.json()["error"]["code"] == "ALREADY_VERIFIED"
 
 
 @pytest.mark.asyncio

@@ -55,6 +55,7 @@ async def create_verification(
     user_id: uuid.UUID,
     diary_text: str,
     photo_url: str | None,
+    target_date: date | None = None,
 ) -> VerificationCreateResponse:
     # 1. Challenge 조회
     challenge = await _get_challenge_or_404(db, challenge_id)
@@ -64,6 +65,8 @@ async def create_verification(
 
     # 3. 챌린지 종료 여부 확인 (status == 'completed')
     today = date.today()
+    verification_date = target_date if target_date is not None else today
+
     if challenge.status == "completed":
         raise AppException(
             status_code=400,
@@ -71,26 +74,34 @@ async def create_verification(
             message="이미 종료된 챌린지입니다.",
         )
 
-    # 4. 날짜 범위 확인 (today BETWEEN start_date AND end_date)
-    if not (challenge.start_date <= today <= challenge.end_date):
+    # 4. 미래 날짜 불가
+    if verification_date > today:
         raise AppException(
             status_code=400,
-            code="CHALLENGE_ENDED",
+            code="INVALID_DATE",
+            message="미래 날짜에는 인증할 수 없습니다.",
+        )
+
+    # 5. 날짜 범위 확인 (verification_date BETWEEN start_date AND end_date)
+    if not (challenge.start_date <= verification_date <= challenge.end_date):
+        raise AppException(
+            status_code=400,
+            code="INVALID_DATE",
             message="인증 가능한 기간이 아닙니다.",
         )
 
-    # 5. 중복 인증 확인
+    # 6. 중복 인증 확인
     dup_stmt = select(Verification.id).where(
         Verification.challenge_id == challenge_id,
         Verification.user_id == user_id,
-        Verification.date == today,
+        Verification.date == verification_date,
     )
     dup_result = await db.execute(dup_stmt)
     if dup_result.first() is not None:
         raise AppException(
             status_code=409,
-            code="ALREADY_VERIFIED_TODAY",
-            message="오늘 이미 인증했습니다.",
+            code="ALREADY_VERIFIED",
+            message="해당 날짜에 이미 인증했습니다.",
         )
 
     # 6. 사진 필수 검증
@@ -106,7 +117,7 @@ async def create_verification(
         id=uuid.uuid4(),
         challenge_id=challenge_id,
         user_id=user_id,
-        date=today,
+        date=verification_date,
         photo_url=photo_url,
         diary_text=diary_text,
     )
@@ -117,7 +128,7 @@ async def create_verification(
     # 해당 날짜 인증 수 카운트 (방금 flush된 레코드 포함)
     verif_count_stmt = select(func.count()).where(
         Verification.challenge_id == challenge_id,
-        Verification.date == today,
+        Verification.date == verification_date,
     )
     verif_count_result = await db.execute(verif_count_stmt)
     verif_count = verif_count_result.scalar_one()
@@ -134,11 +145,11 @@ async def create_verification(
 
     if verif_count == member_count and member_count > 0:
         # DayCompletion 생성
-        season_icon_type = _determine_season(today.month)
+        season_icon_type = _determine_season(verification_date.month)
         day_completion = DayCompletion(
             id=uuid.uuid4(),
             challenge_id=challenge_id,
-            date=today,
+            date=verification_date,
             season_icon_type=season_icon_type,
         )
         db.add(day_completion)

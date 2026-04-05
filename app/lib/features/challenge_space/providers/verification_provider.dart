@@ -73,6 +73,7 @@ class VerificationSubmitNotifier
     required String diaryText,
     List<int>? photoBytes,
     String? photoFileName,
+    String? date,
   }) async {
     state = const VerificationSubmitState(isLoading: true);
 
@@ -84,6 +85,7 @@ class VerificationSubmitNotifier
             photoBytes,
             filename: photoFileName ?? 'photo.jpg',
           ),
+        if (date != null) 'date': date,
       });
 
       final response = await _dio.post(
@@ -115,11 +117,14 @@ class VerificationSubmitNotifier
         final code = error['code'] as String?;
         switch (code) {
           case 'ALREADY_VERIFIED_TODAY':
-            return '오늘 이미 인증했습니다.';
+          case 'ALREADY_VERIFIED':
+            return '해당 날짜에 이미 인증했습니다.';
           case 'PHOTO_REQUIRED':
             return '사진이 필요한 챌린지입니다.';
           case 'CHALLENGE_ENDED':
             return '이미 종료된 챌린지입니다.';
+          case 'INVALID_DATE':
+            return '인증 가능한 날짜가 아닙니다.';
           case 'NOT_A_MEMBER':
             return '챌린지 참여자가 아닙니다.';
           default:

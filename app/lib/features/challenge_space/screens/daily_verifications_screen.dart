@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/season_icons.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/verification_data.dart';
 import '../providers/verification_provider.dart';
 
@@ -45,7 +46,27 @@ class DailyVerificationsScreen extends ConsumerWidget {
           error: error,
           onRetry: () => ref.invalidate(dailyVerificationsProvider(params)),
         ),
-        data: (data) => _DailyVerificationsBody(data: data),
+        data: (data) {
+          final currentUser = ref.watch(authStateProvider).valueOrNull;
+          final currentUserId = currentUser?.id;
+          // 현재 유저가 해당 날짜에 인증했는지 확인
+          final hasVerified = currentUserId != null &&
+              data.verifications.any((v) => v.user.id == currentUserId);
+          // 오늘 이전 날짜인지 확인 (오늘 포함 — 오늘은 챌린지 공간에서 인증)
+          final parsedDate = DateTime.tryParse(date);
+          final today = DateTime.now();
+          final isPastDate = parsedDate != null &&
+              DateTime(parsedDate.year, parsedDate.month, parsedDate.day)
+                  .isBefore(DateTime(today.year, today.month, today.day));
+          final canVerify = !hasVerified && isPastDate;
+
+          return _DailyVerificationsBody(
+            data: data,
+            challengeId: challengeId,
+            date: date,
+            canVerify: canVerify,
+          );
+        },
       ),
     );
   }
@@ -53,8 +74,16 @@ class DailyVerificationsScreen extends ConsumerWidget {
 
 class _DailyVerificationsBody extends StatelessWidget {
   final DailyVerifications data;
+  final String challengeId;
+  final String date;
+  final bool canVerify;
 
-  const _DailyVerificationsBody({required this.data});
+  const _DailyVerificationsBody({
+    required this.data,
+    required this.challengeId,
+    required this.date,
+    required this.canVerify,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +144,21 @@ class _DailyVerificationsBody extends StatelessWidget {
         else
           ...data.verifications.map(
             (item) => _VerificationListItem(item: item),
+          ),
+        // 과거 날짜 인증하기 버튼
+        if (canVerify)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: ElevatedButton.icon(
+              onPressed: () => context.push(
+                '/challenges/$challengeId/verify?date=$date',
+              ),
+              icon: const Icon(Icons.edit_note),
+              label: const Text('이 날짜에 인증하기'),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
           ),
       ],
     );

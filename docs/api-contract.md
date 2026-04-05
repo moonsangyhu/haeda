@@ -377,6 +377,7 @@
 |------|------|------|------|
 | photo | file | 조건부 | 인증 사진 (photo_required 시 필수) |
 | diary_text | string | Y | 일기 텍스트 |
+| date | string (YYYY-MM-DD) | N | 인증 대상 날짜 (미입력 시 오늘). 챌린지 기간 내 & 오늘 이전 날짜만 허용 |
 
 **Response (201):**
 ```json
@@ -400,9 +401,10 @@
 |------|------|
 | CHALLENGE_NOT_FOUND | 존재하지 않는 챌린지 |
 | NOT_A_MEMBER | 챌린지 참여자가 아님 |
-| ALREADY_VERIFIED_TODAY | 오늘 이미 인증함 |
+| ALREADY_VERIFIED | 해당 날짜에 이미 인증함 |
 | PHOTO_REQUIRED | 사진 필수인데 미첨부 |
 | CHALLENGE_ENDED | 이미 종료된 챌린지 |
+| INVALID_DATE | 인증 불가능한 날짜 (챌린지 기간 외 또는 미래 날짜) |
 
 ---
 

@@ -78,6 +78,7 @@ async def create_verification(
     challenge_id: uuid.UUID,
     diary_text: str = Form(...),
     photo: UploadFile | None = File(default=None),
+    target_date: date | None = Form(default=None, alias="date"),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -98,6 +99,7 @@ async def create_verification(
         user_id=user_id,
         diary_text=diary_text,
         photo_url=photo_url,
+        target_date=target_date,
     )
     return {"data": result.model_dump()}
 
