@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import _get_session_factory
 from app.exceptions import register_exception_handlers
-from app.routers import challenges, me, verifications
+from app.routers import auth, challenges, me, verifications
 from app.services.scheduler_service import close_expired_challenges
 
 logger = logging.getLogger(__name__)
@@ -70,12 +70,10 @@ os.makedirs(_uploads_dir, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=_uploads_dir), name="uploads")
 
 # 라우터 등록
+app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 app.include_router(me.router, prefix=settings.API_V1_PREFIX)
 app.include_router(challenges.router, prefix=settings.API_V1_PREFIX)
 app.include_router(verifications.router, prefix=settings.API_V1_PREFIX)
-# 다음 슬라이스에서 추가
-# from app.routers import auth
-# app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")
