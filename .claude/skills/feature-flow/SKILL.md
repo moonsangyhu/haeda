@@ -10,6 +10,18 @@ disable_model_invocation: true
 All feature work MUST follow this 8-step workflow. No step may be skipped.
 **Auto-proceed mode**: All steps run end-to-end without user approval gates. Only STOP for user input when: QA fails 2 times, push conditions are not met, or a health check fails.
 
+### Model Strategy (Token Optimization)
+
+| Phase | Executor | Model | Reason |
+|-------|----------|-------|--------|
+| Step 1 (Analysis) | Main | Opus | Requires judgment, codebase understanding |
+| Step 2 (Plan) | Main | Opus | Architecture decisions |
+| Step 3 (Implementation) | `flutter-builder` / `backend-builder` agent | Sonnet | Mechanical coding, pattern-following |
+| Step 4 (QA) | `qa-reviewer` agent | Sonnet | Checklist-based verification |
+| Step 5-8 (Report, Push, Rebuild) | Main | Opus | Coordination, minimal tokens |
+
+**Rule**: Steps 3-4 MUST be delegated to agents (Sonnet). Do NOT implement or test directly in the main conversation — always spawn the appropriate agent.
+
 Argument: `<requirement description>`
 
 ---

@@ -9,6 +9,17 @@ disable_model_invocation: true
 
 Fast-track workflow for bug fixes. Runs end-to-end without approval gates.
 
+### Model Strategy (Token Optimization)
+
+| Phase | Executor | Model | Reason |
+|-------|----------|-------|--------|
+| Step 1 (Analyze) | Main | Opus | Root cause diagnosis |
+| Step 2 (Fix) | `flutter-builder` / `backend-builder` agent | Sonnet | Mechanical fix |
+| Step 3 (QA) | `qa-reviewer` agent | Sonnet | Checklist verification |
+| Step 4-7 (Report, Push, Rebuild) | Main | Opus | Coordination |
+
+**Rule**: Steps 2-3 MUST be delegated to agents (Sonnet). Do NOT fix or test directly in the main conversation.
+
 Argument: `<bug description>`
 
 ---
