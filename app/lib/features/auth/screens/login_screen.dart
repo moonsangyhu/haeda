@@ -35,80 +35,76 @@ class LoginScreen extends ConsumerWidget {
                 ),
               ),
               const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: () async {
-                    if (KakaoConfig.appKey == 'KAKAO_APP_KEY_NOT_SET') {
-                      final user = await ref
-                          .read(authStateProvider.notifier)
-                          .devLogin();
-                      if (context.mounted) {
-                        if (user.isNew) {
-                          context.go('/profile-setup');
-                        } else {
-                          context.go('/my-page');
-                        }
-                      }
-                    } else {
-                      context.push('/kakao-oauth');
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFEE500),
-                    foregroundColor: const Color(0xFF191919),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              if (KakaoConfig.appKey != 'KAKAO_APP_KEY_NOT_SET') ...[
+                // 카카오 로그인 버튼 (카카오 SDK 설정된 경우)
+                SizedBox(
+                  width: double.infinity,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: () => context.push('/kakao-oauth'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFFEE500),
+                      foregroundColor: const Color(0xFF191919),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
-                  ),
-                  child: const Text(
-                    '카카오로 시작하기',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                    child: const Text(
+                      '카카오로 시작하기',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              if (kDebugMode) ...[
-                const SizedBox(height: 16),
+              ],
+              if (KakaoConfig.appKey == 'KAKAO_APP_KEY_NOT_SET') ...[
+                // 테스트 계정 선택 (카카오 미설정 = 로컬 개발 환경)
                 Text(
                   '테스트 계정으로 로그인',
                   style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[500],
+                    fontSize: 14,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (final entry in const [
-                      (1, '김철수'),
-                      (2, '이영희'),
-                      (3, '박지민'),
-                    ])
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            final user = await ref
-                                .read(authStateProvider.notifier)
-                                .devLogin(userIndex: entry.$1);
-                            if (context.mounted) {
-                              if (user.isNew) {
-                                context.go('/profile-setup');
-                              } else {
-                                context.go('/my-page');
-                              }
+                const SizedBox(height: 12),
+                for (final entry in const [
+                  (1, '김철수'),
+                  (2, '이영희'),
+                  (3, '박지민'),
+                ])
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: OutlinedButton(
+                        onPressed: () async {
+                          final user = await ref
+                              .read(authStateProvider.notifier)
+                              .devLogin(userIndex: entry.$1);
+                          if (context.mounted) {
+                            if (user.isNew) {
+                              context.go('/profile-setup');
+                            } else {
+                              context.go('/my-page');
                             }
-                          },
-                          child: Text(entry.$2),
+                          }
+                        },
+                        style: OutlinedButton.styleFrom(
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          entry.$2,
+                          style: const TextStyle(fontSize: 16),
                         ),
                       ),
-                  ],
-                ),
+                    ),
+                  ),
               ],
               const SizedBox(height: 40),
             ],

@@ -49,17 +49,17 @@ void main() {
       expect(find.text('협력형 챌린지 달력'), findsOneWidget);
     });
 
-    testWidgets('"카카오로 시작하기" 버튼이 표시된다', (tester) async {
+    testWidgets('KAKAO_APP_KEY 미설정 시 테스트 계정 버튼이 표시된다', (tester) async {
       await tester.pumpWidget(_buildTestApp());
       await tester.pumpAndSettle();
-      expect(find.text('카카오로 시작하기'), findsOneWidget);
+      expect(find.text('김철수'), findsOneWidget);
+      expect(find.text('이영희'), findsOneWidget);
+      expect(find.text('박지민'), findsOneWidget);
     });
 
     testWidgets(
-        'KAKAO_APP_KEY 미설정 시 "카카오로 시작하기" 버튼 탭 시 devLogin 호출 후 /my-page로 이동한다',
+        'KAKAO_APP_KEY 미설정 시 테스트 계정 탭하면 /my-page로 이동한다',
         (tester) async {
-      // In test environment, KakaoConfig.appKey is always 'KAKAO_APP_KEY_NOT_SET'
-      // so the button should call devLogin() and navigate based on isNew
       await tester.pumpWidget(
         _buildTestApp(overrides: [
           authStateProvider.overrideWith(
@@ -69,7 +69,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('카카오로 시작하기'));
+      await tester.tap(find.text('김철수'));
       await tester.pumpAndSettle();
 
       expect(find.text('내 페이지'), findsOneWidget);
@@ -87,7 +87,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.text('카카오로 시작하기'));
+      await tester.tap(find.text('이영희'));
       await tester.pumpAndSettle();
 
       expect(find.text('프로필 설정'), findsOneWidget);
