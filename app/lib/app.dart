@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'features/auth/screens/splash_screen.dart';
+import 'features/auth/screens/login_screen.dart';
+import 'features/auth/screens/kakao_oauth_screen.dart';
+import 'features/auth/screens/profile_setup_screen.dart';
 import 'features/my_page/screens/my_page_screen.dart';
 import 'features/challenge_space/screens/challenge_space_screen.dart';
 import 'features/challenge_space/screens/create_verification_screen.dart';
@@ -14,8 +18,26 @@ import 'features/challenge_complete/screens/challenge_completion_screen.dart';
 final _router = GoRouter(
   initialLocation: '/',
   routes: [
+    // Auth flow
     GoRoute(
       path: '/',
+      builder: (context, state) => const SplashScreen(),
+    ),
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/kakao-oauth',
+      builder: (context, state) => const KakaoOAuthScreen(),
+    ),
+    GoRoute(
+      path: '/profile-setup',
+      builder: (context, state) => const ProfileSetupScreen(),
+    ),
+    // My Page (main screen)
+    GoRoute(
+      path: '/my-page',
       builder: (context, state) => const MyPageScreen(),
     ),
     GoRoute(
