@@ -28,6 +28,7 @@ class _ChallengeCreateStep2ScreenState
   _FrequencyType _frequencyType = _FrequencyType.daily;
   int _timesPerWeek = 3;
   bool _photoRequired = false;
+  bool _isPublic = false;
 
   final _dateFormatter = DateFormat('yyyy-MM-dd');
   final _displayFormatter = DateFormat('yyyy. M. d.');
@@ -90,6 +91,7 @@ class _ChallengeCreateStep2ScreenState
       endDate: _dateFormatter.format(_endDate!),
       verificationFrequency: _buildFrequency(),
       photoRequired: _photoRequired,
+      isPublic: _isPublic,
     );
 
     try {
@@ -179,6 +181,18 @@ class _ChallengeCreateStep2ScreenState
             value: _photoRequired,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) => setState(() => _photoRequired = v),
+          ),
+          const SizedBox(height: 20),
+
+          // 공개 여부
+          _FieldLabel('공개 설정'),
+          SwitchListTile(
+            key: const Key('is_public_switch'),
+            title: const Text('공개 챌린지'),
+            subtitle: const Text('탐색 탭에서 다른 사용자가 찾을 수 있습니다.'),
+            value: _isPublic,
+            contentPadding: EdgeInsets.zero,
+            onChanged: (v) => setState(() => _isPublic = v),
           ),
           const SizedBox(height: 32),
 
