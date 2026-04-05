@@ -281,7 +281,35 @@ Co-Authored-By: Claude <noreply@anthropic.com>"
 git push
 ```
 
-### 7-3. Final Output
+### 7-3. Proceed to Step 8 (Local Rebuild)
+
+---
+
+## Step 8: Local Rebuild & Verify
+
+After push, rebuild the local Docker environment so the running app reflects the latest changes.
+
+### 8-1. Rebuild Affected Services
+
+Determine which services to rebuild based on the affected area:
+
+- **Frontend only**: `docker compose up --build -d frontend`
+- **Backend only**: `docker compose up --build -d backend`
+- **Both**: `docker compose up --build -d backend frontend`
+
+Set Bash tool timeout to 600000 (10 minutes) — Flutter web build may be slow.
+
+### 8-2. Health Check
+
+```bash
+# Backend
+curl -s --max-time 10 http://localhost:8000/health
+
+# Frontend
+curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
+```
+
+### 8-3. Final Output
 
 ```
 ## Feature Flow Complete
@@ -294,7 +322,11 @@ git push
 | Report | docs/reports/{filename} |
 | Commits | {hash1}, {hash2} |
 | Push | done |
+| Local rebuild | done |
+| Health check | Backend OK, Frontend 200 |
 ```
+
+If a service fails health check, print `docker compose logs {service}` output and ask the user for guidance.
 
 ---
 
