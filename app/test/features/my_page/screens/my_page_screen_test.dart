@@ -177,14 +177,15 @@ void main() {
       expect(find.text('완료된 챌린지'), findsOneWidget);
     });
 
-    testWidgets('챌린지 만들기 버튼이 표시된다', (tester) async {
+    testWidgets('챌린지 만들기 버튼이 하단 탭으로 이동됨', (tester) async {
       await tester.pumpWidget(_buildTestApp(
         providerOverride:
             myChallengesProvider.overrideWith((_) async => <ChallengeSummary>[]),
       ));
       await tester.pumpAndSettle();
 
-      expect(find.text('챌린지 만들기'), findsOneWidget);
+      // 기존 인라인 버튼은 제거됨 (하단 탭 중앙 + 버튼으로 이동)
+      expect(find.text('챌린지 만들기'), findsNothing);
     });
   });
 }

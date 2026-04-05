@@ -9,16 +9,34 @@ class MainShell extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
+  // Maps branch index (0-3) to nav bar index (0,1,3,4) — skipping center index 2.
+  int _branchToNavIndex(int branchIndex) {
+    // branch 0 -> nav 0, branch 1 -> nav 1, branch 2 -> nav 3, branch 3 -> nav 4
+    return branchIndex < 2 ? branchIndex : branchIndex + 1;
+  }
+
+  // Maps nav bar index to branch index. Returns null for the center "+" button (index 2).
+  int? _navToBranchIndex(int navIndex) {
+    if (navIndex == 2) return null;
+    return navIndex < 2 ? navIndex : navIndex - 1;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: navigationShell,
       bottomNavigationBar: NavigationBar(
-        selectedIndex: navigationShell.currentIndex,
+        selectedIndex: _branchToNavIndex(navigationShell.currentIndex),
         onDestinationSelected: (index) {
+          if (index == 2) {
+            context.push('/create');
+            return;
+          }
+          final branchIndex = _navToBranchIndex(index);
+          if (branchIndex == null) return;
           navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
+            branchIndex,
+            initialLocation: branchIndex == navigationShell.currentIndex,
           );
         },
         destinations: const [
@@ -31,6 +49,11 @@ class MainShell extends StatelessWidget {
             icon: Icon(Icons.explore_outlined),
             selectedIcon: Icon(Icons.explore),
             label: '탐색',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.add_circle_outlined, size: 32),
+            selectedIcon: Icon(Icons.add_circle, size: 32),
+            label: '만들기',
           ),
           NavigationDestination(
             icon: Icon(Icons.notifications_outlined),

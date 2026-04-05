@@ -45,19 +45,6 @@ class _ChallengeList extends StatelessWidget {
 
     return ListView(
       children: [
-        // Flow 2: [챌린지 만들기] 버튼 — 프로필 영역 아래, 챌린지 목록 위에 위치
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-          child: FilledButton.icon(
-            key: const Key('create_challenge_button'),
-            onPressed: () => context.go('/create'),
-            icon: const Text('➕', style: TextStyle(fontSize: 18)),
-            label: const Text('챌린지 만들기'),
-            style: FilledButton.styleFrom(
-              minimumSize: const Size.fromHeight(48),
-            ),
-          ),
-        ),
         if (challenges.isEmpty) ...[
           const SizedBox(height: 40),
           const Center(
