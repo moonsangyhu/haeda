@@ -164,7 +164,7 @@ class _CreateVerificationScreenState
             ? '${_formatDate(widget.date!)} 인증 작성'
             : '인증 작성'),
         leading: IconButton(
-          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -312,9 +312,10 @@ class _PhotoPlaceholder extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(
-          hasPhoto ? '✅' : '📸',
-          style: const TextStyle(fontSize: 48),
+        Icon(
+          hasPhoto ? Icons.check_circle : Icons.add_photo_alternate,
+          size: 48,
+          color: hasPhoto ? Colors.green : theme.colorScheme.onSurfaceVariant,
         ),
         const SizedBox(height: 8),
         Text(

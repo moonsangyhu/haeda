@@ -35,7 +35,7 @@ class _VerificationDetailScreenState
       appBar: AppBar(
         title: const Text('인증 상세'),
         leading: IconButton(
-          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -182,7 +182,7 @@ class _PhotoSection extends StatelessWidget {
             height: 200,
             color: Theme.of(context).colorScheme.surfaceContainerHighest,
             child: const Center(
-              child: const Text('🖼️', style: TextStyle(fontSize: 48)),
+              child: const Icon(Icons.broken_image, size: 48),
             ),
           );
         },

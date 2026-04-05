@@ -19,7 +19,7 @@ class ChallengeCompletionScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/my-page'),
         ),
         title: const Text('챌린지 완료'),
@@ -58,9 +58,16 @@ class _CompletionBody extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                const Text(
-                  '🎉 챌린지 완료!',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.celebration, size: 28, color: Theme.of(context).colorScheme.primary),
+                    const SizedBox(width: 8),
+                    const Text(
+                      '챌린지 완료!',
+                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 8),
                 Text(

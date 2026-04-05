@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'emoji_icon.dart';
 
 class MainShell extends StatelessWidget {
   const MainShell({
@@ -24,18 +23,18 @@ class MainShell extends StatelessWidget {
         },
         destinations: const [
           NavigationDestination(
-            icon: EmojiIcon('🏠'),
-            selectedIcon: EmojiIcon('🏡'),
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
             label: '내 챌린지',
           ),
           NavigationDestination(
-            icon: EmojiIcon('🧭'),
-            selectedIcon: EmojiIcon('🗺️'),
+            icon: Icon(Icons.explore_outlined),
+            selectedIcon: Icon(Icons.explore),
             label: '탐색',
           ),
           NavigationDestination(
-            icon: EmojiIcon('🔔'),
-            selectedIcon: EmojiIcon('🛎️'),
+            icon: Icon(Icons.notifications_outlined),
+            selectedIcon: Icon(Icons.notifications),
             label: '알림',
           ),
         ],

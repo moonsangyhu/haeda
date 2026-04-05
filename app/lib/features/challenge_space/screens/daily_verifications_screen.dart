@@ -39,7 +39,7 @@ class DailyVerificationsScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text('${_formatDate(date)} 인증 현황'),
         leading: IconButton(
-          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).maybePop(),
         ),
       ),
@@ -156,7 +156,7 @@ class _DailyVerificationsBody extends StatelessWidget {
               onPressed: () => context.push(
                 '/challenges/$challengeId/verify?date=$date',
               ),
-              icon: const Text('✏️', style: TextStyle(fontSize: 18)),
+              icon: const Icon(Icons.edit, size: 18),
               label: const Text('이 날짜에 인증하기'),
               style: ElevatedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -204,7 +204,7 @@ class _VerificationListItem extends StatelessWidget {
               ),
             ),
           ),
-          const Text('✅', style: TextStyle(fontSize: 14)),
+          Icon(Icons.check_circle, size: 14, color: Theme.of(context).colorScheme.primary),
         ],
       ),
       subtitle: Column(

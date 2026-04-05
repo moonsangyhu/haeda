@@ -45,7 +45,7 @@ class _ChallengeCreateStep1ScreenState
       appBar: AppBar(
         title: const Text('챌린지 만들기'),
         leading: IconButton(
-          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/'),
         ),
       ),

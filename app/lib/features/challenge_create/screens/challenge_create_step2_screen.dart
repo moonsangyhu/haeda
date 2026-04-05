@@ -126,7 +126,7 @@ class _ChallengeCreateStep2ScreenState
       appBar: AppBar(
         title: const Text('챌린지 만들기'),
         leading: IconButton(
-          icon: const Text('⬅️', style: TextStyle(fontSize: 20)),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/create'),
         ),
       ),
@@ -323,7 +323,7 @@ class _DatePickerTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Text('📅', style: TextStyle(fontSize: 16)),
+            Icon(Icons.calendar_today, size: 16, color: Theme.of(context).colorScheme.onSurface),
             const SizedBox(width: 8),
             Text(label),
           ],

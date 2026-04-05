@@ -63,7 +63,7 @@ class _ChallengeSpaceScreenState
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(
-          icon: const EmojiIcon('⬅️'),
+          icon: const Icon(Icons.arrow_back),
           onPressed: () => context.go('/my-page'),
         ),
         title: detailAsync.when(
@@ -270,7 +270,7 @@ class _MonthNavigator extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           IconButton(
-            icon: const EmojiIcon('◀️'),
+            icon: const Icon(Icons.chevron_left),
             onPressed: onPrevious,
             tooltip: '이전 달',
           ),
@@ -281,7 +281,7 @@ class _MonthNavigator extends StatelessWidget {
                 ),
           ),
           IconButton(
-            icon: const EmojiIcon('▶️'),
+            icon: const Icon(Icons.chevron_right),
             onPressed: onNext,
             tooltip: '다음 달',
           ),
