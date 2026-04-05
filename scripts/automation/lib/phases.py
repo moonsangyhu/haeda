@@ -275,6 +275,8 @@ async def phase_build(run: RunState, plan: dict) -> None:
             task = tasks_to_run[role]
             task.mark_done(result.exit_code)
             task.result_summary_file = f"results/{role}-summary.md"
+            task.cost_usd = result.cost_usd
+            task.num_turns = result.num_turns
             if result.is_max_turns:
                 task.error = "max_turns (even after continuation)"
             run.save_task_state(role, task)
@@ -365,6 +367,8 @@ async def phase_qa(run: RunState, plan: dict, *, is_re_review: bool = False) -> 
     )
 
     qa_task.mark_done(result.exit_code)
+    qa_task.cost_usd = result.cost_usd
+    qa_task.num_turns = result.num_turns
     run.save_task_state("qa", qa_task)
 
     # Parse QA result

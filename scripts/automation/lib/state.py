@@ -31,6 +31,8 @@ class TaskState:
     finished_at: Optional[str] = None
     exit_code: Optional[int] = None
     error: Optional[str] = None
+    cost_usd: Optional[float] = None
+    num_turns: Optional[int] = None
 
     def mark_running(self) -> None:
         self.status = "running"

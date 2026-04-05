@@ -66,6 +66,27 @@ DEFAULT_WATCH_INTERVAL = 10
 # Progress Reporter — async heartbeat that prints compact status every N sec
 # ---------------------------------------------------------------------------
 
+# Canonical agent mapping (matches .claude/agents/)
+ROLE_AGENTS = {
+    "backend": "backend-builder",
+    "frontend": "flutter-builder",
+    "qa": "qa-reviewer",
+}
+
+# Phase-based action labels (since we can't get sub-step from running subprocess)
+_PHASE_ACTIONS = {
+    "plan": "planning",
+    "build": "building",
+    "merge": "merging",
+    "qa": "reviewing",
+    "verify": "verifying",
+    "remediate": "fixing",
+    "complete": "done",
+    "incomplete": "incomplete",
+    "failed": "failed",
+}
+
+
 def _elapsed(iso_ts: str | None) -> str:
     """Compute human-readable elapsed time from an ISO timestamp to now."""
     if not iso_ts:
@@ -84,17 +105,34 @@ def _elapsed(iso_ts: str | None) -> str:
         return "?"
 
 
+def _fmt_cost(cost: float | None) -> str:
+    """Format cost as compact token-like display."""
+    if cost is None:
+        return "n/a"
+    return f"${cost:.3f}"
+
+
 def _task_label(run: RunState, role: str) -> str:
-    """Build a compact label like 'running(42s)' for a task."""
+    """Build a compact label with agent, action, elapsed, and cost."""
     task = run.get_task_state(role)
+    agent = ROLE_AGENTS.get(role, role)
     status = task.status
+    action = _PHASE_ACTIONS.get(run.phase, run.phase)
+
+    # Cost/turns suffix (only if available, i.e. after completion)
+    cost_part = ""
+    if task.cost_usd is not None:
+        cost_part = f",{_fmt_cost(task.cost_usd)}"
+    elif status in ("done", "failed") and task.num_turns:
+        cost_part = f",{task.num_turns}t"
+
     if status == "running":
-        return f"running({_elapsed(task.started_at)})"
+        return f"{agent}:running:{action}({_elapsed(task.started_at)})"
     if status == "done":
-        return f"done({_elapsed(task.started_at)})"
+        return f"{agent}:done({_elapsed(task.started_at)}{cost_part})"
     if status == "failed":
-        return "FAILED"
-    return status  # pending / skipped
+        return f"{agent}:FAILED{cost_part}"
+    return f"{agent}:{status}"
 
 
 def format_heartbeat(run: RunState) -> str:
@@ -106,7 +144,7 @@ def format_heartbeat(run: RunState) -> str:
     elapsed = _elapsed(run.started_at)
     return (
         f"[{ts}] {run.slice_name} | phase={run.phase} | retry={run.retry_count} | "
-        f"backend={be} | frontend={fe} | qa={qa} | total={elapsed}"
+        f"be={be} | fe={fe} | qa={qa} | total={elapsed}"
     )
 
 
