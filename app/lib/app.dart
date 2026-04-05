@@ -18,6 +18,7 @@ import 'features/challenge_create/screens/challenge_create_step2_screen.dart';
 import 'features/challenge_create/screens/challenge_create_complete_screen.dart';
 import 'features/challenge_join/screens/invite_preview_screen.dart';
 import 'features/challenge_complete/screens/challenge_completion_screen.dart';
+import 'features/settings/screens/settings_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -39,7 +40,7 @@ final _router = GoRouter(
       path: '/profile-setup',
       builder: (context, state) => const ProfileSetupScreen(),
     ),
-    // Bottom tab shell: 내 챌린지 / 탐색 / 알림
+    // Bottom tab shell: 내 챌린지 / 탐색 / 알림 / 설정
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
@@ -66,6 +67,14 @@ final _router = GoRouter(
               path: '/notifications',
               builder: (context, state) =>
                   const NotificationsPlaceholderScreen(),
+            ),
+          ],
+        ),
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/settings',
+              builder: (context, state) => const SettingsScreen(),
             ),
           ],
         ),

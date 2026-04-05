@@ -37,6 +37,11 @@ class MainShell extends StatelessWidget {
             selectedIcon: Icon(Icons.notifications),
             label: '알림',
           ),
+          NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: '설정',
+          ),
         ],
       ),
     );
