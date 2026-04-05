@@ -18,6 +18,7 @@ from .config import (
     MAX_TURNS_CONTINUATION,
     MAX_TURNS_FRONTEND,
     MAX_TURNS_PLAN,
+    MAX_TURNS_PLAN_CONTINUATION,
     MAX_TURNS_QA,
     MAX_TURNS_REMEDIATE,
     MAX_TURNS_VERIFY,
@@ -36,6 +37,8 @@ from .prompts import (
     generate_backend_prompt,
     generate_continuation_prompt,
     generate_frontend_prompt,
+    generate_plan_continuation_prompt,
+    generate_plan_from_artifact_prompt,
     generate_plan_prompt,
     generate_qa_prompt,
     generate_re_review_prompt,
@@ -68,8 +71,57 @@ def _parse_json_result(text: str) -> dict:
         raise
 
 
+def check_repo_clean() -> tuple[bool, list[str]]:
+    """Check if the main worktree has uncommitted changes.
+
+    Returns (is_clean, dirty_files).
+    """
+    import subprocess
+
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True, text=True, cwd=str(REPO_ROOT),
+    )
+    dirty = [l.strip() for l in result.stdout.strip().split("\n") if l.strip()]
+    return len(dirty) == 0, dirty
+
+
+def _find_prev_test_report(slice_name: str) -> Path | None:
+    """Find the test report from the immediately preceding slice."""
+    import re
+
+    m = re.search(r"slice-(\d+)", slice_name)
+    if not m:
+        return None
+    prev_num = int(m.group(1)) - 1
+    if prev_num < 1:
+        return None
+    prev_report = TEST_REPORTS_DIR / f"slice-{prev_num:02d}-test-report.md"
+    return prev_report if prev_report.exists() else None
+
+
+def _find_next_slice_artifact(slice_name: str) -> Path | None:
+    """Check if previous run left a next-slice recommendation artifact."""
+    import re
+
+    m = re.search(r"slice-(\d+)", slice_name)
+    if not m:
+        return None
+    prev_num = int(m.group(1)) - 1
+    if prev_num < 1:
+        return None
+    prev_run_dir = REPO_ROOT / "automation" / "runs" / f"slice-{prev_num:02d}"
+    artifact = prev_run_dir / "results" / "next-slice.md"
+    return artifact if artifact.exists() else None
+
+
 async def phase_plan(run: RunState) -> dict:
     """PLAN: Determine next slice scope via lightweight Claude call.
+
+    Features:
+    - Reuses next-slice artifact from previous run if available (fast path)
+    - Reads only the latest test report, not all reports
+    - Max-turns continuation (1 retry) if planner runs out of turns
 
     Returns the plan dict (endpoints, screens, entities, goal).
     """
@@ -77,21 +129,78 @@ async def phase_plan(run: RunState) -> dict:
     run.transition(PHASE_PLAN)
 
     rd = run._run_dir
-    prompt = generate_plan_prompt(run.slice_name)
+    log_file = rd / "logs" / "plan.log"
+    allowed = ["Read", "Glob", "Grep"]
+
+    # Fast path: reuse next-slice artifact from previous run
+    artifact = _find_next_slice_artifact(run.slice_name)
+    if artifact:
+        log.info("Found next-slice artifact: %s — using fast path", artifact)
+        prompt = generate_plan_from_artifact_prompt(
+            run.slice_name, str(artifact.relative_to(REPO_ROOT)),
+        )
+        save_prompt(prompt, rd / "prompts" / "plan.md")
+
+        result = await run_claude(
+            prompt=prompt, cwd=REPO_ROOT, log_file=log_file,
+            allowed_tools=allowed, max_turns=MAX_TURNS_PLAN,
+        )
+
+        if result.exit_code == 0 and not result.is_max_turns:
+            return _finalize_plan(run, result)
+
+        log.warning("Artifact fast path failed (exit=%d, max_turns=%s). Falling back to full planning.",
+                     result.exit_code, result.is_max_turns)
+
+    # Normal path: focused planning with narrowed scope
+    prev_report = _find_prev_test_report(run.slice_name)
+    prev_report_rel = str(prev_report.relative_to(REPO_ROOT)) if prev_report else None
+    prompt = generate_plan_prompt(run.slice_name, prev_report_path=prev_report_rel)
     save_prompt(prompt, rd / "prompts" / "plan.md")
 
     result = await run_claude(
-        prompt=prompt,
-        cwd=REPO_ROOT,
-        log_file=rd / "logs" / "plan.log",
-        allowed_tools=["Read", "Glob", "Grep"],
-        max_turns=MAX_TURNS_PLAN,
+        prompt=prompt, cwd=REPO_ROOT, log_file=log_file,
+        allowed_tools=allowed, max_turns=MAX_TURNS_PLAN,
     )
 
-    if result.exit_code != 0:
+    # Max-turns continuation (1 retry)
+    if result.is_max_turns and result.session_id:
+        log.warning(
+            "Plan hit max turns (%d). Attempting continuation (session: %s)",
+            MAX_TURNS_PLAN, result.session_id[:12],
+        )
+        cont_prompt = generate_plan_continuation_prompt(run.slice_name)
+        save_prompt(cont_prompt, rd / "prompts" / "plan-continue.md")
+
+        result = await resume_claude(
+            session_id=result.session_id,
+            prompt=cont_prompt,
+            cwd=REPO_ROOT,
+            log_file=log_file,
+            allowed_tools=allowed,
+            max_turns=MAX_TURNS_PLAN_CONTINUATION,
+        )
+
+        if result.is_max_turns:
+            log.error("Plan hit max turns again after continuation. Giving up.")
+
+    if result.exit_code != 0 and not result.is_max_turns:
         run.mark_failed(f"Plan phase failed: {result.result_text[:200]}")
         raise RuntimeError("Plan phase failed")
 
+    if result.is_max_turns:
+        run.mark_failed(
+            f"Plan phase failed: max turns reached even after continuation "
+            f"(budget: {MAX_TURNS_PLAN}+{MAX_TURNS_PLAN_CONTINUATION})"
+        )
+        raise RuntimeError("Plan phase failed: max turns exhausted")
+
+    return _finalize_plan(run, result)
+
+
+def _finalize_plan(run: RunState, result) -> dict:
+    """Parse plan result and save summary. Shared by fast/normal path."""
+    rd = run._run_dir
     plan = _parse_json_result(result.result_text)
 
     if plan.get("all_p0_complete"):

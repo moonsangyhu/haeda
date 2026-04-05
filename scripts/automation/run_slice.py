@@ -41,6 +41,7 @@ from lib.config import (
     run_dir,
 )
 from lib.phases import (
+    check_repo_clean,
     phase_build,
     phase_complete,
     phase_merge,
@@ -365,6 +366,23 @@ async def run_orchestrator(
     watch_interval: float = DEFAULT_WATCH_INTERVAL,
 ) -> None:
     """Main orchestration loop for a single slice."""
+
+    # Dirty repo guard: fail fast if uncommitted changes exist
+    is_clean, dirty_files = check_repo_clean()
+    if not is_clean:
+        print(f"\n{'=' * 60}")
+        print(f"  ERROR: Repository has uncommitted changes ({len(dirty_files)} files)")
+        print(f"  Cannot start slice automation on a dirty worktree.")
+        print(f"\n  Dirty files (first 10):")
+        for f in dirty_files[:10]:
+            print(f"    {f}")
+        print(f"\n  Fix: commit or stash your changes first:")
+        print(f"    git add -A && git commit -m 'wip: save progress'")
+        print(f"    # or")
+        print(f"    git stash")
+        print(f"{'=' * 60}")
+        sys.exit(1)
+
     rd = ensure_run_dirs(slice_name)
 
     # Load or create state

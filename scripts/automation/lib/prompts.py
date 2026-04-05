@@ -12,23 +12,45 @@ from pathlib import Path
 from typing import Optional
 
 
-def generate_plan_prompt(slice_name: str) -> str:
-    """Prompt for the PLAN phase: determine next slice scope."""
+def generate_plan_prompt(
+    slice_name: str,
+    *,
+    prev_report_path: Optional[str] = None,
+) -> str:
+    """Prompt for the PLAN phase: determine next slice scope.
+
+    Token-saving: reads only latest test report (not all), skips domain-model.md
+    (entities are derivable from prd.md + api-contract.md).
+    """
+    report_instruction = ""
+    if prev_report_path:
+        report_instruction = f"4. {prev_report_path} — previous slice result (what's already done)"
+    else:
+        report_instruction = "4. (no previous slice report found — this may be the first slice)"
+
     return f"""You are the planning agent for Haeda slice automation.
 
 ## Task
-Determine the implementation scope for {slice_name}.
+Pick the next unimplemented P0 feature and define {slice_name} scope.
 
-## Read These Files
-1. CLAUDE.md — project rules
-2. docs/prd.md — P0 feature list
-3. docs/api-contract.md — P0 endpoints
-4. docs/domain-model.md — P0 entities
-5. docs/user-flows.md — P0 flows
-6. test-reports/ — completed slice reports
+## Read These Files (in order, stop after each)
+1. docs/prd.md — P0 feature list (§3 기능 목록)
+2. docs/api-contract.md — P0 endpoints
+3. docs/user-flows.md — P0 screen flows
+{report_instruction}
+
+Do NOT read CLAUDE.md, docs/domain-model.md, or scan test-reports/ directory.
+Do NOT explore the codebase broadly. Focus only on the 3-4 files above.
+
+## Decision Process
+1. From prd.md, list all P0 features
+2. From the previous test report, identify which P0 features are already done
+3. Pick the next unimplemented P0 feature
+4. From api-contract.md, extract its endpoints
+5. From user-flows.md, extract its screens
 
 ## Output
-Output ONLY a JSON object (no markdown fences) with this structure:
+Output ONLY a JSON object (no markdown fences):
 {{
   "slice_name": "{slice_name}",
   "goal": "one-line goal",
@@ -42,6 +64,66 @@ Output ONLY a JSON object (no markdown fences) with this structure:
 }}
 
 If ALL P0 features are already implemented, set "all_p0_complete": true and leave other fields minimal.
+"""
+
+
+def generate_plan_from_artifact_prompt(
+    slice_name: str,
+    artifact_path: str,
+) -> str:
+    """Short prompt when a next-slice artifact already exists.
+
+    Just validates the artifact and outputs the plan JSON — no broad doc reading.
+    """
+    return f"""A previous automation run already recommended the next slice scope.
+
+## Read This File
+1. {artifact_path} — next-slice recommendation from previous run
+
+## Task
+Validate and output the plan for {slice_name} based on the artifact above.
+If the artifact looks reasonable, convert it to the output format below.
+If it references features that seem already implemented, read docs/prd.md to verify,
+then either confirm or pick a different P0 feature.
+
+## Output
+Output ONLY a JSON object (no markdown fences):
+{{
+  "slice_name": "{slice_name}",
+  "goal": "one-line goal",
+  "p0_reference": "prd.md section",
+  "endpoints": ["METHOD /path — description", ...],
+  "screens": ["screen name — flow reference", ...],
+  "entities": ["entity — fields summary", ...],
+  "excluded": ["what NOT to implement"],
+  "depends_on": ["prerequisite slices or empty"],
+  "all_p0_complete": false
+}}
+"""
+
+
+def generate_plan_continuation_prompt(slice_name: str) -> str:
+    """Short continuation prompt when plan phase hits max turns.
+
+    Session already has all the context — just needs to output the JSON.
+    """
+    return f"""You ran out of turns while planning {slice_name}.
+
+You already read the relevant docs. Do NOT re-read any files.
+Just output the plan JSON now based on what you already know.
+
+Output ONLY a JSON object (no markdown fences):
+{{
+  "slice_name": "{slice_name}",
+  "goal": "one-line goal",
+  "p0_reference": "prd.md section",
+  "endpoints": ["METHOD /path — description", ...],
+  "screens": ["screen name — flow reference", ...],
+  "entities": ["entity — fields summary", ...],
+  "excluded": ["what NOT to implement"],
+  "depends_on": ["prerequisite slices or empty"],
+  "all_p0_complete": false
+}}
 """
 
 
