@@ -25,10 +25,16 @@ WORKTREE_BASE = REPO_ROOT / ".claude" / "worktrees"
 # Claude invocation defaults
 DEFAULT_MODEL = "sonnet"
 DEFAULT_PERMISSION_MODE = "acceptEdits"
-MAX_TURNS_BUILD = 30
-MAX_TURNS_QA = 20
-MAX_TURNS_PLAN = 10
 MAX_REMEDIATION_RETRIES = 1
+MAX_CONTINUATION_RETRIES = 1  # max-turns continuation per task
+
+# Phase-specific max turns (backend needs more: models + migrations + tests)
+MAX_TURNS_PLAN = 10
+MAX_TURNS_BACKEND = 50
+MAX_TURNS_FRONTEND = 30
+MAX_TURNS_QA = 20
+MAX_TURNS_REMEDIATE = 30
+MAX_TURNS_CONTINUATION = 30  # continuation after max-turns hit
 
 # Phase names
 PHASE_PLAN = "plan"

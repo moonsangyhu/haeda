@@ -257,6 +257,33 @@ Output ONLY a JSON object (no markdown fences):
 """
 
 
+def generate_continuation_prompt(
+    slice_name: str,
+    role: str,
+) -> str:
+    """Short continuation prompt after max-turns hit.
+
+    Minimal context — the session already has full history.
+    """
+    scope_dir = "server" if role == "backend" else "app"
+    other_dir = "app" if role == "backend" else "server"
+    test_cmd = "cd server && uv run pytest -v --tb=short" if role == "backend" else "cd app && flutter test"
+
+    return f"""Continue implementing {slice_name} {role}. You ran out of turns.
+
+Your previous changes are preserved. Do NOT start over.
+
+Steps:
+1. Run `git status` to see what you already changed
+2. Complete any remaining work (endpoints, tests, screens)
+3. Only modify {scope_dir}/. NEVER touch {other_dir}/.
+4. Run: {test_cmd}
+5. Commit when done.
+
+Do NOT re-read docs you already read. Do NOT explore outside {slice_name} scope.
+"""
+
+
 def save_prompt(content: str, path: Path) -> None:
     """Save a prompt to file."""
     path.parent.mkdir(parents=True, exist_ok=True)

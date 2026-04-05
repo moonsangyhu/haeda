@@ -11,11 +11,15 @@ import json
 import logging
 from pathlib import Path
 
-from .claude_runner import RunResult, run_claude
+from .claude_runner import RunResult, resume_claude, run_claude
 from .config import (
-    MAX_TURNS_BUILD,
+    MAX_CONTINUATION_RETRIES,
+    MAX_TURNS_BACKEND,
+    MAX_TURNS_CONTINUATION,
+    MAX_TURNS_FRONTEND,
     MAX_TURNS_PLAN,
     MAX_TURNS_QA,
+    MAX_TURNS_REMEDIATE,
     PHASE_BUILD,
     PHASE_COMPLETE,
     PHASE_FAILED,
@@ -27,6 +31,7 @@ from .config import (
 )
 from .prompts import (
     generate_backend_prompt,
+    generate_continuation_prompt,
     generate_frontend_prompt,
     generate_plan_prompt,
     generate_qa_prompt,
@@ -114,8 +119,63 @@ async def phase_plan(run: RunState) -> dict:
     return plan
 
 
+async def _run_build_task(
+    run: RunState,
+    role: str,
+    prompt: str,
+    wt_path: Path,
+    max_turns: int,
+) -> RunResult:
+    """Run a build task with automatic max-turns continuation (1 retry).
+
+    If Claude hits the turn limit, we resume the same session with a short
+    continuation prompt. This keeps all previous context without re-reading docs.
+    """
+    rd = run._run_dir
+    log_file = rd / "logs" / f"{role}.log"
+    allowed = ["Read", "Edit", "Write", "Bash", "Glob", "Grep"]
+
+    result = await run_claude(
+        prompt=prompt,
+        cwd=wt_path,
+        log_file=log_file,
+        allowed_tools=allowed,
+        max_turns=max_turns,
+    )
+
+    # If max-turns hit and we have a session to continue
+    if result.is_max_turns and result.session_id:
+        log.warning(
+            "%s hit max turns (%d). Attempting continuation (session: %s)",
+            role, max_turns, result.session_id[:12],
+        )
+        cont_prompt = generate_continuation_prompt(run.slice_name, role)
+        save_prompt(cont_prompt, rd / "prompts" / f"{role}-continue.md")
+
+        result = await resume_claude(
+            session_id=result.session_id,
+            prompt=cont_prompt,
+            cwd=wt_path,
+            log_file=log_file,
+            allowed_tools=allowed,
+            max_turns=MAX_TURNS_CONTINUATION,
+        )
+
+        if result.is_max_turns:
+            log.error("%s hit max turns again after continuation. Giving up.", role)
+            # Still return the result — let caller decide severity
+        else:
+            log.info("%s continuation completed successfully.", role)
+
+    return result
+
+
 async def phase_build(run: RunState, plan: dict) -> None:
-    """BUILD: Run backend + frontend in parallel worktrees."""
+    """BUILD: Run backend + frontend in parallel worktrees.
+
+    Per-role max turns: backend=50, frontend=30.
+    Max-turns errors get 1 automatic continuation retry before failing.
+    """
     log.info("=== PHASE: BUILD ===")
     run.transition(PHASE_BUILD)
 
@@ -155,22 +215,10 @@ async def phase_build(run: RunState, plan: dict) -> None:
     run.save_task_state("frontend", fe_task)
     run.save()
 
-    # Run backend + frontend in parallel
+    # Run backend + frontend in parallel (with per-role max turns)
     be_result, fe_result = await asyncio.gather(
-        run_claude(
-            prompt=be_prompt,
-            cwd=be_wt,
-            log_file=rd / "logs" / "backend.log",
-            allowed_tools=["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
-            max_turns=MAX_TURNS_BUILD,
-        ),
-        run_claude(
-            prompt=fe_prompt,
-            cwd=fe_wt,
-            log_file=rd / "logs" / "frontend.log",
-            allowed_tools=["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
-            max_turns=MAX_TURNS_BUILD,
-        ),
+        _run_build_task(run, "backend", be_prompt, be_wt, MAX_TURNS_BACKEND),
+        _run_build_task(run, "frontend", fe_prompt, fe_wt, MAX_TURNS_FRONTEND),
     )
 
     # Update task states
@@ -178,25 +226,33 @@ async def phase_build(run: RunState, plan: dict) -> None:
     fe_task.mark_done(fe_result.exit_code)
     be_task.result_summary_file = "results/backend-summary.md"
     fe_task.result_summary_file = "results/frontend-summary.md"
+    if be_result.is_max_turns:
+        be_task.error = "max_turns (even after continuation)"
+    if fe_result.is_max_turns:
+        fe_task.error = "max_turns (even after continuation)"
     run.save_task_state("backend", be_task)
     run.save_task_state("frontend", fe_task)
 
-    # Save compact summaries (first 500 chars of result)
-    (rd / "results" / "backend-summary.md").write_text(
-        f"# Backend Result\n\nExit: {be_result.exit_code}\n\n{be_result.result_text[:500]}\n"
-    )
-    (rd / "results" / "frontend-summary.md").write_text(
-        f"# Frontend Result\n\nExit: {fe_result.exit_code}\n\n{fe_result.result_text[:500]}\n"
-    )
+    # Save compact summaries
+    for role, result in [("backend", be_result), ("frontend", fe_result)]:
+        max_t = MAX_TURNS_BACKEND if role == "backend" else MAX_TURNS_FRONTEND
+        status = "max_turns" if result.is_max_turns else f"exit={result.exit_code}"
+        (rd / "results" / f"{role}-summary.md").write_text(
+            f"# {role.title()} Result\n\n"
+            f"Status: {status} | turns: {result.num_turns or '?'}/{max_t}\n\n"
+            f"{result.result_text[:500]}\n"
+        )
 
     if be_result.exit_code != 0 or fe_result.exit_code != 0:
         failed = []
         if be_result.exit_code != 0:
-            failed.append("backend")
+            reason = "max_turns" if be_result.is_max_turns else f"exit={be_result.exit_code}"
+            failed.append(f"backend({reason})")
         if fe_result.exit_code != 0:
-            failed.append("frontend")
-        run.mark_failed(f"Build failed for: {', '.join(failed)}")
-        raise RuntimeError(f"Build failed for: {', '.join(failed)}")
+            reason = "max_turns" if fe_result.is_max_turns else f"exit={fe_result.exit_code}"
+            failed.append(f"frontend({reason})")
+        run.mark_failed(f"Build failed: {', '.join(failed)}")
+        raise RuntimeError(f"Build failed: {', '.join(failed)}")
 
 
 async def phase_merge(run: RunState) -> None:
@@ -337,7 +393,7 @@ async def phase_remediate(run: RunState, qa_data: dict) -> None:
                 cwd=REPO_ROOT,
                 log_file=rd / "logs" / log_name,
                 allowed_tools=["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
-                max_turns=MAX_TURNS_BUILD,
+                max_turns=MAX_TURNS_REMEDIATE,
             )
         )
 
