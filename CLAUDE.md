@@ -16,9 +16,22 @@ docs/ files must not be modified in principle. User approval required if modific
 
 ## MVP Guardrails
 
-- Implement P0 + P1 scope. Do not build features beyond P1 (Apple login, admin dashboard, leaderboards, chat).
-- Do not add entities, endpoints, or screens not defined in the PRD.
+- P0 features are highest priority. P1 and beyond are implemented as user requests.
 - If a decision corresponding to `docs/prd.md` §9 Open Questions is needed, confirm with user before implementing.
+
+## Agent Team
+
+All implementation and review work uses a 3-agent team. Main (Opus) handles analysis, planning, and coordination only.
+
+| Agent | Model | Role | Scope |
+|-------|-------|------|-------|
+| `backend-builder` | Sonnet | FastAPI 구현/수정 | server/ only |
+| `flutter-builder` | Sonnet | Flutter 구현/수정 | app/ only |
+| `qa-reviewer` | Sonnet | 테스트 실행 + 품질 검증 | read-only + bash |
+
+- **구현**: 영역에 맞는 builder 에이전트에 위임. 크로스 레이어는 두 builder를 병렬 실행.
+- **QA**: 구현 후 qa-reviewer가 테스트 + 체크리스트 검증 수행.
+- **Main(Opus)의 역할**: 요구사항 분석, 계획 수립, 에이전트 조율, 리포트/커밋/리빌드.
 
 ## Implementation Rules
 
