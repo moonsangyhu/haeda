@@ -21,15 +21,17 @@ docs/ files must not be modified in principle. User approval required if modific
 
 ## Agent Team
 
-All implementation and review work uses a 3-agent team. Main (Opus) handles analysis, planning, and coordination only.
+All implementation and review work uses a 4-agent team. Main (Opus) handles analysis, planning, and coordination only.
 
 | Agent | Model | Role | Scope |
 |-------|-------|------|-------|
 | `backend-builder` | Sonnet | FastAPI 구현/수정 | server/ only |
 | `flutter-builder` | Sonnet | Flutter 구현/수정 | app/ only |
+| `ui-designer` | Sonnet | UI 디자인/폴리시/접근성 | app/ only |
 | `qa-reviewer` | Sonnet | 테스트 실행 + 품질 검증 | read-only + bash |
 
 - **구현**: 영역에 맞는 builder 에이전트에 위임. 크로스 레이어는 두 builder를 병렬 실행.
+- **디자인**: UI/UX 개선, 디자인 시스템 작업은 `ui-designer`에 위임. 디자인 방향 수립 후 `flutter-builder`가 통합.
 - **QA**: 구현 후 qa-reviewer가 테스트 + 체크리스트 검증 수행.
 - **Main(Opus)의 역할**: 요구사항 분석, 계획 수립, 에이전트 조율, 리포트/커밋/리빌드.
 
