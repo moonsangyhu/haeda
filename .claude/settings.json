@@ -27,7 +27,19 @@
       "Bash(command: *alembic downgrade*)"
     ]
   },
-  "hooks": {},
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 .claude/hooks/feature-flow-nudge.py",
+            "timeout": 5
+          }
+        ]
+      }
+    ]
+  },
   "statusLine": {
     "type": "command",
     "command": "echo \"ctx:${CLAUDE_CONTEXT_WINDOW_USED_PERCENTAGE}% | ${CLAUDE_WORKTREE_BRANCH:-$(git branch --show-current)} | ${CLAUDE_SESSION_NAME:-unnamed}\""

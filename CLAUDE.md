@@ -46,6 +46,8 @@ All implementation and review work uses a 4-agent team. Main (Opus) handles anal
 
 ## Workflow Rules
 
+- **Feature-flow 기본 사용**: 사용자가 신규 기능 추가/구현/수정을 요청하면, `/feature-flow`를 자동으로 실행한다. 단순 버그 수정(`/fix`), 질문, 탐색, 설정 변경 등은 제외.
+
 Vertical slice development flow:
 
 1. **Plan (Plan-first)**: Enter Plan Mode with Shift+Tab, then run `/slice-planning {slice-name}`. Do not implement until the plan is approved.
