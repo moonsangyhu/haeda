@@ -1,128 +1,35 @@
 # Haeda
 
-Collaborative challenge app — a calendar-based motivation service where seasonal icons are completed only when all participants verify.
-Currently building MVP for a hospital pilot (4 weeks). Flutter + FastAPI + PostgreSQL + Kakao OAuth.
+Collaborative challenge app — calendar-based motivation service. Flutter + FastAPI + PostgreSQL + Kakao OAuth. Hospital pilot MVP (4 weeks).
 
 ## Source of Truth
 
-All implementation decisions are based on these 4 documents. When code and docs conflict, docs are correct.
-
-- `docs/prd.md` — feature list, P0/P1 scope, non-functional requirements, success metrics
+- `docs/prd.md` — features, P0/P1 scope, NFRs, success metrics
 - `docs/user-flows.md` — screen flows, screen structure
-- `docs/domain-model.md` — entities, fields, constraints, business rules
-- `docs/api-contract.md` — REST endpoints, request/response schemas, error codes
+- `docs/domain-model.md` — entities, fields, business rules
+- `docs/api-contract.md` — REST endpoints, schemas, error codes
 
-docs/ files must not be modified in principle. User approval required if modification is needed.
+When code and docs conflict, docs win. Do not modify docs/ without user approval.
 
 ## MVP Guardrails
 
-- P0 features are highest priority. P1 and beyond are implemented as user requests.
-- If a decision corresponding to `docs/prd.md` §9 Open Questions is needed, confirm with user before implementing.
+- P0 features only. P1+ implemented on user request.
+- Open Questions (`docs/prd.md` section 9): confirm with user before deciding.
 
-## Agent Team
+## Rules
 
-All implementation and review work uses a 4-agent team. Main (Opus) handles analysis, planning, and coordination only.
+Detailed rules in `.claude/rules/`:
 
-| Agent | Model | Role | Scope |
-|-------|-------|------|-------|
-| `backend-builder` | Sonnet | FastAPI 구현/수정 | server/ only |
-| `flutter-builder` | Sonnet | Flutter 구현/수정 | app/ only |
-| `ui-designer` | Sonnet | UI 디자인/폴리시/접근성 | app/ only |
-| `qa-reviewer` | Sonnet | 테스트 실행 + 품질 검증 | read-only + bash |
-
-- **구현**: 영역에 맞는 builder 에이전트에 위임. 크로스 레이어는 두 builder를 병렬 실행.
-- **디자인**: UI/UX 개선, 디자인 시스템 작업은 `ui-designer`에 위임. 디자인 방향 수립 후 `flutter-builder`가 통합.
-- **QA**: 구현 후 qa-reviewer가 테스트 + 체크리스트 검증 수행.
-- **Main(Opus)의 역할**: 요구사항 분석, 계획 수립, 에이전트 조율, 리포트/커밋/리빌드.
-
-## Implementation Rules
-
-- **Terminology**: Class names, variable names, and API paths in code follow the English terms from docs (Challenge, Verification, DayCompletion, ChallengeMember, Comment).
-- **API contract**: Paths, field names, types, and error codes must match `api-contract.md` exactly. Responses use `{"data": ...}` / `{"error": {"code": "...", "message": "..."}}` envelope.
-- **Flutter**: Feature-first structure, Riverpod, GoRouter, dio. Detailed rules in `.claude/skills/flutter-mvp/`.
-- **FastAPI**: SQLAlchemy 2.0 async, Pydantic v2, Alembic. Detailed rules in `.claude/skills/fastapi-mvp/`.
-- **Season icons**: Mar-May spring, Jun-Aug summer, Sep-Nov fall, Dec-Feb winter.
-- **Path-specific rules**: `.claude/rules/server-guard.md` auto-loads for server/ work, `.claude/rules/app-guard.md` auto-loads for app/ work.
-
-## Workflow Rules
-
-- **Feature-flow 기본 사용**: 사용자가 신규 기능 추가/구현/수정을 요청하면, `/feature-flow`를 자동으로 실행한다. 단순 버그 수정(`/fix`), 질문, 탐색, 설정 변경 등은 제외.
-
-Vertical slice development flow:
-
-1. **Plan (Plan-first)**: Enter Plan Mode with Shift+Tab, then run `/slice-planning {slice-name}`. Do not implement until the plan is approved.
-2. **Spec verification**: Use `spec-keeper` agent to verify spec consistency of the plan. Block implementation if P0 scope, entities, or error codes don't match.
-3. **Implementation**: Implement API with `backend-builder` -> implement UI with `flutter-builder`. Or implement directly as needed.
-4. **Check**: Run `/mvp-slice-check {slice-name}` for completeness check. Run `/docs-drift-check` for code-docs consistency.
-5. **Review**: Quality review with `qa-reviewer` agent.
-6. **Remediation loop**: If QA verdict is "partial" or "incomplete", paste the remediation prompt into the relevant tab (backend/frontend) to fix -> QA re-review. Repeat until "complete". Use `/qa-remediation {slice-name}` if prompt regeneration is needed.
-7. **Integration check**: Run `/smoke-test` to verify full stack operation in local environment.
-8. **Record results**: Run `/slice-test-report {slice-name}` to save test report to `test-reports/`. Git commit target.
-9. **Next slice transition**: On "complete" verdict, paste the next-slice prompts output by QA into each tab to start next cycle. Or manually generate with `/next-slice-planning`.
-
-### Verification Principles
-
-- **"Prove it works."** Every slice is judged complete by actual test execution results.
-- Mock success, fallback path success, or build-only pass is NOT "proof of working".
-- Must cite passed/failed counts from pytest/flutter test output.
-- Distinguish between actually verified items and unverified items. Do not declare "complete" by estimation.
-- Do not declare slice complete without smoke test.
-
-### Session Naming
-
-- Start sessions in `claude -n slice-{NN}-{layer}` format for slice work (e.g., `claude -n slice-04-backend`).
-- Use `claude --worktree slice-{NN} -n slice-{NN}` format for parallel worktree work.
-- See `docs/worktree-runbook.md` for detailed rules.
-
-### Slice Automation (MVP)
-
-Orchestrator that automatically implements and verifies a single slice:
-- `make slice-auto` — auto-detect next slice + plan -> build -> qa -> complete
-- `make slice-auto SLICE=slice-07` — run specific slice
-- `make slice-status SLICE=slice-07` — check status
-- `make slice-resume SLICE=slice-07` — resume after interruption
-- `make slice-clean SLICE=slice-07` — clean artifacts
-
-Rules:
-- Max 1 auto-retry for remediation. Manual intervention after failure.
-- State files (`automation/runs/<slice>/run.json`) are compact pointer-based. Logs in separate files.
-- backend/frontend run in parallel via git worktrees. No cross-modification between app/ and server/.
-- Agent SDK preferred, CLI fallback. Details: `scripts/automation/`.
-
-### Refinement Pipeline
-
-User-request-driven feedback loop for UI/UX polish and detail fixes:
-- `make refine REQUEST="fix badge spacing"` — inline request
-- `make refine REQUEST_FILE=requests/fix.md` — file-based request (preferred for detailed requests)
-- `make refine REQUEST_FILE=requests/fix.md AUTO_PUSH=1` — with auto-push
-- `make refine-status RUN=refine-20260405-001` / `refine-resume` / `refine-clean` / `refine-list`
-
-Flow: analyze -> implement -> verify -> report -> commit -> push.
-Max 1 remediation retry. Default: commit+push. Disable push with `AUTO_PUSH=0`.
-State/artifacts in `automation/runs/refine-*` (gitignored). Details: `scripts/automation/run_refine.py`.
-
-Misc:
-- Do not hardcode `.env`, secrets, or credentials in code.
-- Do not touch app/ code when working on server/. Vice versa.
-- **Local environment (Container-First)**: Start full stack with `docker compose up --build -d`. Same as `/local`. Stop with `/local stop`, check status with `/local status`, reset with `/local reset`.
-
-## CLAUDE.md Update Rules
-
-This file is the project's working rulebook. Update in these cases:
-
-- **Repeated mistakes**: If Claude makes the same mistake 2+ times, add a prevention rule.
-- **New pattern established**: When the team adopts a new coding pattern or workflow, reflect it.
-- **Rule deprecated**: Delete rules that are no longer valid. Do not comment them out.
-
-Do NOT update with:
-- Implementation details (verifiable from code)
-- One-off debugging records (keep in test-reports/)
-- Detailed procedures (separate into skills/ or docs/)
-
-Keep CLAUDE.md short and strong. Target under 200 lines.
+- **coding-style.md** — terminology, API format, season icons, file size limits
+- **git-workflow.md** — conventional commits, session naming, branch naming
+- **agents.md** — 4-agent team, dispatch rules
+- **workflow.md** — 9-step slice flow, verification principles
+- **automation.md** — slice-auto, refinement pipeline
+- **security.md** — secrets, validation, encoding
+- **app-guard.md** — Flutter rules (app/** auto-load)
+- **server-guard.md** — FastAPI rules (server/** auto-load)
+- **docs-protection.md** — docs immutability (docs/** auto-load)
 
 ## Out of Scope
 
-CI/CD pipelines, deployment configuration, production infrastructure (K8s), monitoring setup.
-
-> **Exception**: Local development `docker compose` is allowed. Start full stack with `docker compose up --build`. Production optimization and CI/CD integration are out of scope.
+CI/CD, deployment, production infra (K8s), monitoring. Local `docker compose` allowed.
