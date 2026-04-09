@@ -34,11 +34,10 @@ Builder agents MUST run a full build as the final step — analyze/test alone is
 
 After builder agent completes with passing build, Main (Opus) MUST run `/commit` to:
 1. Stage & commit changes
-2. Push to feature branch
-3. Create PR with numbered title (`#NN <message>`)
-4. Write implementation log to `impl-log/<branch>.md`
+2. Push directly to main (no branches, no PRs)
+3. Write implementation log to `impl-log/<name>.md`
 
-Do NOT stop after "build success" — the cycle is: **implement → build → commit → PR → impl-log**.
+Do NOT stop after "build success" — the cycle is: **implement → build → commit → push to main → impl-log**.
 
 ## Implementation Log (`impl-log/`)
 

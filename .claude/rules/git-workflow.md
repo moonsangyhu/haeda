@@ -24,14 +24,21 @@ Rules:
 - Parallel worktree: `claude --worktree slice-{NN} -n slice-{NN}`
 - See `docs/worktree-runbook.md` for detailed rules
 
-## Branch Naming
+## Direct Push to Main (No PR)
 
-- Slice: `slice-{NN}`
-- Fix: `fix/{description}`
-- Refine: `refine/{description}`
+This is a solo project. All commits go directly to `main`. Do NOT create branches or PRs.
+
+```bash
+git add <specific files>
+git commit -m "<message>"
+git push origin main
+```
+
+**This rule is absolute** — no feature branches, no PRs, no `gh pr create`. Ever.
 
 ## Forbidden
 
+- Creating branches or PRs
 - Force push to main
 - Bypass hooks with `--no-verify`
 - Commit secrets, keys, or `.env` with real values
