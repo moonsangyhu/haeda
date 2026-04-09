@@ -101,6 +101,16 @@ async def get_my_challenges(
         row.challenge_id: row.cnt for row in verification_count_result
     }
 
+    # today_verified: 오늘 인증한 챌린지 ID 집합
+    today = date.today()
+    today_verif_stmt = select(Verification.challenge_id).where(
+        Verification.user_id == user_id,
+        Verification.date == today,
+        Verification.challenge_id.in_(challenge_ids),
+    )
+    today_verif_result = await db.execute(today_verif_stmt)
+    today_verified_set: set[uuid.UUID] = {row[0] for row in today_verif_result.all()}
+
     items: list[ChallengeListItem] = []
     for row in rows:
         challenge = row.Challenge
@@ -123,6 +133,7 @@ async def get_my_challenges(
                 member_count=member_count_map.get(challenge.id, 0),
                 achievement_rate=achievement_rate,
                 badge=membership.badge,
+                today_verified=challenge.id in today_verified_set,
             )
         )
     return items

@@ -10,6 +10,7 @@ import '../models/verification_data.dart';
 import '../providers/calendar_provider.dart';
 import '../providers/challenge_detail_provider.dart';
 import '../providers/verification_provider.dart';
+import '../../my_page/providers/my_challenges_provider.dart';
 
 class CreateVerificationScreen extends ConsumerStatefulWidget {
   final String challengeId;
@@ -48,23 +49,26 @@ class _CreateVerificationScreenState
   }
 
   Future<void> _pickPhoto() async {
-    if (_selectedPhotos.length >= 3) {
+    final remaining = 3 - _selectedPhotos.length;
+    if (remaining <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('최대 3장까지 가능합니다.')),
       );
       return;
     }
-    final photo = await _imagePicker.pickImage(
-      source: ImageSource.gallery,
+    final photos = await _imagePicker.pickMultiImage(
       maxWidth: 1920,
       maxHeight: 1920,
       imageQuality: 85,
+      limit: remaining,
     );
-    if (photo != null) {
-      final bytes = await photo.readAsBytes();
-      setState(() {
+    if (photos.isNotEmpty) {
+      final toAdd = photos.take(remaining);
+      for (final photo in toAdd) {
+        final bytes = await photo.readAsBytes();
         _selectedPhotos.add((file: photo, bytes: bytes));
-      });
+      }
+      setState(() {});
     }
   }
 
@@ -153,6 +157,7 @@ class _CreateVerificationScreenState
                   ),
                 ));
               }
+              ref.invalidate(myChallengesProvider);
               context.pop();
             },
             child: const Text('확인'),
@@ -230,84 +235,89 @@ class _CreateVerificationBody extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // 사진 추가 영역
+          // 사진 추가 영역 — 항상 3칸 표시
           LayoutBuilder(
             builder: (context, constraints) {
               final boxSize = (constraints.maxWidth - 16) / 3;
               return Row(
                 children: [
-                  for (var i = 0; i < photoBytesList.length; i++) ...[
+                  for (var i = 0; i < 3; i++) ...[
                     if (i > 0) const SizedBox(width: 8),
-                    SizedBox(
-                      width: boxSize,
-                      height: boxSize,
-                      child: Stack(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.memory(
-                              photoBytesList[i],
-                              width: boxSize,
-                              height: boxSize,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
-                          Positioned(
-                            top: 4,
-                            right: 4,
-                            child: GestureDetector(
-                              onTap: isLoading ? null : () => onRemovePhoto(i),
-                              child: Container(
-                                decoration: const BoxDecoration(
-                                  color: Colors.black54,
-                                  shape: BoxShape.circle,
-                                ),
-                                padding: const EdgeInsets.all(4),
-                                child: const Icon(
-                                  Icons.close,
-                                  size: 16,
-                                  color: Colors.white,
+                    if (i < photoBytesList.length)
+                      // 이미지가 있는 칸
+                      SizedBox(
+                        width: boxSize,
+                        height: boxSize,
+                        child: Stack(
+                          children: [
+                            GestureDetector(
+                              onTap: isLoading ? null : onPickPhoto,
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: Image.memory(
+                                  photoBytesList[i],
+                                  width: boxSize,
+                                  height: boxSize,
+                                  fit: BoxFit.cover,
                                 ),
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                  if (photoBytesList.length < 3) ...[
-                    if (photoBytesList.isNotEmpty) const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: isLoading ? null : onPickPhoto,
-                      child: Container(
-                        width: boxSize,
-                        height: boxSize,
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainerHighest,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: theme.colorScheme.outline,
-                          ),
-                        ),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.add_photo_alternate,
-                              size: 32,
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              '추가',
-                              style: theme.textTheme.labelSmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap:
+                                    isLoading ? null : () => onRemovePhoto(i),
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  padding: const EdgeInsets.all(4),
+                                  child: const Icon(
+                                    Icons.close,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
+                                ),
                               ),
                             ),
                           ],
                         ),
+                      )
+                    else
+                      // 빈 칸
+                      GestureDetector(
+                        onTap: isLoading ? null : onPickPhoto,
+                        child: Container(
+                          width: boxSize,
+                          height: boxSize,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceContainerHighest,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: theme.colorScheme.outline,
+                            ),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.add_photo_alternate,
+                                size: 32,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '${i + 1}',
+                                style: theme.textTheme.labelSmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
-                    ),
                   ],
                 ],
               );

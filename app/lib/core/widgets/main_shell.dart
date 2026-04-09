@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/my_page/providers/my_challenges_provider.dart';
 import '../../features/notifications/providers/notification_provider.dart';
+import 'verify_bottom_sheet.dart';
 
 class MainShell extends ConsumerWidget {
   const MainShell({
@@ -33,7 +35,20 @@ class MainShell extends ConsumerWidget {
         selectedIndex: _branchToNavIndex(navigationShell.currentIndex),
         onDestinationSelected: (index) {
           if (index == 2) {
-            context.push('/create');
+            final challenges = ref.read(myChallengesProvider).valueOrNull;
+            if (challenges != null) {
+              final unverified = challenges
+                  .where((c) => c.status == 'active' && !c.todayVerified)
+                  .toList();
+              if (unverified.length == 1) {
+                context.push('/challenges/${unverified.first.id}/verify');
+                return;
+              }
+            }
+            showModalBottomSheet<void>(
+              context: context,
+              builder: (_) => const VerifyBottomSheet(),
+            );
             return;
           }
           final branchIndex = _navToBranchIndex(index);
@@ -55,9 +70,9 @@ class MainShell extends ConsumerWidget {
             label: '탐색',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.add_circle_outlined, size: 32),
-            selectedIcon: Icon(Icons.add_circle, size: 32),
-            label: '만들기',
+            icon: Icon(Icons.camera_alt_outlined, size: 32),
+            selectedIcon: Icon(Icons.camera_alt, size: 32),
+            label: '인증',
           ),
           NavigationDestination(
             icon: Badge(

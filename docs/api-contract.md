@@ -357,7 +357,8 @@
         "status": "active",
         "member_count": 5,
         "achievement_rate": 73.3,
-        "badge": null
+        "badge": null,
+        "today_verified": false
       }
     ]
   }
@@ -365,6 +366,7 @@
 ```
 
 `achievement_rate`: 소수점 첫째자리까지 (0.0 ~ 100.0)
+`today_verified`: 오늘 날짜에 사용자의 인증이 존재하면 `true`
 
 ---
 

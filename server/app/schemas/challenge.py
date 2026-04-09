@@ -51,6 +51,7 @@ class ChallengeListItem(BaseModel):
     member_count: int
     achievement_rate: float
     badge: str | None
+    today_verified: bool
 
     model_config = {"from_attributes": True}
 
