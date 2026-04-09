@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'core/theme/app_theme.dart';
+import 'features/settings/providers/settings_provider.dart';
 import 'package:go_router/go_router.dart';
 import 'core/widgets/main_shell.dart';
 import 'features/auth/screens/splash_screen.dart';
@@ -159,15 +161,18 @@ final _router = GoRouter(
   ],
 );
 
-class HaedaApp extends StatelessWidget {
+class HaedaApp extends ConsumerWidget {
   const HaedaApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(settingsProvider);
     return MaterialApp.router(
       title: '해다',
       routerConfig: _router,
       theme: AppTheme.theme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: settings.darkMode ? ThemeMode.dark : ThemeMode.light,
     );
   }
 }
