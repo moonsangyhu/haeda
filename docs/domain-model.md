@@ -102,14 +102,15 @@ User 1──N DeviceToken
 | challenge_id | UUID | FK → Challenge, NOT NULL | 대상 챌린지 |
 | user_id | UUID | FK → User, NOT NULL | 인증자 |
 | date | DATE | NOT NULL | 인증 대상 날짜 |
-| photo_url | TEXT | NULLABLE | 인증 사진 URL |
+| photo_urls | JSONB | NULLABLE | 인증 사진 URL 목록 (최대 3장) |
 | diary_text | TEXT | NOT NULL | 일기 텍스트 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 제출일시 |
 
 **제약 조건:**
 - UNIQUE(challenge_id, user_id, date) — 같은 챌린지에서 같은 날 중복 인증 불가
 - `date BETWEEN challenge.start_date AND challenge.end_date`
-- `photo_required = TRUE`인 챌린지는 `photo_url NOT NULL` (애플리케이션 레벨 검증)
+- `photo_required = TRUE`인 챌린지는 `photo_urls`에 최소 1장 필수 (애플리케이션 레벨 검증)
+- `photo_urls` 최대 3장 제한 (애플리케이션 레벨 검증)
 
 ### 2.5 DayCompletion — P0
 

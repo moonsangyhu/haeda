@@ -9,7 +9,7 @@ from app.schemas.user import UserBrief
 class VerificationCreateResponse(BaseModel):
     id: uuid.UUID
     date: date
-    photo_url: str | None
+    photo_urls: list[str] | None
     diary_text: str
     created_at: datetime
     day_completed: bool
@@ -21,7 +21,7 @@ class VerificationCreateResponse(BaseModel):
 class VerificationItem(BaseModel):
     id: uuid.UUID
     user: UserBrief
-    photo_url: str | None
+    photo_urls: list[str] | None
     diary_text: str
     comment_count: int
     created_at: datetime

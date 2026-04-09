@@ -27,7 +27,7 @@ async def verification(
         challenge_id=challenge.id,
         user_id=user.id,
         date=date(2026, 4, 5),
-        photo_url=None,
+        photo_urls=None,
         diary_text="오늘 5km 달렸다!",
     )
     db_session.add(v)
@@ -58,7 +58,7 @@ async def test_verification_detail_happy_path(
     assert data["challenge_id"] == str(challenge.id)
     assert data["date"] == "2026-04-05"
     assert data["diary_text"] == "오늘 5km 달렸다!"
-    assert data["photo_url"] is None
+    assert data["photo_urls"] is None
     assert "created_at" in data
     assert data["user"]["id"] == str(user.id)
     assert data["user"]["nickname"] == "테스터"

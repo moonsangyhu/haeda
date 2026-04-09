@@ -39,7 +39,7 @@ class VerificationDetail with _$VerificationDetail {
     @JsonKey(name: 'challenge_id') required String challengeId,
     required VerificationUser user,
     required String date,
-    @JsonKey(name: 'photo_url') String? photoUrl,
+    @JsonKey(name: 'photo_urls') List<String>? photoUrls,
     @JsonKey(name: 'diary_text') required String diaryText,
     required List<CommentItem> comments,
     @JsonKey(name: 'created_at') required String createdAt,

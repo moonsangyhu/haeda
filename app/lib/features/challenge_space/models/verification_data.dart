@@ -9,7 +9,7 @@ class VerificationCreateResult with _$VerificationCreateResult {
   const factory VerificationCreateResult({
     required String id,
     required String date,
-    @JsonKey(name: 'photo_url') String? photoUrl,
+    @JsonKey(name: 'photo_urls') List<String>? photoUrls,
     @JsonKey(name: 'diary_text') required String diaryText,
     @JsonKey(name: 'created_at') required String createdAt,
     @JsonKey(name: 'day_completed') required bool dayCompleted,
@@ -39,7 +39,7 @@ class VerificationItem with _$VerificationItem {
   const factory VerificationItem({
     required String id,
     required VerificationUser user,
-    @JsonKey(name: 'photo_url') String? photoUrl,
+    @JsonKey(name: 'photo_urls') List<String>? photoUrls,
     @JsonKey(name: 'diary_text') required String diaryText,
     @JsonKey(name: 'comment_count') required int commentCount,
     @JsonKey(name: 'created_at') required String createdAt,

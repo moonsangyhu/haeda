@@ -98,7 +98,7 @@ async def get_verification_detail(
             profile_image_url=verification_user.profile_image_url,
         ),
         date=verification.date,
-        photo_url=verification.photo_url,
+        photo_urls=verification.photo_urls,
         diary_text=verification.diary_text,
         comments=comments,
         created_at=verification.created_at,

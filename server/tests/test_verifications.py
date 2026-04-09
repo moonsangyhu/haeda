@@ -40,7 +40,7 @@ async def test_create_verification_success(
     assert resp.status_code == 201
     data = resp.json()["data"]
     assert data["diary_text"] == "오늘 운동 완료!"
-    assert data["photo_url"] is None
+    assert data["photo_urls"] is None
     assert "id" in data
     assert "created_at" in data
     assert "day_completed" in data
@@ -64,7 +64,7 @@ async def test_create_verification_duplicate(
         challenge_id=challenge.id,
         user_id=user.id,
         date=today,
-        photo_url=None,
+        photo_urls=None,
         diary_text="먼저 인증",
     )
     db_session.add(v)
@@ -238,7 +238,7 @@ async def test_get_daily_verifications_success(
         challenge_id=challenge.id,
         user_id=user.id,
         date=target_date,
-        photo_url=None,
+        photo_urls=None,
         diary_text="오늘 달리기!",
     )
     db_session.add(v)
@@ -264,7 +264,7 @@ async def test_get_daily_verifications_success(
     assert len(data["verifications"]) == 1
     v_item = data["verifications"][0]
     assert v_item["diary_text"] == "오늘 달리기!"
-    assert v_item["photo_url"] is None
+    assert v_item["photo_urls"] is None
     assert v_item["comment_count"] == 0
     assert v_item["user"]["id"] == str(user.id)
     assert v_item["user"]["nickname"] == "테스터"

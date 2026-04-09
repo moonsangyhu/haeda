@@ -81,7 +81,7 @@ async def test_get_calendar_success(
         challenge_id=challenge.id,
         user_id=user.id,
         date=date(2026, 4, 1),
-        photo_url=None,
+        photo_urls=None,
         diary_text="운동 완료",
     )
     db_session.add(v)

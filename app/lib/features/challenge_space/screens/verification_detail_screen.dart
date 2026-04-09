@@ -63,8 +63,8 @@ class _VerificationDetailScreenState
             children: [
               _AuthorSection(detail: detail),
               const SizedBox(height: 16),
-              if (detail.photoUrl != null) ...[
-                _PhotoSection(photoUrl: detail.photoUrl!),
+              if (detail.photoUrls != null && detail.photoUrls!.isNotEmpty) ...[
+                _PhotoSection(photoUrls: detail.photoUrls!),
                 const SizedBox(height: 16),
               ],
               _DiarySection(diaryText: detail.diaryText),
@@ -164,37 +164,110 @@ class _AuthorSection extends StatelessWidget {
   }
 }
 
-class _PhotoSection extends StatelessWidget {
-  final String photoUrl;
+class _PhotoSection extends StatefulWidget {
+  final List<String> photoUrls;
 
-  const _PhotoSection({required this.photoUrl});
+  const _PhotoSection({required this.photoUrls});
+
+  @override
+  State<_PhotoSection> createState() => _PhotoSectionState();
+}
+
+class _PhotoSectionState extends State<_PhotoSection> {
+  final _pageController = PageController();
+  int _currentPage = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: Image.network(
-        photoUrl,
-        width: double.infinity,
-        fit: BoxFit.cover,
-        errorBuilder: (context, error, stackTrace) {
-          return Container(
-            height: 200,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Center(
-              child: const Icon(Icons.broken_image, size: 48),
+    if (widget.photoUrls.length == 1) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Image.network(
+          widget.photoUrls.first,
+          width: double.infinity,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Container(
+              height: 200,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: const Center(child: Icon(Icons.broken_image, size: 48)),
+            );
+          },
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Container(
+              height: 200,
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          },
+        ),
+      );
+    }
+
+    // Multiple images — PageView with dot indicators
+    return Column(
+      children: [
+        SizedBox(
+          height: 300,
+          child: PageView.builder(
+            controller: _pageController,
+            itemCount: widget.photoUrls.length,
+            onPageChanged: (index) => setState(() => _currentPage = index),
+            itemBuilder: (context, index) {
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.network(
+                  widget.photoUrls[index],
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      child: const Center(
+                        child: Icon(Icons.broken_image, size: 48),
+                      ),
+                    );
+                  },
+                  loadingBuilder: (context, child, loadingProgress) {
+                    if (loadingProgress == null) return child;
+                    return Container(
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      child: const Center(child: CircularProgressIndicator()),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(
+            widget.photoUrls.length,
+            (index) => Container(
+              width: 8,
+              height: 8,
+              margin: const EdgeInsets.symmetric(horizontal: 4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: index == _currentPage
+                    ? Theme.of(context).colorScheme.primary
+                    : Theme.of(context).colorScheme.outlineVariant,
+              ),
             ),
-          );
-        },
-        loadingBuilder: (context, child, loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Container(
-            height: 200,
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            child: const Center(child: CircularProgressIndicator()),
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

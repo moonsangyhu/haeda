@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.exceptions import AppException
 from app.schemas.challenge import ChallengeCreate, PublicChallengeListResponse
 from app.services import calendar_service, challenge_service, verification_service
 
@@ -77,28 +78,38 @@ async def get_challenge(
 async def create_verification(
     challenge_id: uuid.UUID,
     diary_text: str = Form(...),
-    photo: UploadFile | None = File(default=None),
+    photos: list[UploadFile] = File(default=[]),
     target_date: date | None = Form(default=None, alias="date"),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    photo_url: str | None = None
-    if photo is not None and photo.filename:
-        ext = os.path.splitext(photo.filename)[1].lower()
-        filename = f"{uuid.uuid4()}{ext}"
-        file_path = os.path.join(UPLOADS_DIR, filename)
+    if len(photos) > 3:
+        raise AppException(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message="사진은 최대 3장까지 첨부할 수 있습니다.",
+        )
+
+    photo_urls: list[str] | None = None
+    valid_photos = [p for p in photos if p.filename]
+    if valid_photos:
         os.makedirs(UPLOADS_DIR, exist_ok=True)
-        contents = await photo.read()
-        with open(file_path, "wb") as f:
-            f.write(contents)
-        photo_url = f"/uploads/{filename}"
+        photo_urls = []
+        for photo in valid_photos:
+            ext = os.path.splitext(photo.filename)[1].lower()
+            filename = f"{uuid.uuid4()}{ext}"
+            file_path = os.path.join(UPLOADS_DIR, filename)
+            contents = await photo.read()
+            with open(file_path, "wb") as f:
+                f.write(contents)
+            photo_urls.append(f"/uploads/{filename}")
 
     result = await verification_service.create_verification(
         db=db,
         challenge_id=challenge_id,
         user_id=user_id,
         diary_text=diary_text,
-        photo_url=photo_url,
+        photo_urls=photo_urls,
         target_date=target_date,
     )
     return {"data": result.model_dump()}
