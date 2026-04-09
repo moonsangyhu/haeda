@@ -5,10 +5,13 @@ import '../../../core/widgets/emoji_icon.dart';
 import '../../../core/widgets/invite_share_buttons.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/error_widget.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/calendar_data.dart';
 import '../providers/challenge_detail_provider.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/calendar_grid.dart';
+import '../widgets/nudge_banner.dart';
+import '../widgets/nudge_bottom_sheet.dart';
 
 class ChallengeSpaceScreen extends ConsumerStatefulWidget {
   final String challengeId;
@@ -206,6 +209,8 @@ class _ChallengeSpaceBody extends ConsumerWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
+          // 콕 찌르기 수신 배너
+          NudgeBanner(challengeId: challengeId),
           // 월 네비게이터
           _MonthNavigator(
             year: year,
@@ -291,7 +296,7 @@ class _MonthNavigator extends StatelessWidget {
   }
 }
 
-class _TodaySection extends StatelessWidget {
+class _TodaySection extends ConsumerWidget {
   final DateTime now;
   final CalendarData? calendarData;
   final String challengeId;
@@ -302,26 +307,37 @@ class _TodaySection extends StatelessWidget {
     this.calendarData,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+  String _todayDateStr() {
+    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+  }
 
-    // 오늘 인증 여부 확인
-    String todayDateStr =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    DayEntry? todayEntry;
-    if (calendarData != null) {
-      try {
-        todayEntry = calendarData!.days.firstWhere(
-          (d) => d.date == todayDateStr,
-        );
-      } catch (_) {
-        todayEntry = null;
-      }
+  DayEntry? _todayEntry() {
+    if (calendarData == null) return null;
+    try {
+      return calendarData!.days.firstWhere((d) => d.date == _todayDateStr());
+    } catch (_) {
+      return null;
     }
+  }
 
+  bool _hasUnverifiedOtherMembers(String? currentUserId) {
+    if (calendarData == null) return false;
+    final entry = _todayEntry();
+    final verifiedIds = entry?.verifiedMembers ?? [];
+    return calendarData!.members.any((m) {
+      final isSelf = currentUserId != null && m.id == currentUserId;
+      return !isSelf && !verifiedIds.contains(m.id);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final todayEntry = _todayEntry();
     final verifiedToday =
         todayEntry != null && todayEntry.verifiedMembers.isNotEmpty;
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
+    final showNudgeButton = _hasUnverifiedOtherMembers(currentUserId);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -358,6 +374,24 @@ class _TodaySection extends StatelessWidget {
                 : () => context.push('/challenges/$challengeId/verify'),
             child: Text(verifiedToday ? '인증 완료' : '인증하기'),
           ),
+          if (showNudgeButton) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              onPressed: () {
+                final entry = _todayEntry();
+                showModalBottomSheet<void>(
+                  context: context,
+                  builder: (ctx) => NudgeBottomSheet(
+                    challengeId: challengeId,
+                    members: calendarData!.members,
+                    verifiedMemberIds: entry?.verifiedMembers ?? [],
+                  ),
+                );
+              },
+              icon: const Text('👆', style: TextStyle(fontSize: 16)),
+              label: const Text('콕 찌르기'),
+            ),
+          ],
         ],
       ),
     );
