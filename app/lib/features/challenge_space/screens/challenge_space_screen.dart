@@ -10,8 +10,8 @@ import '../models/calendar_data.dart';
 import '../providers/challenge_detail_provider.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/calendar_grid.dart';
+import '../widgets/member_nudge_list.dart';
 import '../widgets/nudge_banner.dart';
-import '../widgets/nudge_bottom_sheet.dart';
 
 class ChallengeSpaceScreen extends ConsumerStatefulWidget {
   final String challengeId;
@@ -247,6 +247,13 @@ class _ChallengeSpaceBody extends ConsumerWidget {
             calendarData: calendarAsync.valueOrNull,
             challengeId: challengeId,
           ),
+          const SizedBox(height: 16),
+          // 멤버 목록 (탭하면 콕 찌르기)
+          if (calendarAsync.valueOrNull != null)
+            _MemberSection(
+              challengeId: challengeId,
+              calendarData: calendarAsync.valueOrNull!,
+            ),
           const SizedBox(height: 24),
         ],
       ),
@@ -296,7 +303,7 @@ class _MonthNavigator extends StatelessWidget {
   }
 }
 
-class _TodaySection extends ConsumerWidget {
+class _TodaySection extends StatelessWidget {
   final DateTime now;
   final CalendarData? calendarData;
   final String challengeId;
@@ -307,37 +314,26 @@ class _TodaySection extends ConsumerWidget {
     this.calendarData,
   });
 
-  String _todayDateStr() {
-    return '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-  }
-
-  DayEntry? _todayEntry() {
-    if (calendarData == null) return null;
-    try {
-      return calendarData!.days.firstWhere((d) => d.date == _todayDateStr());
-    } catch (_) {
-      return null;
-    }
-  }
-
-  bool _hasUnverifiedOtherMembers(String? currentUserId) {
-    if (calendarData == null) return false;
-    final entry = _todayEntry();
-    final verifiedIds = entry?.verifiedMembers ?? [];
-    return calendarData!.members.any((m) {
-      final isSelf = currentUserId != null && m.id == currentUserId;
-      return !isSelf && !verifiedIds.contains(m.id);
-    });
-  }
-
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final todayEntry = _todayEntry();
+
+    // 오늘 인증 여부 확인
+    String todayDateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    DayEntry? todayEntry;
+    if (calendarData != null) {
+      try {
+        todayEntry = calendarData!.days.firstWhere(
+          (d) => d.date == todayDateStr,
+        );
+      } catch (_) {
+        todayEntry = null;
+      }
+    }
+
     final verifiedToday =
         todayEntry != null && todayEntry.verifiedMembers.isNotEmpty;
-    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
-    final showNudgeButton = _hasUnverifiedOtherMembers(currentUserId);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -374,26 +370,39 @@ class _TodaySection extends ConsumerWidget {
                 : () => context.push('/challenges/$challengeId/verify'),
             child: Text(verifiedToday ? '인증 완료' : '인증하기'),
           ),
-          if (showNudgeButton) ...[
-            const SizedBox(height: 8),
-            OutlinedButton.icon(
-              onPressed: () {
-                final entry = _todayEntry();
-                showModalBottomSheet<void>(
-                  context: context,
-                  builder: (ctx) => NudgeBottomSheet(
-                    challengeId: challengeId,
-                    members: calendarData!.members,
-                    verifiedMemberIds: entry?.verifiedMembers ?? [],
-                  ),
-                );
-              },
-              icon: const Text('👆', style: TextStyle(fontSize: 16)),
-              label: const Text('콕 찌르기'),
-            ),
-          ],
         ],
       ),
+    );
+  }
+}
+
+class _MemberSection extends ConsumerWidget {
+  final String challengeId;
+  final CalendarData calendarData;
+
+  const _MemberSection({
+    required this.challengeId,
+    required this.calendarData,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final todayDateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    DayEntry? todayEntry;
+    try {
+      todayEntry = calendarData.days.firstWhere((d) => d.date == todayDateStr);
+    } catch (_) {
+      todayEntry = null;
+    }
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
+
+    return MemberNudgeList(
+      challengeId: challengeId,
+      members: calendarData.members,
+      verifiedMemberIds: todayEntry?.verifiedMembers ?? [],
+      currentUserId: currentUserId,
     );
   }
 }
