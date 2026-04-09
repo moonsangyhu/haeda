@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 
@@ -29,9 +28,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text(
+            child: Text(
               '로그아웃',
-              style: TextStyle(color: AppTheme.error),
+              style: TextStyle(color: Theme.of(ctx).colorScheme.error),
             ),
           ),
         ],
@@ -53,6 +52,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull;
     final settings = ref.watch(settingsProvider);
@@ -72,17 +72,17 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               children: [
                 CircleAvatar(
                   radius: 32,
-                  backgroundColor: AppTheme.primary.withAlpha(51),
+                  backgroundColor: theme.colorScheme.primary.withAlpha(51),
                   backgroundImage: (user?.profileImageUrl != null &&
                           (user!.profileImageUrl?.isNotEmpty ?? false))
                       ? NetworkImage(user.profileImageUrl!)
                       : null,
                   child: (user?.profileImageUrl == null ||
                           (user?.profileImageUrl?.isEmpty ?? true))
-                      ? const Icon(
+                      ? Icon(
                           Icons.person,
                           size: 32,
-                          color: AppTheme.primary,
+                          color: theme.colorScheme.primary,
                         )
                       : null,
                 ),
@@ -92,10 +92,10 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   children: [
                     Text(
                       user?.nickname ?? '사용자',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
-                        color: AppTheme.textPrimary,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -109,14 +109,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           const SizedBox(height: 8),
 
           // ── App settings section header ──
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
             child: Text(
               '앱 설정',
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w600,
-                color: AppTheme.textSecondary,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
@@ -129,8 +129,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: const Text('앱 화면을 어둡게 표시합니다'),
             value: settings.darkMode,
             onChanged: (value) => notifier.setDarkMode(value),
-            activeThumbColor: AppTheme.primary,
-            activeTrackColor: AppTheme.primary.withAlpha(128),
+            activeThumbColor: theme.colorScheme.primary,
+            activeTrackColor: theme.colorScheme.primary.withAlpha(128),
           ),
 
           // Notifications toggle
@@ -141,8 +141,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             subtitle: const Text('푸시 알림을 받습니다'),
             value: settings.notificationsEnabled,
             onChanged: (value) => notifier.setNotificationsEnabled(value),
-            activeThumbColor: AppTheme.primary,
-            activeTrackColor: AppTheme.primary.withAlpha(128),
+            activeThumbColor: theme.colorScheme.primary,
+            activeTrackColor: theme.colorScheme.primary.withAlpha(128),
           ),
 
           const SizedBox(height: 8),
@@ -163,8 +163,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   : const Icon(Icons.logout),
               label: Text(_isLoggingOut ? '로그아웃 중...' : '로그아웃'),
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppTheme.error,
-                side: const BorderSide(color: AppTheme.error, width: 1.5),
+                foregroundColor: theme.colorScheme.error,
+                side: BorderSide(color: theme.colorScheme.error, width: 1.5),
                 minimumSize: const Size.fromHeight(52),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
