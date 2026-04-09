@@ -1,8 +1,8 @@
 ---
 name: local
-description: Manage local dev environment (DB, Backend, Frontend) with docker compose — start/stop/status in one command.
+description: Manage local dev environment (DB, Backend, Frontend) with docker compose — start/stop/status in one command. Use `dev` for local Flutter with hot reload.
 allowed-tools: "Bash Read Glob Grep"
-argument-hint: "[stop|status|reset|rebuild|rebuild backend|rebuild frontend]"
+argument-hint: "[stop|status|reset|rebuild|rebuild backend|rebuild frontend|dev|dev stop]"
 ---
 
 # Local Dev Environment Management (Container-First)
@@ -18,6 +18,8 @@ Manage the full stack (DB + Backend + Frontend) with `docker compose`.
 - `rebuild` -> **Rebuild** — rebuild with code changes and restart
 - `rebuild backend` -> rebuild backend only
 - `rebuild frontend` -> rebuild frontend only
+- `dev` -> **Dev Mode** — DB + Backend only, Flutter runs locally (hot reload, no cache issues)
+- `dev stop` -> stop DB + Backend containers
 
 Argument: `$ARGUMENTS`
 
@@ -37,7 +39,7 @@ If either is missing -> fail with Docker Desktop installation guidance.
 ### Step 2: docker compose up
 
 ```bash
-cd /Users/moonsang.yhu/Documents/haeda && docker compose up --build -d
+cd /Users/yumunsang/haeda && docker compose up --build -d
 ```
 
 This single command:
@@ -100,7 +102,7 @@ Mark failed services with "Failed" and provide `docker compose logs <service>` g
 ## Stop
 
 ```bash
-cd /Users/moonsang.yhu/Documents/haeda && docker compose down
+cd /Users/yumunsang/haeda && docker compose down
 ```
 
 Summarize status after stop. Data is preserved in volumes.
@@ -137,7 +139,7 @@ Output format:
 Delete volumes and restart. All DB data is deleted.
 
 ```bash
-cd /Users/moonsang.yhu/Documents/haeda && docker compose down -v && docker compose up --build -d
+cd /Users/yumunsang/haeda && docker compose down -v && docker compose up --build -d
 ```
 
 ---
@@ -156,17 +158,17 @@ Apply code changes to containers after slice implementation. DB data is preserve
 
 **Full rebuild:**
 ```bash
-cd /Users/moonsang.yhu/Documents/haeda && docker compose up --build -d backend frontend
+cd /Users/yumunsang/haeda && docker compose up --build -d backend frontend
 ```
 
 **Backend only:**
 ```bash
-cd /Users/moonsang.yhu/Documents/haeda && docker compose up --build -d backend
+cd /Users/yumunsang/haeda && docker compose up --build -d backend
 ```
 
 **Frontend only:**
 ```bash
-cd /Users/moonsang.yhu/Documents/haeda && docker compose up --build -d frontend
+cd /Users/yumunsang/haeda && docker compose up --build -d frontend
 ```
 
 Set Bash tool timeout to 600000 (10 minutes). (Frontend build may be slow)
@@ -205,3 +207,80 @@ Refresh http://localhost:3000 in your browser.
 - After backend changes: `docker compose up --build -d backend`
 - Reset DB data: `/local reset`
 - Check logs: `docker compose logs -f backend`
+
+---
+
+## Dev Mode
+
+Run DB + Backend in Docker, Flutter locally on host. Benefits: hot reload, no browser cache issues, fast iteration.
+
+### Step 1: Start DB + Backend only
+
+```bash
+cd /Users/yumunsang/haeda && docker compose up -d db backend
+```
+
+Set Bash tool timeout to 600000 (10 minutes).
+
+### Step 2: Wait for Backend health
+
+```bash
+# Wait for backend to be healthy
+for i in $(seq 1 30); do
+  curl -s --max-time 3 http://localhost:8000/health && break
+  sleep 2
+done
+```
+
+### Step 3: Ensure frontend container is NOT running
+
+```bash
+docker compose stop frontend 2>/dev/null || true
+```
+
+### Step 4: Check Flutter SDK
+
+```bash
+flutter --version
+```
+
+If Flutter is not installed -> fail with installation guidance: https://docs.flutter.dev/get-started/install
+
+### Step 5: Summary
+
+```
+## Local Dev Environment (Dev Mode)
+
+| Service | Status | URL |
+|---------|--------|-----|
+| PostgreSQL | Docker | localhost:5432 |
+| Backend | Docker | http://localhost:8000 |
+| Frontend | **Local (ready to start)** | http://localhost:3000 |
+
+### Start Flutter locally
+Run in a separate terminal:
+```
+cd app && flutter pub get && dart run build_runner build --delete-conflicting-outputs && flutter run -d chrome --web-port=3000
+```
+
+### Benefits
+- Hot reload: changes reflect instantly
+- No browser cache issues
+- Flutter DevTools available
+
+### Commands
+- Stop backend: `/local dev stop`
+- Full container mode: `/local`
+```
+
+---
+
+## Dev Stop
+
+Stop DB + Backend containers (dev mode cleanup).
+
+```bash
+cd /Users/yumunsang/haeda && docker compose down
+```
+
+Summarize status after stop.
