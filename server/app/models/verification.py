@@ -2,7 +2,7 @@ import uuid
 from datetime import date, datetime
 
 from sqlalchemy import Date, ForeignKey, Text, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 
@@ -28,7 +28,7 @@ class Verification(Base):
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
     date: Mapped[date] = mapped_column(Date, nullable=False)
-    photo_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    photo_urls: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     diary_text: Mapped[str] = mapped_column(Text, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         nullable=False, server_default=func.now()

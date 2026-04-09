@@ -375,7 +375,7 @@
 **Request (multipart/form-data):**
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| photo | file | 조건부 | 인증 사진 (photo_required 시 필수) |
+| photos | file[] | 조건부 | 인증 사진 최대 3장 (photo_required 시 최소 1장 필수) |
 | diary_text | string | Y | 일기 텍스트 |
 | date | string (YYYY-MM-DD) | N | 인증 대상 날짜 (미입력 시 오늘). 챌린지 기간 내 & 오늘 이전 날짜만 허용 |
 
@@ -385,7 +385,7 @@
   "data": {
     "id": "uuid",
     "date": "2026-04-04",
-    "photo_url": "string | null",
+    "photo_urls": ["string"] | null,
     "diary_text": "string",
     "created_at": "2026-04-04T12:00:00Z",
     "day_completed": true,
@@ -471,7 +471,7 @@
           "nickname": "김철수",
           "profile_image_url": "string"
         },
-        "photo_url": "string | null",
+        "photo_urls": ["string"] | null,
         "diary_text": "오늘은 5km 달렸다!",
         "comment_count": 3,
         "created_at": "2026-04-01T08:30:00Z"
@@ -497,7 +497,7 @@
       "profile_image_url": "string"
     },
     "date": "2026-04-01",
-    "photo_url": "string | null",
+    "photo_urls": ["string"] | null,
     "diary_text": "오늘은 5km 달렸다! 날씨가 좋아서 기분이 좋았다.",
     "comments": [
       {

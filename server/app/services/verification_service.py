@@ -54,7 +54,7 @@ async def create_verification(
     challenge_id: uuid.UUID,
     user_id: uuid.UUID,
     diary_text: str,
-    photo_url: str | None,
+    photo_urls: list[str] | None,
     target_date: date | None = None,
 ) -> VerificationCreateResponse:
     # 1. Challenge 조회
@@ -105,7 +105,7 @@ async def create_verification(
         )
 
     # 6. 사진 필수 검증
-    if challenge.photo_required and photo_url is None:
+    if challenge.photo_required and not photo_urls:
         raise AppException(
             status_code=400,
             code="PHOTO_REQUIRED",
@@ -118,7 +118,7 @@ async def create_verification(
         challenge_id=challenge_id,
         user_id=user_id,
         date=verification_date,
-        photo_url=photo_url,
+        photo_urls=photo_urls,
         diary_text=diary_text,
     )
     db.add(verification)
@@ -161,7 +161,7 @@ async def create_verification(
     return VerificationCreateResponse(
         id=verification.id,
         date=verification.date,
-        photo_url=verification.photo_url,
+        photo_urls=verification.photo_urls,
         diary_text=verification.diary_text,
         created_at=verification.created_at,
         day_completed=day_completed,
@@ -224,7 +224,7 @@ async def get_daily_verifications(
                 nickname=row.User.nickname,
                 profile_image_url=row.User.profile_image_url,
             ),
-            photo_url=row.Verification.photo_url,
+            photo_urls=row.Verification.photo_urls,
             diary_text=row.Verification.diary_text,
             comment_count=comment_counts.get(row.Verification.id, 0),
             created_at=row.Verification.created_at,

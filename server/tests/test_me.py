@@ -71,7 +71,7 @@ async def test_get_my_challenges_achievement_rate(
             challenge_id=challenge.id,
             user_id=user.id,
             date=date(2026, 4, i),
-            photo_url=None,
+            photo_urls=None,
             diary_text=f"day {i}",
         )
         db_session.add(v)

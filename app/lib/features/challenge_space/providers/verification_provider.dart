@@ -71,8 +71,7 @@ class VerificationSubmitNotifier
 
   Future<VerificationCreateResult?> submit({
     required String diaryText,
-    List<int>? photoBytes,
-    String? photoFileName,
+    List<({List<int> bytes, String fileName})> photos = const [],
     String? date,
   }) async {
     state = const VerificationSubmitState(isLoading: true);
@@ -80,13 +79,14 @@ class VerificationSubmitNotifier
     try {
       final formData = FormData.fromMap({
         'diary_text': diaryText,
-        if (photoBytes != null)
-          'photo': MultipartFile.fromBytes(
-            photoBytes,
-            filename: photoFileName ?? 'photo.jpg',
-          ),
         if (date != null) 'date': date,
       });
+      for (final photo in photos) {
+        formData.files.add(MapEntry(
+          'photos',
+          MultipartFile.fromBytes(photo.bytes, filename: photo.fileName),
+        ));
+      }
 
       final response = await _dio.post(
         '/challenges/$challengeId/verifications',

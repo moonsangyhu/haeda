@@ -37,7 +37,7 @@ class VerificationDetailResponse(BaseModel):
     challenge_id: uuid.UUID
     user: UserBrief
     date: date
-    photo_url: str | None
+    photo_urls: list[str] | None
     diary_text: str
     comments: list[CommentItem]
     created_at: datetime

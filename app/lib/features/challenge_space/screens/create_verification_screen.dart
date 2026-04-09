@@ -38,8 +38,7 @@ class _CreateVerificationScreenState
   }
 
   final _diaryController = TextEditingController();
-  XFile? _selectedPhoto;
-  Uint8List? _photoBytes;
+  final List<({XFile file, Uint8List bytes})> _selectedPhotos = [];
   final _imagePicker = ImagePicker();
 
   @override
@@ -49,6 +48,12 @@ class _CreateVerificationScreenState
   }
 
   Future<void> _pickPhoto() async {
+    if (_selectedPhotos.length >= 3) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('최대 3장까지 가능합니다.')),
+      );
+      return;
+    }
     final photo = await _imagePicker.pickImage(
       source: ImageSource.gallery,
       maxWidth: 1920,
@@ -58,10 +63,15 @@ class _CreateVerificationScreenState
     if (photo != null) {
       final bytes = await photo.readAsBytes();
       setState(() {
-        _selectedPhoto = photo;
-        _photoBytes = bytes;
+        _selectedPhotos.add((file: photo, bytes: bytes));
       });
     }
+  }
+
+  void _removePhoto(int index) {
+    setState(() {
+      _selectedPhotos.removeAt(index);
+    });
   }
 
   Future<void> _submit(bool photoRequired) async {
@@ -77,8 +87,9 @@ class _CreateVerificationScreenState
         ref.read(verificationSubmitProvider(widget.challengeId).notifier);
     final result = await notifier.submit(
       diaryText: diaryText,
-      photoBytes: _photoBytes,
-      photoFileName: _selectedPhoto?.name,
+      photos: _selectedPhotos
+          .map((p) => (bytes: p.bytes.toList(), fileName: p.file.name))
+          .toList(),
       date: widget.date,
     );
 
@@ -173,10 +184,11 @@ class _CreateVerificationScreenState
         error: (_, __) => const Center(child: Text('챌린지 정보를 불러올 수 없습니다.')),
         data: (detail) => _CreateVerificationBody(
           photoRequired: detail.photoRequired,
-          photoBytes: _photoBytes,
+          photoBytesList: _selectedPhotos.map((p) => p.bytes).toList(),
           diaryController: _diaryController,
           isLoading: submitState.isLoading,
           onPickPhoto: _pickPhoto,
+          onRemovePhoto: _removePhoto,
           onSubmit: () => _submit(detail.photoRequired),
         ),
       ),
@@ -186,24 +198,26 @@ class _CreateVerificationScreenState
 
 class _CreateVerificationBody extends StatelessWidget {
   final bool photoRequired;
-  final Uint8List? photoBytes;
+  final List<Uint8List> photoBytesList;
   final TextEditingController diaryController;
   final bool isLoading;
   final VoidCallback onPickPhoto;
+  final void Function(int) onRemovePhoto;
   final VoidCallback onSubmit;
 
   const _CreateVerificationBody({
     required this.photoRequired,
-    required this.photoBytes,
+    required this.photoBytesList,
     required this.diaryController,
     required this.isLoading,
     required this.onPickPhoto,
+    required this.onRemovePhoto,
     required this.onSubmit,
   });
 
   bool get _canSubmit {
     if (isLoading) return false;
-    if (photoRequired && photoBytes == null) return false;
+    if (photoRequired && photoBytesList.isEmpty) return false;
     return true;
   }
 
@@ -217,38 +231,91 @@ class _CreateVerificationBody extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // 사진 추가 영역
-          GestureDetector(
-            onTap: isLoading ? null : onPickPhoto,
-            child: Container(
-              height: 200,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: theme.colorScheme.outline,
-                  width: 1,
-                ),
-              ),
-              child: photoBytes != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(20),
-                      child: Image.memory(
-                        photoBytes!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const _PhotoPlaceholder(
-                          hasPhoto: true,
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final boxSize = (constraints.maxWidth - 16) / 3;
+              return Row(
+                children: [
+                  for (var i = 0; i < photoBytesList.length; i++) ...[
+                    if (i > 0) const SizedBox(width: 8),
+                    SizedBox(
+                      width: boxSize,
+                      height: boxSize,
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: Image.memory(
+                              photoBytesList[i],
+                              width: boxSize,
+                              height: boxSize,
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: isLoading ? null : () => onRemovePhoto(i),
+                              child: Container(
+                                decoration: const BoxDecoration(
+                                  color: Colors.black54,
+                                  shape: BoxShape.circle,
+                                ),
+                                padding: const EdgeInsets.all(4),
+                                child: const Icon(
+                                  Icons.close,
+                                  size: 16,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                  if (photoBytesList.length < 3) ...[
+                    if (photoBytesList.isNotEmpty) const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: isLoading ? null : onPickPhoto,
+                      child: Container(
+                        width: boxSize,
+                        height: boxSize,
+                        decoration: BoxDecoration(
+                          color: theme.colorScheme.surfaceContainerHighest,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: theme.colorScheme.outline,
+                          ),
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.add_photo_alternate,
+                              size: 32,
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '추가',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    )
-                  : _PhotoPlaceholder(
-                      hasPhoto: false,
-                      isRequired: photoRequired,
                     ),
-            ),
+                  ],
+                ],
+              );
+            },
           ),
           const SizedBox(height: 8),
           Text(
-            photoRequired ? '사진 필수' : '사진 선택 (선택 사항)',
+            photoRequired ? '사진 필수 (최대 3장)' : '사진 선택 (최대 3장)',
             style: theme.textTheme.labelSmall?.copyWith(
               color: photoRequired
                   ? theme.colorScheme.error
@@ -293,47 +360,6 @@ class _CreateVerificationBody extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _PhotoPlaceholder extends StatelessWidget {
-  final bool hasPhoto;
-  final bool isRequired;
-
-  const _PhotoPlaceholder({
-    required this.hasPhoto,
-    this.isRequired = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(
-          hasPhoto ? Icons.check_circle : Icons.add_photo_alternate,
-          size: 48,
-          color: hasPhoto ? Colors.green : theme.colorScheme.onSurfaceVariant,
-        ),
-        const SizedBox(height: 8),
-        Text(
-          hasPhoto ? '사진 변경' : '사진 추가',
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        if (isRequired && !hasPhoto) ...[
-          const SizedBox(height: 4),
-          Text(
-            '(필수)',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.error,
-            ),
-          ),
-        ],
-      ],
     );
   }
 }
