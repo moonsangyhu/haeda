@@ -9,7 +9,8 @@ from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.exceptions import AppException
 from app.schemas.challenge import ChallengeCreate, PublicChallengeListResponse
-from app.services import calendar_service, challenge_service, verification_service
+from app.schemas.nudge import NudgeSendRequest
+from app.services import calendar_service, challenge_service, nudge_service, verification_service
 
 router = APIRouter(prefix="/challenges", tags=["challenges"])
 
@@ -173,5 +174,21 @@ async def join_challenge(
         db=db,
         challenge_id=challenge_id,
         user_id=user_id,
+    )
+    return {"data": result.model_dump()}
+
+
+@router.post("/{challenge_id}/nudge", status_code=201)
+async def send_nudge(
+    challenge_id: uuid.UUID,
+    body: NudgeSendRequest,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await nudge_service.send_nudge(
+        db=db,
+        challenge_id=challenge_id,
+        sender_id=user_id,
+        receiver_id=body.receiver_id,
     )
     return {"data": result.model_dump()}

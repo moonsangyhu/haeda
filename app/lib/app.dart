@@ -10,7 +10,7 @@ import 'features/auth/screens/kakao_oauth_screen.dart';
 import 'features/auth/screens/profile_setup_screen.dart';
 import 'features/my_page/screens/my_page_screen.dart';
 import 'features/explore/screens/explore_screen.dart';
-import 'features/notifications/screens/notifications_placeholder_screen.dart';
+import 'features/notifications/screens/notifications_screen.dart';
 import 'features/challenge_space/screens/challenge_space_screen.dart';
 import 'features/challenge_space/screens/create_verification_screen.dart';
 import 'features/challenge_space/screens/daily_verifications_screen.dart';
@@ -67,8 +67,7 @@ final _router = GoRouter(
           routes: [
             GoRoute(
               path: '/notifications',
-              builder: (context, state) =>
-                  const NotificationsPlaceholderScreen(),
+              builder: (context, state) => const NotificationsScreen(),
             ),
           ],
         ),

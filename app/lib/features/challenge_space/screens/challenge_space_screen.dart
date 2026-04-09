@@ -5,10 +5,13 @@ import '../../../core/widgets/emoji_icon.dart';
 import '../../../core/widgets/invite_share_buttons.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/error_widget.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/calendar_data.dart';
 import '../providers/challenge_detail_provider.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/calendar_grid.dart';
+import '../widgets/member_nudge_list.dart';
+import '../widgets/nudge_banner.dart';
 
 class ChallengeSpaceScreen extends ConsumerStatefulWidget {
   final String challengeId;
@@ -206,6 +209,8 @@ class _ChallengeSpaceBody extends ConsumerWidget {
     return SingleChildScrollView(
       child: Column(
         children: [
+          // 콕 찌르기 수신 배너
+          NudgeBanner(challengeId: challengeId),
           // 월 네비게이터
           _MonthNavigator(
             year: year,
@@ -242,6 +247,13 @@ class _ChallengeSpaceBody extends ConsumerWidget {
             calendarData: calendarAsync.valueOrNull,
             challengeId: challengeId,
           ),
+          const SizedBox(height: 16),
+          // 멤버 목록 (탭하면 콕 찌르기)
+          if (calendarAsync.valueOrNull != null)
+            _MemberSection(
+              challengeId: challengeId,
+              calendarData: calendarAsync.valueOrNull!,
+            ),
           const SizedBox(height: 24),
         ],
       ),
@@ -360,6 +372,37 @@ class _TodaySection extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _MemberSection extends ConsumerWidget {
+  final String challengeId;
+  final CalendarData calendarData;
+
+  const _MemberSection({
+    required this.challengeId,
+    required this.calendarData,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final now = DateTime.now();
+    final todayDateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    DayEntry? todayEntry;
+    try {
+      todayEntry = calendarData.days.firstWhere((d) => d.date == todayDateStr);
+    } catch (_) {
+      todayEntry = null;
+    }
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
+
+    return MemberNudgeList(
+      challengeId: challengeId,
+      members: calendarData.members,
+      verifiedMemberIds: todayEntry?.verifiedMembers ?? [],
+      currentUserId: currentUserId,
     );
   }
 }

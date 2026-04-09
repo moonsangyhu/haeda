@@ -5,6 +5,8 @@ from app.models.challenge_member import ChallengeMember
 from app.models.verification import Verification
 from app.models.day_completion import DayCompletion
 from app.models.comment import Comment
+from app.models.nudge import Nudge
+from app.models.notification import Notification
 
 __all__ = [
     "Base",
@@ -14,4 +16,6 @@ __all__ = [
     "Verification",
     "DayCompletion",
     "Comment",
+    "Nudge",
+    "Notification",
 ]
