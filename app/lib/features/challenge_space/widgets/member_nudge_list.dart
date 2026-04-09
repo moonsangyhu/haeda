@@ -208,18 +208,27 @@ class _MemberRow extends StatelessWidget {
 
   Widget _buildTrailing(BuildContext context, ThemeData theme) {
     if (isVerified) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle, size: 18, color: theme.colorScheme.primary),
-          const SizedBox(width: 4),
-          Text(
-            '인증 완료',
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: theme.colorScheme.primary,
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE8F5E9),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('✅', style: TextStyle(fontSize: 13)),
+            SizedBox(width: 4),
+            Text(
+              '인증완료',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2E7D32),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -250,23 +259,30 @@ class _MemberRow extends StatelessWidget {
     }
 
     // Can nudge — show tap indicator
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          '콕!',
-          style: theme.textTheme.labelMedium?.copyWith(
-            color: theme.colorScheme.primary,
-            fontWeight: FontWeight.w700,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '👈',
+            style: const TextStyle(fontSize: 13),
           ),
-        ),
-        const SizedBox(width: 2),
-        Icon(
-          Icons.touch_app_outlined,
-          size: 16,
-          color: theme.colorScheme.primary,
-        ),
-      ],
+          const SizedBox(width: 4),
+          Text(
+            '콕!',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
