@@ -93,17 +93,9 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
               ),
             ),
 
-            // Character area
-            characterAsync.when(
-              loading: () => const SizedBox(
-                height: 220,
-                child: Center(child: LoadingWidget()),
-              ),
-              error: (_, __) => const SizedBox(
-                height: 220,
-                child: Center(child: Text('캐릭터를 불러올 수 없어요.')),
-              ),
-              data: (character) => _CharacterSection(character: character),
+            // Character area — show base character even on error/loading
+            _CharacterSection(
+              character: characterAsync.valueOrNull,
             ),
 
             const SizedBox(height: 8),
@@ -166,17 +158,14 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
 }
 
 class _CharacterSection extends StatelessWidget {
-  final CharacterData character;
+  final CharacterData? character;
   const _CharacterSection({required this.character});
 
   bool get _hasEpic {
-    return [
-      character.hat,
-      character.top,
-      character.bottom,
-      character.shoes,
-      character.accessory,
-    ].any((s) => s?.rarity == 'EPIC');
+    final c = character;
+    if (c == null) return false;
+    return [c.hat, c.top, c.bottom, c.shoes, c.accessory]
+        .any((s) => s?.rarity == 'EPIC');
   }
 
   @override
@@ -184,15 +173,10 @@ class _CharacterSection extends StatelessWidget {
     return SizedBox(
       height: 220,
       child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CharacterAvatar(
-              character: character,
-              size: 180,
-              showEffect: _hasEpic,
-            ),
-          ],
+        child: CharacterAvatar(
+          character: character,
+          size: 180,
+          showEffect: _hasEpic,
         ),
       ),
     );

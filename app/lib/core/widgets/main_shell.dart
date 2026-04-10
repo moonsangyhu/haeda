@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/character/providers/character_provider.dart';
 import '../../features/notifications/providers/notification_provider.dart';
 import '../../features/status_bar/widgets/status_bar.dart';
+import 'character_avatar.dart';
 import 'cute_icon.dart';
 
 class MainShell extends ConsumerWidget {
@@ -16,6 +18,7 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final unreadCount = ref.watch(unreadCountProvider).valueOrNull ?? 0;
+    final character = ref.watch(myCharacterProvider).valueOrNull;
     final currentIndex = navigationShell.currentIndex;
     final theme = Theme.of(context);
 
@@ -39,6 +42,7 @@ class MainShell extends ConsumerWidget {
       bottomNavigationBar: _BottomBar(
         currentIndex: currentIndex,
         unreadCount: unreadCount,
+        character: character,
         theme: theme,
         onTap: (index) {
           navigationShell.goBranch(
@@ -55,12 +59,14 @@ class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.currentIndex,
     required this.unreadCount,
+    required this.character,
     required this.theme,
     required this.onTap,
   });
 
   final int currentIndex;
   final int unreadCount;
+  final dynamic character; // CharacterData?
   final ThemeData theme;
   final ValueChanged<int> onTap;
 
@@ -110,6 +116,7 @@ class _BottomBar extends StatelessWidget {
               // 2: 내 방 (center, raised)
               _CenterTabItem(
                 isSelected: currentIndex == 2,
+                character: character,
                 onTap: () => onTap(2),
                 theme: theme,
               ),
@@ -210,15 +217,17 @@ class _TabItem extends StatelessWidget {
   }
 }
 
-/// Center "내 방" tab — raised/elevated with colorful gradient
+/// Center "내 방" tab — raised/elevated with colorful gradient + mini character
 class _CenterTabItem extends StatelessWidget {
   const _CenterTabItem({
     required this.isSelected,
+    required this.character,
     required this.onTap,
     required this.theme,
   });
 
   final bool isSelected;
+  final dynamic character; // CharacterData?
   final VoidCallback onTap;
   final ThemeData theme;
 
@@ -229,7 +238,7 @@ class _CenterTabItem extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Raised circular button
+          // Raised circular button with mini character inside
           Transform.translate(
             offset: const Offset(0, -14),
             child: Container(
@@ -253,15 +262,23 @@ class _CenterTabItem extends StatelessWidget {
                     offset: const Offset(0, 3),
                   ),
                 ],
+                border: Border.all(
+                  color: Colors.white,
+                  width: 2.5,
+                ),
               ),
-              child: const Icon(
-                Icons.person,
-                color: Colors.white,
-                size: 28,
+              child: ClipOval(
+                child: Padding(
+                  padding: const EdgeInsets.all(3),
+                  child: CharacterAvatar(
+                    character: character,
+                    size: 44,
+                  ),
+                ),
               ),
             ),
           ),
-          // Label below (offset up to compensate for translate)
+          // Label below
           Transform.translate(
             offset: const Offset(0, -10),
             child: Text(
