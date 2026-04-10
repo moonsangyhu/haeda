@@ -39,7 +39,6 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final character = ref.watch(myCharacterProvider).valueOrNull;
-    final balance = ref.watch(coinBalanceProvider).valueOrNull;
     final allItems = ref.watch(myItemsProvider).valueOrNull ?? [];
 
     final catKey = _keys[_tabCtrl.index];
@@ -54,38 +53,18 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // ── 코인 잔액
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              child: Row(
-                children: [
-                  const Text('🪙', style: TextStyle(fontSize: 18)),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${balance?.balance ?? 0} 코인',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(height: 8),
 
             // ── 캐릭터 + 스탯
             SizedBox(
               height: 180,
               child: Row(
                 children: [
-                  // 캐릭터
+                  // 캐릭터 (다마고치 바운스)
                   Expanded(
                     flex: 3,
                     child: Center(
-                      child: CharacterAvatar(
-                        character: character,
-                        size: 150,
-                        showEffect: true,
-                      ),
+                      child: _BouncingCharacter(character: character),
                     ),
                   ),
                   // 스탯창
@@ -188,6 +167,56 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
           }
         },
       ),
+    );
+  }
+}
+
+// ─── 다마고치 바운스 캐릭터 ───
+
+class _BouncingCharacter extends StatefulWidget {
+  final CharacterData? character;
+  const _BouncingCharacter({required this.character});
+
+  @override
+  State<_BouncingCharacter> createState() => _BouncingCharacterState();
+}
+
+class _BouncingCharacterState extends State<_BouncingCharacter>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _bounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+    _bounce = Tween<double>(begin: 0, end: -8).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _bounce,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _bounce.value),
+          child: CharacterAvatar(
+            character: widget.character,
+            size: 150,
+          ),
+        );
+      },
     );
   }
 }
