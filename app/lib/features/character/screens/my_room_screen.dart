@@ -16,26 +16,7 @@ class MyRoomScreen extends ConsumerStatefulWidget {
   ConsumerState<MyRoomScreen> createState() => _MyRoomScreenState();
 }
 
-class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
-    with SingleTickerProviderStateMixin {
-  static const _categories = ['모자', '상의', '하의', '신발', '액세서리'];
-  static const _categoryKeys = ['hat', 'top', 'bottom', 'shoes', 'accessory'];
-
-  late final TabController _tabController;
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: _categories.length, vsync: this);
-    _tabController.addListener(() => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+class _MyRoomScreenState extends ConsumerState<MyRoomScreen> {
   void _showTransactionSheet() {
     showModalBottomSheet<void>(
       context: context,
@@ -53,12 +34,14 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
     final characterAsync = ref.watch(myCharacterProvider);
     final balanceAsync = ref.watch(coinBalanceProvider);
     final itemsAsync = ref.watch(myItemsProvider);
+    final character = characterAsync.valueOrNull;
+    final items = itemsAsync.valueOrNull ?? [];
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // Top: coin balance + 상점 button
+            // Top: coin balance
             Padding(
               padding:
                   const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -87,68 +70,64 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
                   const Spacer(),
                   TextButton(
                     onPressed: () => context.go('/shop'),
-                    child: const Text('상점'),
+                    child: const Text('상점 →'),
                   ),
                 ],
               ),
             ),
 
-            // Character area — show base character even on error/loading
-            _CharacterSection(
-              character: characterAsync.valueOrNull,
+            // Character area
+            _CharacterSection(character: character),
+
+            const SizedBox(height: 12),
+
+            // Section header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  Text(
+                    '보유 아이템',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${items.length}개',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
 
             const SizedBox(height: 8),
 
-            // Category tabs
-            TabBar(
-              controller: _tabController,
-              isScrollable: true,
-              tabs: _categories
-                  .map((c) => Tab(text: c, height: 36))
-                  .toList(),
-            ),
-
-            // Item grid
+            // All items list (no category tabs)
             Expanded(
-              child: itemsAsync.when(
-                loading: () => const LoadingWidget(),
-                error: (_, __) =>
-                    const Center(child: Text('아이템을 불러올 수 없어요.')),
-                data: (items) {
-                  final category = _categoryKeys[_tabController.index];
-                  final filtered = items
-                      .where((ui) => ui.item.category == category)
-                      .toList();
-                  return characterAsync.maybeWhen(
-                    data: (character) => _ItemGrid(
-                      items: filtered,
+              child: items.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('🛍️', style: TextStyle(fontSize: 40)),
+                          const SizedBox(height: 8),
+                          Text(
+                            '보유한 아이템이 없어요.\n상점에서 아이템을 구매해보세요!',
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : _AllItemsList(
+                      items: items,
                       character: character,
-                      category: category,
                     ),
-                    orElse: () => _ItemGrid(
-                      items: filtered,
-                      character: null,
-                      category: category,
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Bottom link - navigate to shop tab
-            GestureDetector(
-              onTap: () => context.go('/shop'),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  '상점에서 더 구경하기 →',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
             ),
           ],
         ),
@@ -183,264 +162,333 @@ class _CharacterSection extends StatelessWidget {
   }
 }
 
-class _ItemGrid extends ConsumerWidget {
+/// 전체 보유 아이템을 리스트로 표시. 등급별 테두리 색상 + 착용 중 뱃지.
+class _AllItemsList extends ConsumerWidget {
   final List<UserItem> items;
   final CharacterData? character;
-  final String category;
 
-  const _ItemGrid({
+  const _AllItemsList({
     required this.items,
     required this.character,
-    required this.category,
   });
 
   bool _isEquipped(UserItem ui) {
-    if (character == null) return false;
-    final slot = _equippedSlot();
-    return slot?.id == ui.item.id;
+    final c = character;
+    if (c == null) return false;
+    final cat = ui.item.category.toUpperCase();
+    switch (cat) {
+      case 'HAT':
+        return c.hat?.id == ui.item.id;
+      case 'TOP':
+        return c.top?.id == ui.item.id;
+      case 'BOTTOM':
+        return c.bottom?.id == ui.item.id;
+      case 'SHOES':
+        return c.shoes?.id == ui.item.id;
+      case 'ACCESSORY':
+        return c.accessory?.id == ui.item.id;
+      default:
+        return false;
+    }
   }
 
-  CharacterSlot? _equippedSlot() {
-    if (character == null) return null;
-    switch (category) {
-      case 'hat':
-        return character!.hat;
-      case 'top':
-        return character!.top;
-      case 'bottom':
-        return character!.bottom;
-      case 'shoes':
-        return character!.shoes;
-      case 'accessory':
-        return character!.accessory;
+  String _slotKey(UserItem ui) {
+    switch (ui.item.category.toUpperCase()) {
+      case 'HAT':
+        return 'hat';
+      case 'TOP':
+        return 'top';
+      case 'BOTTOM':
+        return 'bottom';
+      case 'SHOES':
+        return 'shoes';
+      case 'ACCESSORY':
+        return 'accessory';
       default:
-        return null;
+        return 'hat';
     }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('🛍️', style: TextStyle(fontSize: 40)),
-            const SizedBox(height: 8),
-            Text(
-              '보유한 아이템이 없어요.',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return GridView.builder(
-      padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        childAspectRatio: 0.85,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
-      ),
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       itemCount: items.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 10),
       itemBuilder: (ctx, i) {
         final ui = items[i];
         final equipped = _isEquipped(ui);
-        return _ItemCard(
+        return _ItemTile(
           userItem: ui,
           isEquipped: equipped,
-          onTap: () => _onTap(ctx, ref, ui, equipped),
+          onTap: () async {
+            final notifier = ref.read(characterUpdateProvider.notifier);
+            final slot = _slotKey(ui);
+            final newId = equipped ? null : ui.item.id;
+            final ok = await notifier.updateSlot(slot, newId);
+            if (!ctx.mounted) return;
+            if (!ok) {
+              ScaffoldMessenger.of(ctx).showSnackBar(
+                const SnackBar(content: Text('아이템 변경에 실패했어요.')),
+              );
+            }
+          },
         );
       },
     );
   }
+}
 
-  Future<void> _onTap(
-    BuildContext context,
-    WidgetRef ref,
-    UserItem ui,
-    bool equipped,
-  ) async {
-    final notifier = ref.read(characterUpdateProvider.notifier);
-    // Equip or unequip
-    final newItemId = equipped ? null : ui.item.id;
-    final success = await notifier.updateSlot(category, newItemId);
-    if (!context.mounted) return;
-    if (!success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('아이템 변경에 실패했어요.')),
-      );
-    }
+/// 등급별 테두리 색상.
+/// COMMON=회색, RARE=노란색, EPIC=보라색, LEGENDARY=황금색.
+Color _rarityBorderColor(String rarity) {
+  switch (rarity) {
+    case 'RARE':
+      return const Color(0xFFFFD600); // 노란색
+    case 'EPIC':
+      return const Color(0xFF9C27B0); // 보라색
+    case 'LEGENDARY':
+      return const Color(0xFFFFAB00); // 황금색
+    default: // COMMON
+      return const Color(0xFFBDBDBD); // 회색
   }
 }
 
-class _ItemCard extends StatelessWidget {
-  final UserItem userItem;
-  final bool isEquipped;
-  final VoidCallback onTap;
-
-  const _ItemCard({
-    required this.userItem,
-    required this.isEquipped,
-    required this.onTap,
-  });
-
-  Color _rarityColor() {
-    switch (userItem.item.rarity) {
-      case 'RARE':
-        return const Color(0xFF2196F3);
-      case 'EPIC':
-        return const Color(0xFF9C27B0);
-      default:
-        return const Color(0xFF9E9E9E);
-    }
+/// 등급 라벨 텍스트.
+String _rarityLabel(String rarity) {
+  switch (rarity) {
+    case 'COMMON':
+      return '노말';
+    case 'RARE':
+      return '레어';
+    case 'EPIC':
+      return '에픽';
+    case 'LEGENDARY':
+      return '전설';
+    default:
+      return rarity;
   }
+}
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final rarityColor = _rarityColor();
-
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          color: isEquipped
-              ? theme.colorScheme.primaryContainer
-              : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isEquipped
-                ? theme.colorScheme.primary
-                : theme.colorScheme.outlineVariant,
-            width: isEquipped ? 2.5 : 1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: isEquipped
-                  ? theme.colorScheme.primary.withOpacity(0.2)
-                  : Colors.black.withOpacity(0.04),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Item placeholder icon
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: rarityColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Center(
-                child: Text(
-                  _categoryEmoji(userItem.item.category),
-                  style: const TextStyle(fontSize: 24),
-                ),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4),
-              child: Text(
-                userItem.item.name,
-                style: theme.textTheme.labelSmall?.copyWith(
-                  fontWeight:
-                      isEquipped ? FontWeight.w700 : FontWeight.w500,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: rarityColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                userItem.item.rarity,
-                style: TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: rarityColor,
-                ),
-              ),
-            ),
-            if (userItem.item.effectType != null) ...[
-              const SizedBox(height: 2),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2),
-                child: Text(
-                  _effectShortLabel(userItem.item.effectType!),
-                  style: TextStyle(
-                    fontSize: 8,
-                    color: theme.colorScheme.tertiary,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-            if (isEquipped) ...[
-              const SizedBox(height: 4),
-              Text(
-                '착용 중',
-                style: TextStyle(
-                  fontSize: 9,
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
+String _categoryLabel(String category) {
+  switch (category.toUpperCase()) {
+    case 'HAT':
+      return '모자';
+    case 'TOP':
+      return '상의';
+    case 'BOTTOM':
+      return '하의';
+    case 'SHOES':
+      return '신발';
+    case 'ACCESSORY':
+      return '액세서리';
+    default:
+      return category;
   }
 }
 
 String _categoryEmoji(String category) {
-  switch (category) {
-    case 'hat':
+  switch (category.toUpperCase()) {
+    case 'HAT':
       return '🎩';
-    case 'top':
+    case 'TOP':
       return '👕';
-    case 'bottom':
+    case 'BOTTOM':
       return '👖';
-    case 'shoes':
+    case 'SHOES':
       return '👟';
-    case 'accessory':
+    case 'ACCESSORY':
       return '✨';
     default:
       return '🎁';
   }
 }
 
-String _effectShortLabel(String effectType) {
-  switch (effectType) {
+String _effectDescription(String type, int value) {
+  switch (type) {
     case 'STREAK_SHIELD':
-      return '🛡️ 실드';
+      return '🛡️ 연속 깨짐 $value회 방지';
     case 'COIN_BOOST':
-      return '💰 부스트';
+      return '💰 코인 획득 +$value%';
     case 'VERIFY_BONUS':
-      return '⭐ 보너스';
+      return '⭐ 인증 시 +$value 코인';
     default:
       return '';
+  }
+}
+
+/// 아이템 리스트 타일 — 등급별 테두리 + 착용 중 뱃지.
+class _ItemTile extends StatelessWidget {
+  final UserItem userItem;
+  final bool isEquipped;
+  final VoidCallback onTap;
+
+  const _ItemTile({
+    required this.userItem,
+    required this.isEquipped,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final item = userItem.item;
+    final borderColor = _rarityBorderColor(item.rarity);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isEquipped
+              ? borderColor.withOpacity(0.08)
+              : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: borderColor,
+            width: isEquipped ? 2.5 : 1.5,
+          ),
+          boxShadow: [
+            if (isEquipped)
+              BoxShadow(
+                color: borderColor.withOpacity(0.25),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Icon area
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: borderColor.withOpacity(0.12),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: borderColor.withOpacity(0.3),
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: Text(
+                  _categoryEmoji(item.category),
+                  style: const TextStyle(fontSize: 26),
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 14),
+
+            // Item info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Name + rarity badge row
+                  Row(
+                    children: [
+                      Flexible(
+                        child: Text(
+                          item.name,
+                          style: theme.textTheme.bodyLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: borderColor.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color: borderColor,
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          _rarityLabel(item.rarity),
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: borderColor == const Color(0xFFBDBDBD)
+                                ? const Color(0xFF757575)
+                                : borderColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 4),
+
+                  // Category + effect
+                  Row(
+                    children: [
+                      Text(
+                        _categoryLabel(item.category),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                      if (item.effectType != null) ...[
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            _effectDescription(
+                              item.effectType!,
+                              item.effectValue ?? 0,
+                            ),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.tertiary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Equipped badge
+            if (isEquipped)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: borderColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: borderColor, width: 1),
+                ),
+                child: Text(
+                  '착용 중',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: borderColor == const Color(0xFFBDBDBD)
+                        ? const Color(0xFF616161)
+                        : borderColor,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
