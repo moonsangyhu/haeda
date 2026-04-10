@@ -112,18 +112,83 @@ final _mockItems = <UserItem>[
   ),
 ];
 
-/// GET /me/character — 내 캐릭터 장착 현황 조회.
-/// API 실패 시 테스트용 목 데이터 반환.
-final myCharacterProvider = FutureProvider<CharacterData>((ref) async {
-  try {
-    final dio = ref.watch(dioProvider);
-    final response = await dio.get('/me/character');
-    final data = response.data as Map<String, dynamic>;
-    return CharacterData.fromJson(data);
-  } catch (_) {
-    return _mockCharacter;
-  }
+/// 내 캐릭터 장착 현황 — 로컬 상태로 착용/해제 즉시 반영.
+final myCharacterProvider =
+    StateNotifierProvider<MyCharacterNotifier, AsyncValue<CharacterData>>(
+        (ref) {
+  final dio = ref.watch(dioProvider);
+  return MyCharacterNotifier(dio, ref);
 });
+
+class MyCharacterNotifier extends StateNotifier<AsyncValue<CharacterData>> {
+  final Dio _dio;
+  final Ref _ref;
+
+  MyCharacterNotifier(this._dio, this._ref)
+      : super(const AsyncValue.loading()) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    try {
+      final response = await _dio.get('/me/character');
+      final data = response.data as Map<String, dynamic>;
+      state = AsyncValue.data(CharacterData.fromJson(data));
+    } catch (_) {
+      state = const AsyncValue.data(_mockCharacter);
+    }
+  }
+
+  /// 슬롯 착용/해제. itemId == null이면 해제.
+  Future<bool> updateSlot(String slot, String? itemId) async {
+    final current = state.valueOrNull;
+    if (current == null) return false;
+
+    CharacterSlot? newSlot;
+    if (itemId != null) {
+      final items = _ref.read(myItemsProvider).valueOrNull ?? [];
+      final userItem =
+          items.where((ui) => ui.item.id == itemId).firstOrNull;
+      if (userItem != null) {
+        newSlot = CharacterSlot(
+          id: userItem.item.id,
+          name: userItem.item.name,
+          assetKey: userItem.item.assetKey,
+          rarity: userItem.item.rarity,
+        );
+      }
+    }
+
+    final updated = _applySlot(current, slot, newSlot);
+    state = AsyncValue.data(updated);
+
+    // API 호출 (백엔드 있으면 동기화, 없으면 무시)
+    try {
+      await _dio.put('/me/character', data: {slot: itemId});
+    } catch (_) {
+      // 로컬 상태는 이미 반영됨
+    }
+
+    return true;
+  }
+
+  CharacterData _applySlot(CharacterData c, String slot, CharacterSlot? s) {
+    switch (slot) {
+      case 'hat':
+        return c.copyWith(hat: s);
+      case 'top':
+        return c.copyWith(top: s);
+      case 'bottom':
+        return c.copyWith(bottom: s);
+      case 'shoes':
+        return c.copyWith(shoes: s);
+      case 'accessory':
+        return c.copyWith(accessory: s);
+      default:
+        return c;
+    }
+  }
+}
 
 /// GET /me/items — 내가 보유한 아이템 목록 조회.
 /// API 실패 시 테스트용 목 데이터 반환.
@@ -149,77 +214,3 @@ final userCharacterProvider =
   return CharacterData.fromJson(data);
 });
 
-/// 캐릭터 장착 변경 상태.
-class CharacterUpdateState {
-  final bool isLoading;
-  final String? errorMessage;
-  final bool success;
-
-  const CharacterUpdateState({
-    this.isLoading = false,
-    this.errorMessage,
-    this.success = false,
-  });
-
-  CharacterUpdateState copyWith({
-    bool? isLoading,
-    String? errorMessage,
-    bool? success,
-  }) {
-    return CharacterUpdateState(
-      isLoading: isLoading ?? this.isLoading,
-      errorMessage: errorMessage,
-      success: success ?? this.success,
-    );
-  }
-}
-
-class CharacterUpdateNotifier extends StateNotifier<CharacterUpdateState> {
-  final Dio _dio;
-  final Ref _ref;
-
-  CharacterUpdateNotifier(this._dio, this._ref)
-      : super(const CharacterUpdateState());
-
-  /// PUT /me/character — 캐릭터 슬롯 업데이트.
-  /// slot: 'hat' | 'top' | 'bottom' | 'shoes' | 'accessory'
-  /// itemId: null이면 해당 슬롯 해제.
-  Future<bool> updateSlot(String slot, String? itemId) async {
-    state = const CharacterUpdateState(isLoading: true);
-
-    try {
-      await _dio.put('/me/character', data: {slot: itemId});
-      state = const CharacterUpdateState(success: true);
-      _ref.invalidate(myCharacterProvider);
-      return true;
-    } on DioException catch (e) {
-      final message = _extractMessage(e);
-      state = CharacterUpdateState(errorMessage: message);
-      return false;
-    } catch (_) {
-      state = const CharacterUpdateState(errorMessage: '캐릭터 변경 중 오류가 발생했어요.');
-      return false;
-    }
-  }
-
-  void reset() {
-    state = const CharacterUpdateState();
-  }
-
-  String _extractMessage(DioException e) {
-    try {
-      final error =
-          (e.response?.data as Map<String, dynamic>?)?['error']
-              as Map<String, dynamic>?;
-      return error?['message'] as String? ?? '캐릭터 변경에 실패했어요.';
-    } catch (_) {
-      return '캐릭터 변경에 실패했어요.';
-    }
-  }
-}
-
-final characterUpdateProvider =
-    StateNotifierProvider<CharacterUpdateNotifier, CharacterUpdateState>((ref) {
-  final dio = ref.watch(dioProvider);
-  return CharacterUpdateNotifier(dio, ref);
-});

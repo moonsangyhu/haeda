@@ -160,7 +160,7 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
           final slot = ui.item.category.toLowerCase();
           final newId = equipped ? null : ui.item.id;
           final ok = await ref
-              .read(characterUpdateProvider.notifier)
+              .read(myCharacterProvider.notifier)
               .updateSlot(slot, newId);
           if (!mounted) return;
           if (!ok) {
