@@ -47,6 +47,9 @@ class CharacterResponse(BaseModel):
     bottom: EquippedItemBrief | None
     shoes: EquippedItemBrief | None
     accessory: EquippedItemBrief | None
+    skin_tone: str = "fair"
+    eye_style: str = "round"
+    hair_style: str = "short"
 
     model_config = {"from_attributes": True}
 
@@ -57,3 +60,14 @@ class CharacterUpdateRequest(BaseModel):
     bottom_item_id: uuid.UUID | None = None
     shoes_item_id: uuid.UUID | None = None
     accessory_item_id: uuid.UUID | None = None
+
+
+VALID_SKIN_TONES = {"light", "fair", "dark"}
+VALID_EYE_STYLES = {"round", "sharp", "sleepy"}
+VALID_HAIR_STYLES = {"short", "long", "curly"}
+
+
+class AppearanceUpdateRequest(BaseModel):
+    skin_tone: str
+    eye_style: str
+    hair_style: str

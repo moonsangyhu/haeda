@@ -8,7 +8,7 @@ from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.models.gem_transaction import GemTransaction
 from app.schemas.coin import CoinBalanceResponse
-from app.schemas.item import CharacterUpdateRequest
+from app.schemas.item import AppearanceUpdateRequest, CharacterUpdateRequest
 from app.services import challenge_service, character_service, gem_service, shop_service, user_stats_service
 
 router = APIRouter(prefix="/me", tags=["me"])
@@ -136,3 +136,13 @@ async def update_my_character(
 ):
     character = await character_service.update_character(db, user_id, body)
     return {"data": character.model_dump()}
+
+
+@router.put("/character/appearance")
+async def update_my_appearance(
+    body: AppearanceUpdateRequest,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await character_service.update_appearance(db, user_id, body)
+    return {"data": result.model_dump()}

@@ -7,7 +7,15 @@ from app.exceptions import AppException
 from app.models.character_equip import CharacterEquip
 from app.models.item import Item
 from app.models.user_item import UserItem
-from app.schemas.item import CharacterResponse, CharacterUpdateRequest, EquippedItemBrief
+from app.schemas.item import (
+    AppearanceUpdateRequest,
+    CharacterResponse,
+    CharacterUpdateRequest,
+    EquippedItemBrief,
+    VALID_EYE_STYLES,
+    VALID_HAIR_STYLES,
+    VALID_SKIN_TONES,
+)
 
 # maps slot field name to item category name
 SLOT_TO_CATEGORY: dict[str, str] = {
@@ -50,6 +58,9 @@ async def get_character(db: AsyncSession, user_id: uuid.UUID) -> CharacterRespon
             bottom=None,
             shoes=None,
             accessory=None,
+            skin_tone="fair",
+            eye_style="round",
+            hair_style="short",
         )
 
     hat = await _fetch_item_brief(db, equip.hat_item_id)
@@ -64,6 +75,9 @@ async def get_character(db: AsyncSession, user_id: uuid.UUID) -> CharacterRespon
         bottom=bottom,
         shoes=shoes,
         accessory=accessory,
+        skin_tone=equip.skin_tone,
+        eye_style=equip.eye_style,
+        hair_style=equip.hair_style,
     )
 
 
@@ -137,6 +151,49 @@ async def update_character(
     for slot, item_id in slots.items():
         if item_id is not None or slot in data.model_fields_set:
             setattr(equip, slot, item_id)
+
+    await db.commit()
+    await db.refresh(equip)
+
+    return await get_character(db, user_id)
+
+
+async def update_appearance(
+    db: AsyncSession,
+    user_id: uuid.UUID,
+    body: AppearanceUpdateRequest,
+) -> CharacterResponse:
+    if body.skin_tone not in VALID_SKIN_TONES:
+        raise AppException(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=f"skin_tone must be one of: {', '.join(sorted(VALID_SKIN_TONES))}",
+        )
+    if body.eye_style not in VALID_EYE_STYLES:
+        raise AppException(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=f"eye_style must be one of: {', '.join(sorted(VALID_EYE_STYLES))}",
+        )
+    if body.hair_style not in VALID_HAIR_STYLES:
+        raise AppException(
+            status_code=422,
+            code="VALIDATION_ERROR",
+            message=f"hair_style must be one of: {', '.join(sorted(VALID_HAIR_STYLES))}",
+        )
+
+    result = await db.execute(
+        select(CharacterEquip).where(CharacterEquip.user_id == user_id)
+    )
+    equip = result.scalar_one_or_none()
+
+    if equip is None:
+        equip = CharacterEquip(user_id=user_id)
+        db.add(equip)
+
+    equip.skin_tone = body.skin_tone
+    equip.eye_style = body.eye_style
+    equip.hair_style = body.hair_style
 
     await db.commit()
     await db.refresh(equip)

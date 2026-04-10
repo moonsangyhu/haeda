@@ -113,7 +113,6 @@ class _PixelCharacterPainter extends CustomPainter {
   });
 
   // --- Color palette ---
-  static const _skin = Color(0xFFFFCBA4);
   static const _hairBrown = Color(0xFF5D3A1A);
   static const _eyeColor = Color(0xFF2D1B00);
   static const _smileColor = Color(0xFF8B4513);
@@ -122,6 +121,64 @@ class _PixelCharacterPainter extends CustomPainter {
   static const _defaultPants = Color(0xFF5B88C4);
   static const _defaultShoes = Color(0xFF8B6914);
   static const _outlineColor = Color(0xFF3A2010);
+
+  static Color _getSkinColor(String skinTone) {
+    switch (skinTone) {
+      case 'light':
+        return const Color(0xFFFFF0DB);
+      case 'dark':
+        return const Color(0xFF8D5524);
+      default:
+        return const Color(0xFFFFCBA4); // fair
+    }
+  }
+
+  // Returns [eyePixels, shinePixels]
+  static List<List<List<int>>> _getEyePattern(String eyeStyle) {
+    switch (eyeStyle) {
+      case 'sharp':
+        return [
+          [[5, 3], [6, 3], [9, 3], [10, 3]],
+          [[5, 3]],
+        ];
+      case 'sleepy':
+        return [
+          [[6, 4], [9, 4]],
+          [],
+        ];
+      default: // round
+        return [
+          [[6, 3], [9, 3]],
+          [[6, 4]],
+        ];
+    }
+  }
+
+  static List<List<int>> _getHairPattern(String hairStyle) {
+    switch (hairStyle) {
+      case 'long':
+        return [
+          [5, 1], [6, 1], [7, 1], [8, 1], [9, 1], [10, 1],
+          [4, 2], [5, 2], [10, 2], [11, 2],
+          [4, 3], [11, 3],
+          [3, 4], [3, 5], [3, 6], [3, 7],
+          [12, 4], [12, 5], [12, 6], [12, 7],
+        ];
+      case 'curly':
+        return [
+          [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0],
+          [4, 1], [5, 1], [6, 1], [7, 1], [8, 1], [9, 1], [10, 1], [11, 1],
+          [3, 2], [4, 2], [5, 2], [10, 2], [11, 2], [12, 2],
+          [3, 3], [4, 3], [11, 3], [12, 3],
+        ];
+      default: // short
+        return [
+          [5, 1], [6, 1], [7, 1], [8, 1], [9, 1], [10, 1],
+          [4, 2], [5, 2], [10, 2], [11, 2],
+          [4, 3], [11, 3],
+        ];
+    }
+  }
 
   void _drawPixel(Canvas canvas, Paint paint, int x, int y, double px) {
     canvas.drawRect(
@@ -157,12 +214,14 @@ class _PixelCharacterPainter extends CustomPainter {
   }
 
   void _drawBase(Canvas canvas, double px) {
+    final skinColor = _getSkinColor(character?.skinTone ?? 'fair');
+    final hairPattern = _getHairPattern(character?.hairStyle ?? 'short');
+    final eyePatterns = _getEyePattern(character?.eyeStyle ?? 'round');
+    final eyePixels = eyePatterns[0];
+    final shinePixels = eyePatterns[1];
+
     // --- Hair / head top ---
-    _drawPixels(canvas, _hairBrown, [
-      [5, 1], [6, 1], [7, 1], [8, 1], [9, 1], [10, 1],
-      [4, 2], [5, 2], [10, 2], [11, 2],
-      [4, 3], [11, 3],
-    ], px);
+    _drawPixels(canvas, _hairBrown, hairPattern, px);
 
     // --- Outline for head ---
     _drawPixels(canvas, _outlineColor, [
@@ -178,7 +237,7 @@ class _PixelCharacterPainter extends CustomPainter {
     ], px);
 
     // --- Skin (head) ---
-    _drawPixels(canvas, _skin, [
+    _drawPixels(canvas, skinColor, [
       // row 2
       [4, 2], [5, 2], [6, 2], [7, 2], [8, 2], [9, 2], [10, 2], [11, 2],
       // row 3
@@ -194,27 +253,25 @@ class _PixelCharacterPainter extends CustomPainter {
     ], px);
 
     // --- Eyes ---
-    _drawPixels(canvas, _eyeColor, [
-      [6, 3], [9, 3],
-    ], px);
+    _drawPixels(canvas, _eyeColor, eyePixels, px);
 
     // --- Eye shine ---
-    _drawPixels(canvas, Colors.white, [
-      [6, 4],
-    ], px);
+    if (shinePixels.isNotEmpty) {
+      _drawPixels(canvas, Colors.white, shinePixels, px);
+    }
 
-    // --- Blush ---
+    // --- Blush (fixed position) ---
     _drawPixels(canvas, _blush, [
       [5, 5], [10, 5],
     ], px);
 
-    // --- Smile ---
+    // --- Smile (fixed position) ---
     _drawPixels(canvas, _smileColor, [
       [6, 6], [7, 7], [8, 7], [9, 6],
     ], px);
 
     // --- Neck ---
-    _drawPixels(canvas, _skin, [
+    _drawPixels(canvas, skinColor, [
       [7, 8], [8, 8],
     ], px);
 
@@ -222,7 +279,7 @@ class _PixelCharacterPainter extends CustomPainter {
     _drawBody(canvas, px, _defaultShirt);
 
     // --- Arms skin ---
-    _drawPixels(canvas, _skin, [
+    _drawPixels(canvas, skinColor, [
       [4, 9], [5, 9],
       [10, 9], [11, 9],
       [4, 10], [5, 10],
@@ -232,7 +289,7 @@ class _PixelCharacterPainter extends CustomPainter {
     ], px);
 
     // --- Default pants ---
-    _drawLegs(canvas, px, _defaultPants, false);
+    _drawLegs(canvas, px, _defaultPants, false, skinColor);
 
     // --- Default shoes ---
     _drawShoes(canvas, px, _defaultShoes);
@@ -247,7 +304,14 @@ class _PixelCharacterPainter extends CustomPainter {
     ], px);
   }
 
-  void _drawLegs(Canvas canvas, double px, Color color, bool isShorts) {
+  void _drawLegs(
+    Canvas canvas,
+    double px,
+    Color color,
+    bool isShorts, [
+    Color? skinColor,
+  ]) {
+    final resolvedSkin = skinColor ?? _getSkinColor(character?.skinTone ?? 'fair');
     final rows = isShorts ? [12] : [12, 13, 14];
     final pixels = <List<int>>[];
     for (final row in rows) {
@@ -267,7 +331,7 @@ class _PixelCharacterPainter extends CustomPainter {
         [5, 12], [6, 12], [7, 12], [8, 12], [9, 12], [10, 12],
       ]);
       // Bare legs for shorts
-      _drawPixels(canvas, _skin, [
+      _drawPixels(canvas, resolvedSkin, [
         [5, 13], [6, 13], [9, 13], [10, 13],
         [5, 14], [6, 14], [9, 14], [10, 14],
       ], px);
@@ -569,7 +633,7 @@ class _PixelCharacterPainter extends CustomPainter {
           [5, 13], [6, 13], [9, 13], [10, 13],
         ], px);
         // Bare legs
-        _drawPixels(canvas, _skin, [
+        _drawPixels(canvas, _getSkinColor(character?.skinTone ?? 'fair'), [
           [5, 14], [6, 14], [9, 14], [10, 14],
         ], px);
         break;

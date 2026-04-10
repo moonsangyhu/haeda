@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -30,6 +30,9 @@ class CharacterEquip(Base):
     accessory_item_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("items.id"), nullable=True
     )
+    skin_tone: Mapped[str] = mapped_column(String(20), nullable=False, server_default="fair")
+    eye_style: Mapped[str] = mapped_column(String(20), nullable=False, server_default="round")
+    hair_style: Mapped[str] = mapped_column(String(20), nullable=False, server_default="short")
     updated_at: Mapped[datetime] = mapped_column(
         nullable=False,
         server_default=func.now(),

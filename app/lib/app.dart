@@ -22,6 +22,7 @@ import 'features/challenge_complete/screens/challenge_completion_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/character/screens/my_room_screen.dart';
 import 'features/character/screens/shop_screen.dart';
+import 'features/character/screens/character_creation_screen.dart';
 import 'features/friends/screens/friend_list_screen.dart';
 import 'features/friends/screens/friend_requests_screen.dart';
 import 'features/friends/screens/contact_search_screen.dart';
@@ -173,6 +174,11 @@ final _router = GoRouter(
         final code = state.pathParameters['code']!;
         return InvitePreviewScreen(inviteCode: code);
       },
+    ),
+    // 캐릭터 외형 생성
+    GoRoute(
+      path: '/character-create',
+      builder: (context, state) => const CharacterCreationScreen(),
     ),
     // 친구 관리
     GoRoute(

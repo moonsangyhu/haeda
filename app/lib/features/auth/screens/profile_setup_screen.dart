@@ -43,7 +43,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
         profileImage: _selectedImage,
       );
       if (!mounted) return;
-      context.go('/my-page');
+      context.go('/character-create');
     } on Exception catch (e) {
       if (!mounted) return;
       String message = '프로필 설정 중 오류가 발생했습니다.';

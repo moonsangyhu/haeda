@@ -36,6 +36,9 @@ const _mockCharacter = CharacterData(
     assetKey: 'accessory/sunglasses.png',
     rarity: 'RARE',
   ),
+  skinTone: 'fair',
+  eyeStyle: 'round',
+  hairStyle: 'short',
 );
 
 /// 테스트용 목 보유 아이템 — 카테고리별 여러 개.
@@ -170,6 +173,33 @@ class MyCharacterNotifier extends StateNotifier<AsyncValue<CharacterData>> {
     }
 
     return true;
+  }
+
+  /// 외형 커스터마이징 저장.
+  Future<void> saveAppearance({
+    required String skinTone,
+    required String eyeStyle,
+    required String hairStyle,
+  }) async {
+    final current = state.valueOrNull;
+    if (current == null) return;
+
+    final updated = current.copyWith(
+      skinTone: skinTone,
+      eyeStyle: eyeStyle,
+      hairStyle: hairStyle,
+    );
+    state = AsyncValue.data(updated);
+
+    try {
+      await _dio.put('/me/character/appearance', data: {
+        'skin_tone': skinTone,
+        'eye_style': eyeStyle,
+        'hair_style': hairStyle,
+      });
+    } catch (_) {
+      // 로컬 상태는 이미 반영됨
+    }
   }
 
   CharacterData _applySlot(CharacterData c, String slot, CharacterSlot? s) {

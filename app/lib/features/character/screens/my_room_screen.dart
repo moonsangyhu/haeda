@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/loading_widget.dart';
+import '../../../core/widgets/tappable_character.dart';
 import '../models/character_data.dart';
 import '../models/item_data.dart';
 import '../providers/character_provider.dart';
@@ -64,9 +65,11 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
                   Expanded(
                     flex: 3,
                     child: Center(
-                      child: CharacterAvatar(
-                        character: character,
-                        size: 150,
+                      child: TappableCharacter(
+                        child: CharacterAvatar(
+                          character: character,
+                          size: 150,
+                        ),
                       ),
                     ),
                   ),
