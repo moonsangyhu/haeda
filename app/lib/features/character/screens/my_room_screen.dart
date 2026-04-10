@@ -55,9 +55,9 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
           children: [
             const SizedBox(height: 8),
 
-            // ── 캐릭터 + 스탯 (큰 영역)
-            Expanded(
-              flex: 5,
+            // ── 캐릭터 + 스탯
+            SizedBox(
+              height: 180,
               child: Row(
                 children: [
                   // 캐릭터
@@ -66,7 +66,7 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
                     child: Center(
                       child: CharacterAvatar(
                         character: character,
-                        size: 220,
+                        size: 150,
                       ),
                     ),
                   ),
@@ -79,17 +79,18 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
               ),
             ),
 
+            const SizedBox(height: 4),
+
             // ── 카테고리 탭
             TabBar(
               controller: _tabCtrl,
               isScrollable: false,
               labelPadding: EdgeInsets.zero,
-              tabs: _tabs.map((t) => Tab(text: t, height: 34)).toList(),
+              tabs: _tabs.map((t) => Tab(text: t, height: 36)).toList(),
             ),
 
-            // ── 아이템 그리드 (작은 영역, 스크롤 가능)
+            // ── 아이템 그리드
             Expanded(
-              flex: 3,
               child: filtered.isEmpty
                   ? Center(
                       child: Text(
