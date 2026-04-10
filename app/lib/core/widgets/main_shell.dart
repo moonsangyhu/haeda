@@ -95,13 +95,13 @@ class _BottomBar extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              // 0: 내 챌린지
+              // 0: 내 방
               _TabItem(
                 index: 0,
                 isSelected: currentIndex == 0,
-                label: '챌린지',
-                icon: const CuteIcon('home', size: 22, opacity: 0.45),
-                selectedIcon: const CuteIcon('home', size: 24),
+                label: '내 방',
+                icon: CharacterAvatar(character: character, size: 22),
+                selectedIcon: CharacterAvatar(character: character, size: 24),
                 onTap: onTap,
               ),
               // 1: 상점
@@ -113,10 +113,9 @@ class _BottomBar extends StatelessWidget {
                 selectedIcon: _buildShopIcon(true),
                 onTap: onTap,
               ),
-              // 2: 내 방 (center, raised)
+              // 2: 챌린지 (center, raised)
               _CenterTabItem(
                 isSelected: currentIndex == 2,
-                character: character,
                 onTap: () => onTap(2),
                 theme: theme,
               ),
@@ -217,17 +216,15 @@ class _TabItem extends StatelessWidget {
   }
 }
 
-/// Center "내 방" tab — raised/elevated with colorful gradient + mini character
+/// Center "챌린지" tab — raised/elevated with colorful gradient + challenge icon
 class _CenterTabItem extends StatelessWidget {
   const _CenterTabItem({
     required this.isSelected,
-    required this.character,
     required this.onTap,
     required this.theme,
   });
 
   final bool isSelected;
-  final dynamic character; // CharacterData?
   final VoidCallback onTap;
   final ThemeData theme;
 
@@ -238,7 +235,7 @@ class _CenterTabItem extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Raised circular button with mini character inside
+          // Raised circular button with challenge icon inside
           Transform.translate(
             offset: const Offset(0, -14),
             child: Container(
@@ -267,13 +264,13 @@ class _CenterTabItem extends StatelessWidget {
                   width: 2.5,
                 ),
               ),
-              child: ClipOval(
-                child: Padding(
-                  padding: const EdgeInsets.all(3),
-                  child: CharacterAvatar(
-                    character: character,
-                    size: 44,
+              child: Center(
+                child: ColorFiltered(
+                  colorFilter: const ColorFilter.mode(
+                    Colors.white,
+                    BlendMode.srcIn,
                   ),
+                  child: const CuteIcon('home', size: 28),
                 ),
               ),
             ),
@@ -282,7 +279,7 @@ class _CenterTabItem extends StatelessWidget {
           Transform.translate(
             offset: const Offset(0, -10),
             child: Text(
-              '내 방',
+              '챌린지',
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,

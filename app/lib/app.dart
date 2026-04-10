@@ -43,17 +43,17 @@ final _router = GoRouter(
       path: '/profile-setup',
       builder: (context, state) => const ProfileSetupScreen(),
     ),
-    // Bottom tab shell: 내 챌린지 / 상점 / 내 방(center) / 알림 / 설정
+    // Bottom tab shell: 내 방 / 상점 / 챌린지(center) / 알림 / 설정
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
       branches: [
-        // index 0: 내 챌린지
+        // index 0: 내 방
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/my-page',
-              builder: (context, state) => const MyPageScreen(),
+              path: '/my-room',
+              builder: (context, state) => const MyRoomScreen(),
             ),
           ],
         ),
@@ -66,12 +66,12 @@ final _router = GoRouter(
             ),
           ],
         ),
-        // index 2: 내 방 (center, elevated)
+        // index 2: 챌린지 (center, elevated)
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/my-room',
-              builder: (context, state) => const MyRoomScreen(),
+              path: '/my-page',
+              builder: (context, state) => const MyPageScreen(),
             ),
           ],
         ),
