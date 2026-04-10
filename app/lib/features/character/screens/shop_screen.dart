@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../models/item_data.dart';
-import '../providers/coin_provider.dart';
 import '../providers/shop_provider.dart';
 
 /// 상점 화면 — bottom tab (index 2).
@@ -100,10 +100,25 @@ class _ShopScreenState extends ConsumerState<ShopScreen>
     }
   }
 
+  void _showItemDetail(BuildContext context, ShopItem item) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _ItemDetailSheet(
+        item: item,
+        onPurchase: () {
+          Navigator.of(ctx).pop();
+          _onPurchase(context, item);
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final balanceAsync = ref.watch(coinBalanceProvider);
     final categoryKey = _categoryKeys[_tabController.index];
     final itemsAsync = ref.watch(shopItemsProvider(categoryKey));
 
@@ -111,32 +126,6 @@ class _ShopScreenState extends ConsumerState<ShopScreen>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('상점'),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Row(
-              children: [
-                const Text('🪙', style: TextStyle(fontSize: 16)),
-                const SizedBox(width: 4),
-                balanceAsync.when(
-                  loading: () => const SizedBox(
-                    width: 40,
-                    height: 16,
-                    child: LinearProgressIndicator(),
-                  ),
-                  error: (_, __) => const Text('-'),
-                  data: (b) => Text(
-                    '${b.balance}',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
         bottom: TabBar(
           controller: _tabController,
           isScrollable: true,
@@ -149,6 +138,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen>
         data: (items) => _ShopGrid(
           items: items,
           onPurchase: (item) => _onPurchase(context, item),
+          onTap: (item) => _showItemDetail(context, item),
         ),
       ),
     );
@@ -158,8 +148,13 @@ class _ShopScreenState extends ConsumerState<ShopScreen>
 class _ShopGrid extends StatelessWidget {
   final List<ShopItem> items;
   final void Function(ShopItem) onPurchase;
+  final void Function(ShopItem) onTap;
 
-  const _ShopGrid({required this.items, required this.onPurchase});
+  const _ShopGrid({
+    required this.items,
+    required this.onPurchase,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -171,14 +166,17 @@ class _ShopGrid extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
-        childAspectRatio: 0.72,
+        childAspectRatio: 0.68,
         crossAxisSpacing: 12,
         mainAxisSpacing: 12,
       ),
       itemCount: items.length,
-      itemBuilder: (ctx, i) => _ShopItemCard(
-        item: items[i],
-        onPurchase: () => onPurchase(items[i]),
+      itemBuilder: (ctx, i) => GestureDetector(
+        onTap: () => onTap(items[i]),
+        child: _ShopItemCard(
+          item: items[i],
+          onPurchase: () => onPurchase(items[i]),
+        ),
       ),
     );
   }
@@ -212,25 +210,13 @@ class _ShopItemCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Item visual placeholder
+            // Item pixel art preview
             Expanded(
               child: Center(
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: rarityColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: rarityColor.withOpacity(0.4),
-                    ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      _categoryEmoji(item.category),
-                      style: const TextStyle(fontSize: 32),
-                    ),
-                  ),
+                child: ItemPreview(
+                  assetKey: item.assetKey,
+                  rarity: item.rarity,
+                  size: 72,
                 ),
               ),
             ),
@@ -313,32 +299,161 @@ class _ShopItemCard extends StatelessWidget {
   }
 }
 
-String _effectDescription(String type, int value) {
-  switch (type) {
-    case 'STREAK_SHIELD':
-      return '🛡️ 연속 깨짐 ${value}회 방지';
-    case 'COIN_BOOST':
-      return '💰 코인 획득 +$value%';
-    case 'VERIFY_BONUS':
-      return '⭐ 인증 시 +$value 코인';
-    default:
-      return '';
+class _ItemDetailSheet extends StatelessWidget {
+  final ShopItem item;
+  final VoidCallback onPurchase;
+
+  const _ItemDetailSheet({required this.item, required this.onPurchase});
+
+  Color _rarityColor() {
+    switch (item.rarity) {
+      case 'RARE':
+        return const Color(0xFF2196F3);
+      case 'EPIC':
+        return const Color(0xFF9C27B0);
+      default:
+        return const Color(0xFF9E9E9E);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final rarityColor = _rarityColor();
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Drag handle
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 20),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            // Large item preview
+            Center(
+              child: ItemPreview(
+                assetKey: item.assetKey,
+                rarity: item.rarity,
+                size: 160,
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Item name
+            Text(
+              item.name,
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.w700),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 8),
+            // Rarity badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: rarityColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                item.rarity,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: rarityColor,
+                ),
+              ),
+            ),
+            // Effect description
+            if (item.effectType != null) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.tertiaryContainer.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.auto_awesome,
+                      size: 16,
+                      color: theme.colorScheme.tertiary,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      _effectDescription(
+                          item.effectType!, item.effectValue ?? 0),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.tertiary,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            // Purchase button or owned indicator
+            if (item.isOwned)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surfaceContainerHighest,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '보유 중인 아이템',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              )
+            else
+              FilledButton(
+                onPressed: onPurchase,
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(double.infinity, 52),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('🪙', style: TextStyle(fontSize: 16)),
+                    const SizedBox(width: 8),
+                    Text('${item.price} 코인으로 구매'),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
-String _categoryEmoji(String category) {
-  switch (category) {
-    case 'hat':
-      return '🎩';
-    case 'top':
-      return '👕';
-    case 'bottom':
-      return '👖';
-    case 'shoes':
-      return '👟';
-    case 'accessory':
-      return '✨';
+String _effectDescription(String type, int value) {
+  switch (type) {
+    case 'STREAK_SHIELD':
+      return '연속 깨짐 ${value}회 방지';
+    case 'COIN_BOOST':
+      return '코인 획득 +$value%';
+    case 'VERIFY_BONUS':
+      return '인증 시 +$value 코인';
     default:
-      return '🎁';
+      return '';
   }
 }
