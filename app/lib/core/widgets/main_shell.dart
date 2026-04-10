@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../features/my_page/providers/my_challenges_provider.dart';
 import '../../features/notifications/providers/notification_provider.dart';
 import '../../features/status_bar/widgets/status_bar.dart';
 import 'cute_icon.dart';
-import 'verify_bottom_sheet.dart';
 
 class MainShell extends ConsumerWidget {
   const MainShell({
@@ -14,18 +12,6 @@ class MainShell extends ConsumerWidget {
   });
 
   final StatefulNavigationShell navigationShell;
-
-  // Maps branch index (0-3) to nav bar index (0,1,3,4) — skipping center index 2.
-  int _branchToNavIndex(int branchIndex) {
-    // branch 0 -> nav 0, branch 1 -> nav 1, branch 2 -> nav 3, branch 3 -> nav 4
-    return branchIndex < 2 ? branchIndex : branchIndex + 1;
-  }
-
-  // Maps nav bar index to branch index. Returns null for the center "+" button (index 2).
-  int? _navToBranchIndex(int navIndex) {
-    if (navIndex == 2) return null;
-    return navIndex < 2 ? navIndex : navIndex - 1;
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,30 +34,11 @@ class MainShell extends ConsumerWidget {
         ],
       ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _branchToNavIndex(navigationShell.currentIndex),
+        selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) {
-          if (index == 2) {
-            final challenges = ref.read(myChallengesProvider).valueOrNull;
-            if (challenges != null) {
-              final unverified = challenges
-                  .where((c) => c.status == 'active' && !c.todayVerified)
-                  .toList();
-              if (unverified.length == 1) {
-                context.push('/challenges/${unverified.first.id}/verify');
-                return;
-              }
-            }
-            showModalBottomSheet<void>(
-              context: context,
-              builder: (_) => const VerifyBottomSheet(),
-            );
-            return;
-          }
-          final branchIndex = _navToBranchIndex(index);
-          if (branchIndex == null) return;
           navigationShell.goBranch(
-            branchIndex,
-            initialLocation: branchIndex == navigationShell.currentIndex,
+            index,
+            initialLocation: index == navigationShell.currentIndex,
           );
         },
         destinations: [
@@ -84,11 +51,6 @@ class MainShell extends ConsumerWidget {
             icon: CuteIcon('search', size: 24, opacity: 0.5),
             selectedIcon: CuteIcon('search', size: 28),
             label: '탐색',
-          ),
-          const NavigationDestination(
-            icon: CuteIcon('camera', size: 26, opacity: 0.5),
-            selectedIcon: CuteIcon('camera', size: 32),
-            label: '인증',
           ),
           NavigationDestination(
             icon: Badge(
