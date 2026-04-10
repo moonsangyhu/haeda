@@ -35,3 +35,6 @@ class User(Base):
     comments: Mapped[list["Comment"]] = relationship(
         "Comment", back_populates="author"
     )
+    gem_transactions: Mapped[list["GemTransaction"]] = relationship(
+        "GemTransaction", back_populates="user"
+    )

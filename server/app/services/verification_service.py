@@ -17,7 +17,7 @@ from app.schemas.verification import (
     VerificationCreateResponse,
     VerificationItem,
 )
-from app.services import streak_service
+from app.services import gem_service, streak_service
 from app.services.calendar_service import _determine_season
 
 
@@ -137,6 +137,15 @@ async def create_verification(
         challenge_id=challenge_id,
         user_id=user_id,
         streak_count=streak_count,
+    )
+
+    # gem 지급 (인증 완료 시 5 gems)
+    await gem_service.award_gems(
+        db=db,
+        user_id=user_id,
+        amount=5,
+        reason="verification",
+        reference_id=verification.id,
     )
 
     # 8. 전원 인증 판정

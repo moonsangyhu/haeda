@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/my_page/providers/my_challenges_provider.dart';
 import '../../features/notifications/providers/notification_provider.dart';
+import '../../features/status_bar/widgets/status_bar.dart';
 import 'verify_bottom_sheet.dart';
 
 class MainShell extends ConsumerWidget {
@@ -30,7 +31,21 @@ class MainShell extends ConsumerWidget {
     final unreadCount = ref.watch(unreadCountProvider).valueOrNull ?? 0;
 
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: const StatusBar(),
+          ),
+          Expanded(
+            child: MediaQuery.removePadding(
+              context: context,
+              removeTop: true,
+              child: navigationShell,
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _branchToNavIndex(navigationShell.currentIndex),
         onDestinationSelected: (index) {

@@ -7,6 +7,7 @@ from app.models.day_completion import DayCompletion
 from app.models.comment import Comment
 from app.models.nudge import Nudge
 from app.models.notification import Notification
+from app.models.gem_transaction import GemTransaction
 
 __all__ = [
     "Base",
@@ -18,4 +19,5 @@ __all__ = [
     "Comment",
     "Nudge",
     "Notification",
+    "GemTransaction",
 ]

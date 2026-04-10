@@ -32,3 +32,11 @@ class ProfileUpdateResponse(BaseModel):
     id: uuid.UUID
     nickname: str
     profile_image_url: str | None
+
+
+class UserStatsResponse(BaseModel):
+    streak: int
+    verified_today: bool
+    active_challenges: int
+    completed_challenges: int
+    gems: int

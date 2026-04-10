@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user_id
-from app.services import challenge_service
+from app.services import challenge_service, user_stats_service
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -22,3 +22,12 @@ async def get_my_challenges(
         status_filter=status,
     )
     return {"data": {"challenges": [c.model_dump() for c in challenges]}}
+
+
+@router.get("/stats")
+async def get_my_stats(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    stats = await user_stats_service.get_user_stats(db=db, user_id=user_id)
+    return {"data": stats.model_dump()}

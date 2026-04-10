@@ -11,6 +11,7 @@ import '../providers/calendar_provider.dart';
 import '../providers/challenge_detail_provider.dart';
 import '../providers/verification_provider.dart';
 import '../../my_page/providers/my_challenges_provider.dart';
+import '../../status_bar/providers/user_stats_provider.dart';
 
 class CreateVerificationScreen extends ConsumerStatefulWidget {
   final String challengeId;
@@ -158,6 +159,7 @@ class _CreateVerificationScreenState
                 ));
               }
               ref.invalidate(myChallengesProvider);
+              ref.invalidate(userStatsProvider);
               context.pop();
             },
             child: const Text('확인'),
