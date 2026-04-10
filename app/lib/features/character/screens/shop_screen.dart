@@ -15,8 +15,8 @@ class ShopScreen extends ConsumerStatefulWidget {
 
 class _ShopScreenState extends ConsumerState<ShopScreen>
     with SingleTickerProviderStateMixin {
-  static const _tabs = ['전체', '모자', '상의', '하의', '신발', '액세서리'];
-  static const _categoryKeys = [null, 'hat', 'top', 'bottom', 'shoes', 'accessory'];
+  static const _tabs = ['모자', '상의', '하의', '신발', '액세서리'];
+  static const _categoryKeys = ['HAT', 'TOP', 'BOTTOM', 'SHOES', 'ACCESSORY'];
 
   late final TabController _tabController;
 
@@ -286,7 +286,7 @@ class _ShopItemCard extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('🪙', style: TextStyle(fontSize: 12)),
+                    const Text('💎', style: TextStyle(fontSize: 12)),
                     const SizedBox(width: 4),
                     Text('${item.price}'),
                   ],
@@ -432,9 +432,9 @@ class _ItemDetailSheet extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text('🪙', style: TextStyle(fontSize: 16)),
+                    const Text('💎', style: TextStyle(fontSize: 16)),
                     const SizedBox(width: 8),
-                    Text('${item.price} 코인으로 구매'),
+                    Text('${item.price} 보석으로 구매'),
                   ],
                 ),
               ),

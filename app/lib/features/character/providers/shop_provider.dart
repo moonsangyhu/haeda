@@ -62,7 +62,9 @@ class ShopPurchaseNotifier extends StateNotifier<PurchaseState> {
       state = const PurchaseState(success: true);
       // 잔액 및 내 아이템 갱신
       _ref.invalidate(coinBalanceProvider);
-      _ref.invalidate(shopItemsProvider(null));
+      for (final cat in ['HAT', 'TOP', 'BOTTOM', 'SHOES', 'ACCESSORY']) {
+        _ref.invalidate(shopItemsProvider(cat));
+      }
       return true;
     } on DioException catch (e) {
       final apiError = e.response?.data;
