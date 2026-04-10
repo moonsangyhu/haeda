@@ -50,7 +50,7 @@ class _CreateVerificationScreenState
     super.dispose();
   }
 
-  Future<void> _pickPhoto() async {
+  void _showPhotoSourceSheet() {
     final remaining = 3 - _selectedPhotos.length;
     if (remaining <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -58,6 +58,52 @@ class _CreateVerificationScreenState
       );
       return;
     }
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('사진 촬영'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _takePhoto();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('앨범에서 선택'),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _pickFromGallery();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _takePhoto() async {
+    final photo = await _imagePicker.pickImage(
+      source: ImageSource.camera,
+      maxWidth: 1920,
+      maxHeight: 1920,
+      imageQuality: 85,
+    );
+    if (photo != null) {
+      final bytes = await photo.readAsBytes();
+      setState(() {
+        _selectedPhotos.add((file: photo, bytes: bytes));
+      });
+    }
+  }
+
+  Future<void> _pickFromGallery() async {
+    final remaining = 3 - _selectedPhotos.length;
+    if (remaining <= 0) return;
     final photos = await _imagePicker.pickMultiImage(
       maxWidth: 1920,
       maxHeight: 1920,
@@ -202,7 +248,7 @@ class _CreateVerificationScreenState
           photoBytesList: _selectedPhotos.map((p) => p.bytes).toList(),
           diaryController: _diaryController,
           isLoading: submitState.isLoading,
-          onPickPhoto: _pickPhoto,
+          onShowPhotoSourceSheet: _showPhotoSourceSheet,
           onRemovePhoto: _removePhoto,
           onSubmit: () => _submit(detail.photoRequired),
         ),
@@ -216,7 +262,7 @@ class _CreateVerificationBody extends StatelessWidget {
   final List<Uint8List> photoBytesList;
   final TextEditingController diaryController;
   final bool isLoading;
-  final VoidCallback onPickPhoto;
+  final VoidCallback onShowPhotoSourceSheet;
   final void Function(int) onRemovePhoto;
   final VoidCallback onSubmit;
 
@@ -225,7 +271,7 @@ class _CreateVerificationBody extends StatelessWidget {
     required this.photoBytesList,
     required this.diaryController,
     required this.isLoading,
-    required this.onPickPhoto,
+    required this.onShowPhotoSourceSheet,
     required this.onRemovePhoto,
     required this.onSubmit,
   });
@@ -261,7 +307,7 @@ class _CreateVerificationBody extends StatelessWidget {
                         child: Stack(
                           children: [
                             GestureDetector(
-                              onTap: isLoading ? null : onPickPhoto,
+                              onTap: isLoading ? null : onShowPhotoSourceSheet,
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Image.memory(
@@ -296,9 +342,9 @@ class _CreateVerificationBody extends StatelessWidget {
                         ),
                       )
                     else
-                      // 빈 칸
+                      // 빈 칸 — 첫 번째 빈 칸은 카메라 아이콘, 나머지는 앨범 아이콘
                       GestureDetector(
-                        onTap: isLoading ? null : onPickPhoto,
+                        onTap: isLoading ? null : onShowPhotoSourceSheet,
                         child: Container(
                           width: boxSize,
                           height: boxSize,
@@ -313,7 +359,9 @@ class _CreateVerificationBody extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Icon(
-                                Icons.add_photo_alternate,
+                                i == photoBytesList.length
+                                    ? Icons.camera_alt
+                                    : Icons.add_photo_alternate,
                                 size: 32,
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
