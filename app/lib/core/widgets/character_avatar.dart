@@ -373,19 +373,25 @@ class _PixelCharacterPainter extends CustomPainter {
         break;
 
       case 'hat/beanie.png':
-        // Blue rounded beanie
-        _drawPixels(canvas, const Color(0xFF1976D2), [
-          [5, 0], [6, 0], [7, 0], [8, 0], [9, 0], [10, 0],
+      case 'hat/pink_beanie.png':
+        // Pink or blue beanie based on asset key
+        final isP = assetKey.contains('pink');
+        final beanieMain = isP ? const Color(0xFFFF80AB) : const Color(0xFF1976D2);
+        final beanieLight = isP ? const Color(0xFFFFCDD2) : const Color(0xFF90CAF9);
+        final pompom = isP ? const Color(0xFFFFFFFF) : Colors.white;
+        // Pom-pom top
+        _drawPixels(canvas, pompom, [
+          [7, 0], [8, 0],
+        ], px);
+        // Main body
+        _drawPixels(canvas, beanieMain, [
+          [5, 0], [6, 0], [9, 0], [10, 0],
           [4, 1], [5, 1], [6, 1], [7, 1], [8, 1], [9, 1], [10, 1], [11, 1],
           [4, 2], [5, 2], [11, 2],
         ], px);
-        // Stripe
-        _drawPixels(canvas, const Color(0xFF90CAF9), [
-          [5, 0], [8, 0],
-        ], px);
-        // Pom pom
-        _drawPixels(canvas, Colors.white, [
-          [7, -1 < 0 ? 0 : 0], // clamp to 0
+        // Ribbed stripe
+        _drawPixels(canvas, beanieLight, [
+          [5, 1], [7, 1], [9, 1], [11, 1],
         ], px);
         break;
 
@@ -482,6 +488,30 @@ class _PixelCharacterPainter extends CustomPainter {
         _drawPixels(canvas, Colors.white, [
           [5, 9], [6, 9], [7, 9], [8, 9], [9, 9], [10, 9],
           [5, 11], [6, 11], [7, 11], [8, 11], [9, 11], [10, 11],
+        ], px);
+        break;
+
+      case 'top/check_shirt.png':
+        // Red-white checkered flannel shirt
+        const red = Color(0xFFD32F2F);
+        const darkRed = Color(0xFFB71C1C);
+        const cream = Color(0xFFFFF8E1);
+        // Checkerboard pattern on torso
+        _drawPixels(canvas, red, [
+          [6, 8], [8, 8],
+          [5, 9], [7, 9], [9, 9],
+          [6, 10], [8, 10], [10, 10],
+          [5, 11], [7, 11], [9, 11],
+        ], px);
+        _drawPixels(canvas, cream, [
+          [7, 8], [9, 8],
+          [6, 9], [8, 9], [10, 9],
+          [5, 10], [7, 10], [9, 10],
+          [6, 11], [8, 11], [10, 11],
+        ], px);
+        // Collar
+        _drawPixels(canvas, darkRed, [
+          [6, 8], [9, 8],
         ], px);
         break;
 

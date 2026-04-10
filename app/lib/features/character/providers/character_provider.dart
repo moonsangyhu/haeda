@@ -4,22 +4,96 @@ import '../../../core/api/api_client.dart';
 import '../models/character_data.dart';
 import '../models/item_data.dart';
 
+/// 테스트용 목 캐릭터 — 분홍 비니 + 체크셔츠 + 청바지.
+const _mockCharacter = CharacterData(
+  hat: CharacterSlot(
+    id: 'mock-hat',
+    name: '분홍 비니',
+    assetKey: 'hat/pink_beanie.png',
+    rarity: 'COMMON',
+  ),
+  top: CharacterSlot(
+    id: 'mock-top',
+    name: '체크무늬 셔츠',
+    assetKey: 'top/check_shirt.png',
+    rarity: 'RARE',
+  ),
+  bottom: CharacterSlot(
+    id: 'mock-bottom',
+    name: '청바지',
+    assetKey: 'bottom/jeans.png',
+    rarity: 'COMMON',
+  ),
+);
+
+/// 테스트용 목 보유 아이템.
+final _mockItems = <UserItem>[
+  const UserItem(
+    id: 'ui-1',
+    item: ShopItem(
+      id: 'mock-hat',
+      name: '분홍 비니',
+      category: 'HAT',
+      price: 40,
+      rarity: 'COMMON',
+      assetKey: 'hat/pink_beanie.png',
+    ),
+    purchasedAt: '2026-04-10T00:00:00Z',
+  ),
+  const UserItem(
+    id: 'ui-2',
+    item: ShopItem(
+      id: 'mock-top',
+      name: '체크무늬 셔츠',
+      category: 'TOP',
+      price: 120,
+      rarity: 'RARE',
+      assetKey: 'top/check_shirt.png',
+      effectType: 'COIN_BOOST',
+      effectValue: 10,
+    ),
+    purchasedAt: '2026-04-10T00:00:00Z',
+  ),
+  const UserItem(
+    id: 'ui-3',
+    item: ShopItem(
+      id: 'mock-bottom',
+      name: '청바지',
+      category: 'BOTTOM',
+      price: 30,
+      rarity: 'COMMON',
+      assetKey: 'bottom/jeans.png',
+    ),
+    purchasedAt: '2026-04-10T00:00:00Z',
+  ),
+];
+
 /// GET /me/character — 내 캐릭터 장착 현황 조회.
+/// API 실패 시 테스트용 목 데이터 반환.
 final myCharacterProvider = FutureProvider<CharacterData>((ref) async {
-  final dio = ref.watch(dioProvider);
-  final response = await dio.get('/me/character');
-  final data = response.data as Map<String, dynamic>;
-  return CharacterData.fromJson(data);
+  try {
+    final dio = ref.watch(dioProvider);
+    final response = await dio.get('/me/character');
+    final data = response.data as Map<String, dynamic>;
+    return CharacterData.fromJson(data);
+  } catch (_) {
+    return _mockCharacter;
+  }
 });
 
 /// GET /me/items — 내가 보유한 아이템 목록 조회.
+/// API 실패 시 테스트용 목 데이터 반환.
 final myItemsProvider = FutureProvider<List<UserItem>>((ref) async {
-  final dio = ref.watch(dioProvider);
-  final response = await dio.get('/me/items');
-  final data = response.data as List<dynamic>;
-  return data
-      .map((e) => UserItem.fromJson(e as Map<String, dynamic>))
-      .toList();
+  try {
+    final dio = ref.watch(dioProvider);
+    final response = await dio.get('/me/items');
+    final data = response.data as List<dynamic>;
+    return data
+        .map((e) => UserItem.fromJson(e as Map<String, dynamic>))
+        .toList();
+  } catch (_) {
+    return _mockItems;
+  }
 });
 
 /// GET /users/{userId}/character — 특정 유저의 캐릭터 조회.
