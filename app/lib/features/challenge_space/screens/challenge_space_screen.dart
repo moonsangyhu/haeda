@@ -124,6 +124,7 @@ class _ChallengeSpaceScreenState
           challengeId: widget.challengeId,
           startDate: detail.startDate,
           endDate: detail.endDate,
+          status: detail.status,
           year: _year,
           month: _month,
           onPreviousMonth: _previousMonth,
@@ -138,6 +139,7 @@ class _ChallengeSpaceBody extends ConsumerWidget {
   final String challengeId;
   final String startDate; // YYYY-MM-DD
   final String endDate;   // YYYY-MM-DD
+  final String status;
   final int year;
   final int month;
   final VoidCallback onPreviousMonth;
@@ -147,13 +149,14 @@ class _ChallengeSpaceBody extends ConsumerWidget {
     required this.challengeId,
     required this.startDate,
     required this.endDate,
+    required this.status,
     required this.year,
     required this.month,
     required this.onPreviousMonth,
     required this.onNextMonth,
   });
 
-  void _onDayTap(BuildContext context, String date) {
+  void _onDayTap(BuildContext context, String date, List<DayEntry> days) {
     final tapped = DateTime.parse(date);
     final start = DateTime.parse(startDate);
     final today = DateTime.now();
@@ -193,6 +196,13 @@ class _ChallengeSpaceBody extends ConsumerWidget {
       return;
     }
 
+    // allCompleted 날짜는 완료 결과 화면으로 이동
+    final matchingDay = days.where((d) => d.date == date).firstOrNull;
+    if (matchingDay != null && matchingDay.allCompleted) {
+      context.push('/challenges/$challengeId/completion');
+      return;
+    }
+
     context.push('/challenges/$challengeId/verifications/$date');
   }
 
@@ -211,6 +221,11 @@ class _ChallengeSpaceBody extends ConsumerWidget {
         children: [
           // 콕 찌르기 수신 배너
           NudgeBanner(challengeId: challengeId),
+          // 챌린지 완료 배너
+          if (status == 'completed')
+            _CompletionBanner(
+              onTap: () => context.push('/challenges/$challengeId/completion'),
+            ),
           // 월 네비게이터
           _MonthNavigator(
             year: year,
@@ -236,7 +251,8 @@ class _ChallengeSpaceBody extends ConsumerWidget {
                 month: month,
                 days: calendarData.days,
                 members: calendarData.members,
-                onDayTap: (date) => _onDayTap(context, date),
+                onDayTap: (date) =>
+                    _onDayTap(context, date, calendarData.days),
               ),
             ),
           ),
@@ -256,6 +272,48 @@ class _ChallengeSpaceBody extends ConsumerWidget {
             ),
           const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+}
+
+class _CompletionBanner extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _CompletionBanner({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            const Text('🎉', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                '챌린지 완료 결과 보기',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+          ],
+        ),
       ),
     );
   }

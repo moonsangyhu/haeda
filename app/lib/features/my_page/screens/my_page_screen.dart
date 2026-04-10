@@ -70,7 +70,7 @@ class _ChallengeList extends StatelessWidget {
           ...completed.map(
             (c) => ChallengeCard(
               challenge: c,
-              onTap: () => context.go('/challenges/${c.id}/completion'),
+              onTap: () => context.go('/challenges/${c.id}'),
             ),
           ),
         ],
