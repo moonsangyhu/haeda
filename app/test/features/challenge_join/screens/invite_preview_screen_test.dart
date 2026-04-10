@@ -17,7 +17,6 @@ final _testChallenge = ChallengeDetail(
   endDate: '2026-05-04',
   verificationFrequency: {'type': 'daily'},
   photoRequired: false,
-  isPublic: false,
   inviteCode: 'ABCD1234',
   status: 'active',
   creator: const MemberBrief(

@@ -1,11 +1,15 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user_id
-from app.services import challenge_service, user_stats_service
+from app.models.gem_transaction import GemTransaction
+from app.schemas.coin import CoinBalanceResponse
+from app.schemas.item import CharacterUpdateRequest
+from app.services import challenge_service, character_service, gem_service, shop_service, user_stats_service
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -31,3 +35,104 @@ async def get_my_stats(
 ):
     stats = await user_stats_service.get_user_stats(db=db, user_id=user_id)
     return {"data": stats.model_dump()}
+
+
+@router.get("/coins")
+async def get_coin_balance(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    balance = await gem_service.get_balance(db, user_id)
+    return {"data": CoinBalanceResponse(balance=balance).model_dump()}
+
+
+@router.get("/coins/transactions")
+async def get_coin_transactions(
+    cursor: str | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=50),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = (
+        select(GemTransaction)
+        .where(GemTransaction.user_id == user_id)
+        .order_by(GemTransaction.created_at.desc())
+    )
+    if cursor:
+        try:
+            cursor_id = uuid.UUID(cursor)
+            # find the created_at of the cursor transaction for keyset pagination
+            cursor_stmt = select(GemTransaction.created_at).where(GemTransaction.id == cursor_id)
+            cursor_result = await db.execute(cursor_stmt)
+            cursor_ts = cursor_result.scalar_one_or_none()
+            if cursor_ts is not None:
+                stmt = stmt.where(GemTransaction.created_at < cursor_ts)
+        except (ValueError, AttributeError):
+            pass
+
+    stmt = stmt.limit(limit + 1)
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+
+    has_more = len(rows) > limit
+    items = rows[:limit]
+    next_cursor = str(items[-1].id) if has_more else None
+
+    return {
+        "data": {
+            "items": [
+                {
+                    "id": str(tx.id),
+                    "amount": tx.amount,
+                    "type": tx.reason,
+                    "reference_id": str(tx.reference_id) if tx.reference_id else None,
+                    "created_at": tx.created_at.isoformat(),
+                }
+                for tx in items
+            ],
+            "next_cursor": next_cursor,
+        }
+    }
+
+
+@router.get("/items")
+async def get_my_items(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    items = await shop_service.get_user_items(db, user_id)
+    return {
+        "data": [
+            {
+                "id": str(i.id),
+                "item": {
+                    "id": str(i.item_id),
+                    "name": i.name,
+                    "category": i.category,
+                    "rarity": i.rarity,
+                    "asset_key": i.asset_key,
+                },
+                "purchased_at": i.purchased_at.isoformat(),
+            }
+            for i in items
+        ]
+    }
+
+
+@router.get("/character")
+async def get_my_character(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    character = await character_service.get_character(db, user_id)
+    return {"data": character.model_dump()}
+
+
+@router.put("/character")
+async def update_my_character(
+    body: CharacterUpdateRequest,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    character = await character_service.update_character(db, user_id, body)
+    return {"data": character.model_dump()}

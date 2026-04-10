@@ -38,3 +38,9 @@ class User(Base):
     gem_transactions: Mapped[list["GemTransaction"]] = relationship(
         "GemTransaction", back_populates="user"
     )
+    user_items: Mapped[list["UserItem"]] = relationship(
+        "UserItem", back_populates="user"
+    )
+    character_equip: Mapped["CharacterEquip | None"] = relationship(
+        "CharacterEquip", back_populates="user", uselist=False
+    )

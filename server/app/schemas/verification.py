@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
+from app.schemas.coin import CoinEarned
 from app.schemas.user import UserBrief
 
 
@@ -14,6 +15,7 @@ class VerificationCreateResponse(BaseModel):
     created_at: datetime
     day_completed: bool
     season_icon_type: str | None
+    coins_earned: list[CoinEarned] | None = None
 
     model_config = {"from_attributes": True}
 

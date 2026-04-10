@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../character/models/character_data.dart';
 
 part 'calendar_data.freezed.dart';
 part 'calendar_data.g.dart';
@@ -11,6 +12,7 @@ class CalendarMember with _$CalendarMember {
     required String id,
     required String nickname,
     @JsonKey(name: 'profile_image_url') String? profileImageUrl,
+    CharacterData? character,
   }) = _CalendarMember;
 
   factory CalendarMember.fromJson(Map<String, dynamic> json) =>

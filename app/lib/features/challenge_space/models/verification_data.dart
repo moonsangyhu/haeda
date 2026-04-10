@@ -1,4 +1,5 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
+import '../../../features/character/models/coin_earned.dart';
 
 part 'verification_data.freezed.dart';
 part 'verification_data.g.dart';
@@ -14,6 +15,7 @@ class VerificationCreateResult with _$VerificationCreateResult {
     @JsonKey(name: 'created_at') required String createdAt,
     @JsonKey(name: 'day_completed') required bool dayCompleted,
     @JsonKey(name: 'season_icon_type') String? seasonIconType,
+    @JsonKey(name: 'coins_earned') List<CoinEarned>? coinsEarned,
   }) = _VerificationCreateResult;
 
   factory VerificationCreateResult.fromJson(Map<String, dynamic> json) =>

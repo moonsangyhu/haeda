@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/season_icons.dart';
 import '../../../core/widgets/loading_widget.dart';
+import '../../character/models/coin_earned.dart';
 import '../models/verification_data.dart';
 import '../providers/calendar_provider.dart';
 import '../providers/challenge_detail_provider.dart';
@@ -142,6 +143,13 @@ class _CreateVerificationScreenState
               ),
             ] else
               const Text('달력에 내 썸네일이 추가됐어요!'),
+            if (result.coinsEarned != null &&
+                result.coinsEarned!.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 8),
+              _CoinEarnedSection(coins: result.coinsEarned!),
+            ],
           ],
         ),
         actions: [
@@ -372,6 +380,62 @@ class _CreateVerificationBody extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 인증 완료 다이얼로그에서 획득한 코인 목록을 표시.
+class _CoinEarnedSection extends StatelessWidget {
+  final List<CoinEarned> coins;
+  const _CoinEarnedSection({required this.coins});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final total = coins.fold<int>(0, (sum, c) => sum + c.amount);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            const Text('🪙', style: TextStyle(fontSize: 18)),
+            const SizedBox(width: 6),
+            Text(
+              '+$total 코인 획득!',
+              style: theme.textTheme.titleSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFFF57F17),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ...coins.map(
+          (c) => Padding(
+            padding: const EdgeInsets.symmetric(vertical: 2),
+            child: Row(
+              children: [
+                const SizedBox(width: 4),
+                Text(
+                  c.label,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  '+${c.amount}',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFF57F17),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

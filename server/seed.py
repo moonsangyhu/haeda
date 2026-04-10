@@ -41,6 +41,10 @@ async def seed():
     async with session_factory() as db:
         # 기존 데이터 정리 (역순 FK)
         for table in [
+            "character_equips",
+            "user_items",
+            "items",
+            "gem_transactions",
             "comments",
             "day_completions",
             "verifications",
@@ -149,6 +153,76 @@ async def seed():
             )
             d = date.fromordinal(d.toordinal() + 1)
 
+        # ── Items (30개: 카테고리당 6개) ──
+        items_data = [
+            # HAT
+            ("HAT", "캡모자", 30, "COMMON", "hat/cap.png"),
+            ("HAT", "비니", 40, "COMMON", "hat/beanie.png"),
+            ("HAT", "머리띠", 50, "COMMON", "hat/headband.png"),
+            ("HAT", "페도라", 120, "RARE", "hat/fedora.png"),
+            ("HAT", "베레모", 150, "RARE", "hat/beret.png"),
+            ("HAT", "왕관", 400, "EPIC", "hat/crown.png"),
+            # TOP
+            ("TOP", "흰티", 30, "COMMON", "top/white_tee.png"),
+            ("TOP", "줄무늬티", 40, "COMMON", "top/striped_tee.png"),
+            ("TOP", "민소매", 50, "COMMON", "top/sleeveless.png"),
+            ("TOP", "후드티", 120, "RARE", "top/hoodie.png"),
+            ("TOP", "가디건", 150, "RARE", "top/cardigan.png"),
+            ("TOP", "턱시도", 400, "EPIC", "top/tuxedo.png"),
+            # BOTTOM
+            ("BOTTOM", "청바지", 30, "COMMON", "bottom/jeans.png"),
+            ("BOTTOM", "반바지", 40, "COMMON", "bottom/shorts.png"),
+            ("BOTTOM", "면바지", 50, "COMMON", "bottom/chinos.png"),
+            ("BOTTOM", "치마", 120, "RARE", "bottom/skirt.png"),
+            ("BOTTOM", "카고바지", 150, "RARE", "bottom/cargo.png"),
+            ("BOTTOM", "황금바지", 400, "EPIC", "bottom/golden_pants.png"),
+            # SHOES
+            ("SHOES", "슬리퍼", 30, "COMMON", "shoes/slippers.png"),
+            ("SHOES", "운동화", 40, "COMMON", "shoes/sneakers.png"),
+            ("SHOES", "샌들", 50, "COMMON", "shoes/sandals.png"),
+            ("SHOES", "부츠", 120, "RARE", "shoes/boots.png"),
+            ("SHOES", "하이탑", 150, "RARE", "shoes/hightops.png"),
+            ("SHOES", "날개신발", 400, "EPIC", "shoes/winged_shoes.png"),
+            # ACCESSORY
+            ("ACCESSORY", "시계", 30, "COMMON", "accessory/watch.png"),
+            ("ACCESSORY", "가방", 40, "COMMON", "accessory/bag.png"),
+            ("ACCESSORY", "스카프", 50, "COMMON", "accessory/scarf.png"),
+            ("ACCESSORY", "선글라스", 120, "RARE", "accessory/sunglasses.png"),
+            ("ACCESSORY", "이어폰", 150, "RARE", "accessory/earphones.png"),
+            ("ACCESSORY", "천사날개", 400, "EPIC", "accessory/angel_wings.png"),
+        ]
+
+        for category, name, price, rarity, asset_key in items_data:
+            await db.execute(
+                text(
+                    "INSERT INTO items (id, name, category, price, rarity, asset_key, is_active, sort_order) "
+                    "VALUES (:id, :name, :category, :price, :rarity, :asset_key, true, :sort_order)"
+                ),
+                {
+                    "id": str(uuid.uuid4()),
+                    "name": name,
+                    "category": category,
+                    "price": price,
+                    "rarity": rarity,
+                    "asset_key": asset_key,
+                    "sort_order": price,
+                },
+            )
+
+        # ── GemTransactions (김철수에게 초기 코인 200 지급) ──
+        await db.execute(
+            text(
+                "INSERT INTO gem_transactions (id, user_id, amount, reason) "
+                "VALUES (:id, :user_id, :amount, :reason)"
+            ),
+            {
+                "id": str(uuid.uuid4()),
+                "user_id": str(USER_1_ID),
+                "amount": 200,
+                "reason": "DAILY_LOGIN",
+            },
+        )
+
         await db.commit()
         print("Seed data inserted successfully!")
         print(f"  Users: 3 (김철수, 이영희, 박지민)")
@@ -156,6 +230,8 @@ async def seed():
         print(f"  Members: 3")
         print(f"  Verifications: 46 (16+14+16)")
         print(f"  DayCompletions: 14 (3/5~3/18)")
+        print(f"  Items: 30 (6 per category)")
+        print(f"  GemTransactions: 1 (김철수 200 coins)")
         print(f"\nTest tokens (use as Bearer <uuid>):")
         print(f"  김철수: {USER_1_ID}")
         print(f"  이영희: {USER_2_ID}")

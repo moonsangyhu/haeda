@@ -8,7 +8,7 @@
 
 ## P0 / P1 범위 안내
 
-- **P0**: Auth, Challenges (생성·상세·초대코드조회·참여·완료), My Page, Verifications, Comments
+- **P0**: Auth, Challenges (생성·상세·초대코드조회·참여·완료), My Page, Verifications, Comments, Coins (재화), Shop (상점/아이템), Character (캐릭터 커스터마이징)
 - **P1**: 공개 챌린지 목록 (`GET /challenges`), Notifications (디바이스 토큰, 푸시 알림)
 
 ---
@@ -615,7 +615,212 @@
 
 ---
 
-## 6. Notifications — P1
+## 6. Coins (재화) — P0
+
+### GET `/me/coins` — 내 코인 잔액
+
+**Response (200):**
+```json
+{
+  "data": {
+    "balance": 1250
+  }
+}
+```
+
+---
+
+### GET `/me/coins/transactions` — 코인 거래 내역
+
+**Query Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| cursor | string | N | 페이지네이션 커서 (마지막 transaction id) |
+| limit | int | N | 페이지 크기 (기본 20, 최대 50) |
+
+**Response (200):**
+```json
+{
+  "data": {
+    "items": [
+      {
+        "id": "uuid",
+        "amount": 10,
+        "type": "VERIFICATION",
+        "reference_id": "uuid | null",
+        "created_at": "2026-04-10T09:00:00Z"
+      }
+    ],
+    "next_cursor": "string | null"
+  }
+}
+```
+
+---
+
+## 7. Shop (상점) — P0
+
+### GET `/shop/items` — 상점 아이템 목록
+
+**Query Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| category | string | N | HAT, TOP, BOTTOM, SHOES, ACCESSORY |
+
+**Response (200):**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "name": "신사모자",
+      "category": "HAT",
+      "price": 50,
+      "rarity": "COMMON",
+      "asset_key": "hat/hat_gentleman.png",
+      "is_owned": false
+    }
+  ]
+}
+```
+
+---
+
+### POST `/shop/items/{item_id}/purchase` — 아이템 구매
+
+**Response (201):**
+```json
+{
+  "data": {
+    "item_id": "uuid",
+    "remaining_balance": 1200
+  }
+}
+```
+
+**에러:**
+| code | HTTP | 조건 |
+|------|------|------|
+| INSUFFICIENT_COINS | 402 | 코인 잔액 부족 |
+| ALREADY_OWNED | 409 | 이미 보유한 아이템 |
+| ITEM_NOT_FOUND | 404 | 존재하지 않는 아이템 |
+
+---
+
+## 8. Character (캐릭터) — P0
+
+### GET `/me/items` — 내 보유 아이템 목록
+
+**Response (200):**
+```json
+{
+  "data": [
+    {
+      "id": "uuid",
+      "item": {
+        "id": "uuid",
+        "name": "신사모자",
+        "category": "HAT",
+        "rarity": "COMMON",
+        "asset_key": "hat/hat_gentleman.png"
+      },
+      "purchased_at": "2026-04-10T09:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### GET `/me/character` — 내 캐릭터 착용 상태
+
+**Response (200):**
+```json
+{
+  "data": {
+    "hat": { "id": "uuid", "name": "신사모자", "asset_key": "hat/hat_gentleman.png", "rarity": "COMMON" },
+    "top": null,
+    "bottom": null,
+    "shoes": null,
+    "accessory": null
+  }
+}
+```
+
+---
+
+### PUT `/me/character` — 캐릭터 착용 변경
+
+**Request:**
+```json
+{
+  "hat_item_id": "uuid | null",
+  "top_item_id": "uuid | null",
+  "bottom_item_id": null,
+  "shoes_item_id": null,
+  "accessory_item_id": null
+}
+```
+
+**Response (200):** `/me/character` GET과 동일 형식.
+
+**에러:**
+| code | HTTP | 조건 |
+|------|------|------|
+| ITEM_NOT_OWNED | 403 | 보유하지 않은 아이템 착용 시도 |
+| INVALID_CATEGORY | 400 | 슬롯과 카테고리 불일치 |
+
+---
+
+### GET `/users/{user_id}/character` — 다른 유저 캐릭터 조회
+
+챌린지 방 멤버의 캐릭터를 조회한다. 응답 형식은 `/me/character`와 동일.
+
+---
+
+### POST `/challenges/{id}/verifications` 응답 변경 — P0
+
+인증 제출 시 획득한 코인 정보가 응답에 추가된다.
+
+**Response 추가 필드:**
+```json
+{
+  "data": {
+    "...기존 필드...",
+    "coins_earned": [
+      { "type": "VERIFICATION", "amount": 10 },
+      { "type": "STREAK_3", "amount": 15 },
+      { "type": "ALL_COMPLETED", "amount": 20 }
+    ]
+  }
+}
+```
+
+### GET `/challenges/{id}/calendar` 응답 변경 — P0
+
+멤버 목록에 캐릭터 착용 정보가 추가된다.
+
+**members[] 추가 필드:**
+```json
+{
+  "members": [
+    {
+      "...기존 필드...",
+      "character": {
+        "hat": { "asset_key": "hat/hat_gentleman.png", "rarity": "COMMON" },
+        "top": null,
+        "bottom": null,
+        "shoes": null,
+        "accessory": null
+      }
+    }
+  ]
+}
+```
+
+---
+
+## 9. Notifications — P1
 
 > P1: 푸시 알림 기능(F-15, F-16, F-18) 구현 시 활성화.
 

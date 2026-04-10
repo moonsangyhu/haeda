@@ -6,6 +6,26 @@ from pydantic import BaseModel
 from app.schemas.user import UserBrief
 
 
+class CharacterSlotBrief(BaseModel):
+    asset_key: str
+    rarity: str
+
+
+class MemberCharacter(BaseModel):
+    hat: CharacterSlotBrief | None
+    top: CharacterSlotBrief | None
+    bottom: CharacterSlotBrief | None
+    shoes: CharacterSlotBrief | None
+    accessory: CharacterSlotBrief | None
+
+
+class CalendarMember(BaseModel):
+    id: uuid.UUID
+    nickname: str
+    profile_image_url: str | None
+    character: MemberCharacter
+
+
 class ChallengeCreate(BaseModel):
     title: str
     description: str | None = None
@@ -84,7 +104,7 @@ class CalendarResponse(BaseModel):
     challenge_id: uuid.UUID
     year: int
     month: int
-    members: list[UserBrief]
+    members: list[CalendarMember]
     days: list[DayEntry]
 
 

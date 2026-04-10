@@ -181,6 +181,85 @@ User 1──N DeviceToken
 **제약 조건:**
 - `type IN ('verification_reminder', 'member_verified', 'day_completed', 'challenge_completed', 'streak_milestone')`
 
+### 2.9 GemTransaction (코인 거래) — P0
+
+재화(코인) 획득/소비 내역. 인증, 스트릭, 전원 달성, 챌린지 완주, 출석, 아이템 구매 시 자동 생성.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | 고유 ID |
+| user_id | UUID | FK → User, NOT NULL | 사용자 |
+| amount | INTEGER | NOT NULL | 양수=획득, 음수=소비 |
+| reason | VARCHAR(50) | NOT NULL | VERIFICATION, ALL_COMPLETED, CHALLENGE_DONE, STREAK_3, STREAK_7, DAILY_LOGIN, PURCHASE |
+| reference_id | UUID | NULLABLE | 관련 챌린지ID 또는 아이템ID |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 거래 시각 |
+
+**코인 잔액**: `SELECT COALESCE(SUM(amount), 0) FROM gem_transactions WHERE user_id = ?`
+
+**코인 획득 이벤트:**
+
+| 이벤트 | 코인 | 조건 |
+|--------|------|------|
+| 일일 인증 완료 | +10 | 챌린지당 1일 1회 |
+| 전원 인증 달성 | +20 | DayCompletion 생성 시, 참여자 전원 |
+| 챌린지 완주 | +100 | 챌린지 종료 + 참여 완료 |
+| 3일 연속 인증 | +15 | 같은 챌린지 내 연속 3일 |
+| 7일 연속 인증 | +50 | 같은 챌린지 내 연속 7일 |
+| 일일 출석 | +5 | 앱 접속 시 1일 1회 |
+
+### 2.10 Item (아이템 카탈로그) — P0
+
+상점에서 판매하는 캐릭터 착용 아이템.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | 고유 ID |
+| name | VARCHAR(50) | NOT NULL | 아이템 이름 |
+| category | VARCHAR(20) | NOT NULL | HAT, TOP, BOTTOM, SHOES, ACCESSORY |
+| price | INTEGER | NOT NULL | 코인 가격 |
+| rarity | VARCHAR(10) | NOT NULL | COMMON, RARE, EPIC |
+| asset_key | VARCHAR(100) | NOT NULL | 에셋 파일 경로 키 |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 상점 진열 여부 |
+| sort_order | INTEGER | NOT NULL, DEFAULT 0 | 정렬 순서 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | |
+
+**제약 조건:**
+- `category IN ('HAT', 'TOP', 'BOTTOM', 'SHOES', 'ACCESSORY')`
+- `rarity IN ('COMMON', 'RARE', 'EPIC')`
+
+### 2.11 UserItem (인벤토리) — P0
+
+사용자가 구매한 아이템 목록.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | 고유 ID |
+| user_id | UUID | FK → User, NOT NULL | 소유자 |
+| item_id | UUID | FK → Item, NOT NULL | 아이템 |
+| purchased_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 구매 시각 |
+
+**제약 조건:**
+- UNIQUE(user_id, item_id) — 동일 아이템 중복 구매 불가
+
+### 2.12 CharacterEquip (캐릭터 착용 상태) — P0
+
+사용자의 현재 캐릭터 착용 상태. 유저당 1행.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| user_id | UUID | PK, FK → User | 사용자 |
+| hat_item_id | UUID | FK → Item, NULLABLE | 착용 모자 |
+| top_item_id | UUID | FK → Item, NULLABLE | 착용 상의 |
+| bottom_item_id | UUID | FK → Item, NULLABLE | 착용 하의 |
+| shoes_item_id | UUID | FK → Item, NULLABLE | 착용 신발 |
+| accessory_item_id | UUID | FK → Item, NULLABLE | 착용 액세서리 |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 마지막 변경 |
+
+**비즈니스 룰:**
+- 각 슬롯에는 해당 카테고리 아이템만 착용 가능
+- 보유(UserItem)하지 않은 아이템은 착용 불가
+- 코인 잔액 부족 시 구매 불가
+
 ---
 
 ## 3. 인덱스 설계

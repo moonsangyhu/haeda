@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
+import '../../../core/widgets/character_avatar.dart';
 import '../models/calendar_data.dart';
 import '../providers/nudge_provider.dart';
 
@@ -157,23 +158,14 @@ class _MemberRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         child: Row(
           children: [
-            // Avatar
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: theme.colorScheme.primaryContainer,
-              backgroundImage: member.profileImageUrl != null
-                  ? NetworkImage(member.profileImageUrl!)
-                  : null,
-              child: member.profileImageUrl == null
-                  ? Text(
-                      member.nickname.isNotEmpty ? member.nickname[0] : '?',
-                      style: TextStyle(
-                        color: theme.colorScheme.onPrimaryContainer,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    )
-                  : null,
+            // Avatar — tap to view character detail
+            GestureDetector(
+              onTap: () => _showCharacterSheet(context, member),
+              child: CharacterAvatar(
+                character: member.character,
+                size: 40,
+                showEffect: false,
+              ),
             ),
             const SizedBox(width: 12),
             // Nickname + self label
@@ -282,6 +274,45 @@ class _MemberRow extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showCharacterSheet(BuildContext context, CalendarMember m) {
+    if (m.character == null) return;
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => Padding(
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            CharacterAvatar(
+              character: m.character,
+              size: 120,
+              showEffect: true,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              m.nickname,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ],
+        ),
       ),
     );
   }

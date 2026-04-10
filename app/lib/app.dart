@@ -20,6 +20,8 @@ import 'features/challenge_create/screens/challenge_create_complete_screen.dart'
 import 'features/challenge_join/screens/invite_preview_screen.dart';
 import 'features/challenge_complete/screens/challenge_completion_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
+import 'features/character/screens/my_room_screen.dart';
+import 'features/character/screens/shop_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -41,11 +43,12 @@ final _router = GoRouter(
       path: '/profile-setup',
       builder: (context, state) => const ProfileSetupScreen(),
     ),
-    // Bottom tab shell: 내 챌린지 / 알림 / 설정
+    // Bottom tab shell: 내 챌린지 / 내 방 / 알림 / 설정
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
       branches: [
+        // index 0: 내 챌린지
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -54,6 +57,16 @@ final _router = GoRouter(
             ),
           ],
         ),
+        // index 1: 내 방
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/my-room',
+              builder: (context, state) => const MyRoomScreen(),
+            ),
+          ],
+        ),
+        // index 2: 알림
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -62,6 +75,7 @@ final _router = GoRouter(
             ),
           ],
         ),
+        // index 3: 설정
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -147,6 +161,11 @@ final _router = GoRouter(
         final code = state.pathParameters['code']!;
         return InvitePreviewScreen(inviteCode: code);
       },
+    ),
+    // 상점 (push navigation)
+    GoRoute(
+      path: '/shop',
+      builder: (context, state) => const ShopScreen(),
     ),
   ],
 );

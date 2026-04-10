@@ -11,6 +11,7 @@ from app.models.comment import Comment
 from app.models.day_completion import DayCompletion
 from app.models.user import User
 from app.models.verification import Verification
+from app.schemas.coin import CoinEarned
 from app.schemas.user import UserBrief
 from app.schemas.verification import (
     DailyVerificationsResponse,
@@ -125,6 +126,8 @@ async def create_verification(
     db.add(verification)
     await db.flush()  # id 확보를 위해 flush (commit 전)
 
+    coins_earned: list[CoinEarned] = []
+
     # streak 계산 및 마일스톤 알림
     streak_count = await streak_service.calculate_streak(
         db=db,
@@ -139,14 +142,35 @@ async def create_verification(
         streak_count=streak_count,
     )
 
-    # gem 지급 (인증 완료 시 5 gems)
+    # gem 지급 (인증 완료 시 10 coins)
     await gem_service.award_gems(
         db=db,
         user_id=user_id,
-        amount=5,
-        reason="verification",
-        reference_id=verification.id,
+        amount=10,
+        reason="VERIFICATION",
+        reference_id=challenge_id,
     )
+    coins_earned.append(CoinEarned(amount=10, reason="VERIFICATION"))
+
+    # streak 보너스
+    if streak_count == 3:
+        await gem_service.award_gems(
+            db=db,
+            user_id=user_id,
+            amount=15,
+            reason="STREAK_3",
+            reference_id=challenge_id,
+        )
+        coins_earned.append(CoinEarned(amount=15, reason="STREAK_3"))
+    elif streak_count == 7:
+        await gem_service.award_gems(
+            db=db,
+            user_id=user_id,
+            amount=50,
+            reason="STREAK_7",
+            reference_id=challenge_id,
+        )
+        coins_earned.append(CoinEarned(amount=50, reason="STREAK_7"))
 
     # 8. 전원 인증 판정
     # 해당 날짜 인증 수 카운트 (방금 flush된 레코드 포함)
@@ -179,6 +203,22 @@ async def create_verification(
         db.add(day_completion)
         day_completed = True
 
+        # 전원 인증 완료 시 모든 멤버에게 20 coins 지급
+        members_stmt = select(ChallengeMember).where(
+            ChallengeMember.challenge_id == challenge_id
+        )
+        members_result = await db.execute(members_stmt)
+        members = members_result.scalars().all()
+        for member in members:
+            await gem_service.award_gems(
+                db=db,
+                user_id=member.user_id,
+                amount=20,
+                reason="ALL_COMPLETED",
+                reference_id=challenge_id,
+            )
+        coins_earned.append(CoinEarned(amount=20, reason="ALL_COMPLETED"))
+
     await db.commit()
     await db.refresh(verification)
 
@@ -190,6 +230,7 @@ async def create_verification(
         created_at=verification.created_at,
         day_completed=day_completed,
         season_icon_type=season_icon_type,
+        coins_earned=coins_earned if coins_earned else None,
     )
 
 

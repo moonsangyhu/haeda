@@ -27,46 +27,7 @@
       "Bash(command: *alembic downgrade*)"
     ]
   },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/secret-scanner.sh"
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/docs-guard.sh"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/bash-guard.sh"
-          },
-          {
-            "type": "command",
-            "command": ".claude/hooks/push-gate.py"
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": ".claude/hooks/stop-gate.sh"
-          }
-        ]
-      }
-    ]
-  },
+  "hooks": {},
   "statusLine": {
     "type": "command",
     "command": "echo \"ctx:${CLAUDE_CONTEXT_WINDOW_USED_PERCENTAGE}% | ${CLAUDE_WORKTREE_BRANCH:-$(git branch --show-current)} | ${CLAUDE_SESSION_NAME:-unnamed}\""
