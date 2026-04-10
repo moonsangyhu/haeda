@@ -86,62 +86,16 @@ class _CharacterAvatarState extends State<CharacterAvatar>
     return AnimatedBuilder(
       animation: _shimmerAnimation,
       builder: (context, child) {
-        Widget avatar = CustomPaint(
-          size: Size(widget.size, widget.size),
-          painter: _PixelCharacterPainter(
-            character: widget.character,
-            shimmerValue: isEpic ? _sparkleAnimation.value : null,
-          ),
-        );
-
-        if (isRare) {
-          // Subtle blue glow border for RARE
-          avatar = Container(
-            width: widget.size + 4,
-            height: widget.size + 4,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(widget.size * 0.15),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0x592196F3),
-                  blurRadius: 8,
-                  spreadRadius: 2,
-                ),
-              ],
-            ),
-            child: avatar,
-          );
-        } else if (isEpic) {
-          // Animated purple/gold glow for EPIC
-          avatar = Opacity(
-            opacity: _shimmerAnimation.value,
-            child: Container(
-              width: widget.size + 6,
-              height: widget.size + 6,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(widget.size * 0.15),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0x739C27B0),
-                    blurRadius: 12,
-                    spreadRadius: 3,
-                  ),
-                  BoxShadow(
-                    color: const Color(0x40FFD700),
-                    blurRadius: 20,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: avatar,
-            ),
-          );
-        }
-
         return SizedBox(
-          width: widget.size + (isEpic ? 6 : isRare ? 4 : 0),
-          height: widget.size + (isEpic ? 6 : isRare ? 4 : 0),
-          child: avatar,
+          width: widget.size,
+          height: widget.size,
+          child: CustomPaint(
+            size: Size(widget.size, widget.size),
+            painter: _PixelCharacterPainter(
+              character: widget.character,
+              shimmerValue: isEpic ? _sparkleAnimation.value : null,
+            ),
+          ),
         );
       },
     );
