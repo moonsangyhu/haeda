@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../models/friend_data.dart';
-import '../providers/friend_provider.dart';
 
 class ContactSearchScreen extends ConsumerStatefulWidget {
   const ContactSearchScreen({super.key});
@@ -15,54 +13,36 @@ class ContactSearchScreen extends ConsumerStatefulWidget {
 }
 
 class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
+  final _phoneController = TextEditingController();
   bool _loading = false;
-  bool _permissionDenied = false;
   List<ContactMatchItem>? _matches;
   String? _error;
   final Set<String> _sentRequests = {};
 
   @override
-  void initState() {
-    super.initState();
-    _loadContacts();
+  void dispose() {
+    _phoneController.dispose();
+    super.dispose();
   }
 
-  Future<void> _loadContacts() async {
+  Future<void> _search() async {
+    final raw = _phoneController.text.trim();
+    if (raw.isEmpty) return;
+
+    final normalized = _normalizePhone(raw);
+
     setState(() {
       _loading = true;
       _error = null;
     });
 
     try {
-      final granted = await FlutterContacts.requestPermission();
-      if (!granted) {
-        setState(() {
-          _permissionDenied = true;
-          _loading = false;
-        });
-        return;
-      }
-
-      final contacts = await FlutterContacts.getContacts(withProperties: true);
-      final phoneNumbers = <String>[];
-      for (final contact in contacts) {
-        for (final phone in contact.phones) {
-          phoneNumbers.add(_normalizePhone(phone.number));
-        }
-      }
-
-      if (phoneNumbers.isEmpty) {
-        setState(() {
-          _matches = [];
-          _loading = false;
-        });
-        return;
-      }
-
       final dio = ref.read(dioProvider);
       final response = await dio.post(
         '/friends/contact-match',
-        data: {'phone_numbers': phoneNumbers},
+        data: {
+          'phone_numbers': [normalized],
+        },
       );
       final data =
           ContactMatchData.fromJson(response.data as Map<String, dynamic>);
@@ -72,7 +52,7 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
       });
     } catch (e) {
       setState(() {
-        _error = '연락처를 불러오는 중 오류가 발생했어요.';
+        _error = '검색 중 오류가 발생했어요.';
         _loading = false;
       });
     }
@@ -113,98 +93,96 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('연락처로 친구 찾기')),
-      body: _buildBody(theme),
+      appBar: AppBar(title: const Text('친구 찾기')),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      hintText: '전화번호를 입력하세요',
+                      prefixIcon: const Icon(Icons.phone),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                    ),
+                    onSubmitted: (_) => _search(),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                FilledButton(
+                  onPressed: _loading ? null : _search,
+                  child: _loading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text('검색'),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          Expanded(child: _buildResults(theme)),
+        ],
+      ),
     );
   }
 
-  Widget _buildBody(ThemeData theme) {
-    if (_loading) {
-      return const Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('연락처에서 친구를 찾고 있어요...'),
-          ],
-        ),
-      );
-    }
-
-    if (_permissionDenied) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.contacts, size: 64, color: theme.colorScheme.outline),
-              const SizedBox(height: 16),
-              const Text(
-                '연락처 접근 권한이 필요해요.\n설정에서 권한을 허용해주세요.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              OutlinedButton(
-                onPressed: _loadContacts,
-                child: const Text('다시 시도'),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
+  Widget _buildResults(ThemeData theme) {
     if (_error != null) {
       return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
-            const SizedBox(height: 16),
-            OutlinedButton(
-              onPressed: _loadContacts,
-              child: const Text('다시 시도'),
-            ),
-          ],
-        ),
+        child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
       );
     }
 
-    if (_matches == null || _matches!.isEmpty) {
+    if (_matches == null) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(Icons.person_search, size: 64, color: theme.colorScheme.outline),
             const SizedBox(height: 16),
-            const Text(
-              '연락처에서 가입한 친구를 찾지 못했어요.',
-              textAlign: TextAlign.center,
+            Text(
+              '전화번호로 친구를 검색해보세요',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
           ],
         ),
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _loadContacts,
-      child: ListView.builder(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        itemCount: _matches!.length,
-        itemBuilder: (context, index) {
-          final match = _matches![index];
-          return _buildMatchTile(match, theme);
-        },
-      ),
+    if (_matches!.isEmpty) {
+      return const Center(child: Text('검색 결과가 없어요.'));
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      itemCount: _matches!.length,
+      itemBuilder: (context, index) {
+        final match = _matches![index];
+        return _buildMatchTile(match, theme);
+      },
     );
   }
 
   Widget _buildMatchTile(ContactMatchItem match, ThemeData theme) {
     final alreadyFriend = match.friendshipStatus == 'accepted';
-    final pending =
-        match.friendshipStatus == 'pending' || _sentRequests.contains(match.userId);
+    final pending = match.friendshipStatus == 'pending' ||
+        _sentRequests.contains(match.userId);
 
     return ListTile(
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
