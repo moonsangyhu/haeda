@@ -7,8 +7,8 @@ part 'character_data.g.dart';
 @freezed
 class CharacterSlot with _$CharacterSlot {
   const factory CharacterSlot({
-    required String id,
-    required String name,
+    String? id,
+    String? name,
     @JsonKey(name: 'asset_key') required String assetKey,
     required String rarity,
   }) = _CharacterSlot;
