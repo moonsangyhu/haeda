@@ -4,7 +4,7 @@ import '../../../core/api/api_client.dart';
 import '../models/character_data.dart';
 import '../models/item_data.dart';
 
-/// 테스트용 목 캐릭터 — 분홍 비니 + 체크셔츠 + 청바지.
+/// 테스트용 목 캐릭터 — 분홍 비니 + 체크셔츠 + 청바지 + 운동화 + 선글라스.
 const _mockCharacter = CharacterData(
   hat: CharacterSlot(
     id: 'mock-hat',
@@ -24,47 +24,91 @@ const _mockCharacter = CharacterData(
     assetKey: 'bottom/jeans.png',
     rarity: 'COMMON',
   ),
+  shoes: CharacterSlot(
+    id: 'mock-shoes',
+    name: '운동화',
+    assetKey: 'shoes/sneakers.png',
+    rarity: 'COMMON',
+  ),
+  accessory: CharacterSlot(
+    id: 'mock-acc',
+    name: '선글라스',
+    assetKey: 'accessory/sunglasses.png',
+    rarity: 'RARE',
+  ),
 );
 
-/// 테스트용 목 보유 아이템.
+/// 테스트용 목 보유 아이템 — 카테고리별 여러 개.
 final _mockItems = <UserItem>[
+  // ── HAT ──
   const UserItem(
     id: 'ui-1',
-    item: ShopItem(
-      id: 'mock-hat',
-      name: '분홍 비니',
-      category: 'HAT',
-      price: 40,
-      rarity: 'COMMON',
-      assetKey: 'hat/pink_beanie.png',
-    ),
+    item: ShopItem(id: 'mock-hat', name: '분홍 비니', category: 'HAT', price: 40, rarity: 'COMMON', assetKey: 'hat/pink_beanie.png'),
     purchasedAt: '2026-04-10T00:00:00Z',
   ),
+  const UserItem(
+    id: 'ui-1b',
+    item: ShopItem(id: 'mock-hat-cap', name: '캡모자', category: 'HAT', price: 30, rarity: 'COMMON', assetKey: 'hat/cap.png'),
+    purchasedAt: '2026-04-09T00:00:00Z',
+  ),
+  const UserItem(
+    id: 'ui-1c',
+    item: ShopItem(id: 'mock-hat-fedora', name: '페도라', category: 'HAT', price: 120, rarity: 'RARE', assetKey: 'hat/fedora.png', effectType: 'COIN_BOOST', effectValue: 10),
+    purchasedAt: '2026-04-08T00:00:00Z',
+  ),
+  const UserItem(
+    id: 'ui-1d',
+    item: ShopItem(id: 'mock-hat-crown', name: '왕관', category: 'HAT', price: 400, rarity: 'EPIC', assetKey: 'hat/crown.png', effectType: 'STREAK_SHIELD', effectValue: 3),
+    purchasedAt: '2026-04-07T00:00:00Z',
+  ),
+  // ── TOP ──
   const UserItem(
     id: 'ui-2',
-    item: ShopItem(
-      id: 'mock-top',
-      name: '체크무늬 셔츠',
-      category: 'TOP',
-      price: 120,
-      rarity: 'RARE',
-      assetKey: 'top/check_shirt.png',
-      effectType: 'COIN_BOOST',
-      effectValue: 10,
-    ),
+    item: ShopItem(id: 'mock-top', name: '체크무늬 셔츠', category: 'TOP', price: 120, rarity: 'RARE', assetKey: 'top/check_shirt.png', effectType: 'COIN_BOOST', effectValue: 10),
     purchasedAt: '2026-04-10T00:00:00Z',
   ),
   const UserItem(
+    id: 'ui-2b',
+    item: ShopItem(id: 'mock-top-hoodie', name: '후드티', category: 'TOP', price: 120, rarity: 'RARE', assetKey: 'top/hoodie.png', effectType: 'VERIFY_BONUS', effectValue: 3),
+    purchasedAt: '2026-04-09T00:00:00Z',
+  ),
+  const UserItem(
+    id: 'ui-2c',
+    item: ShopItem(id: 'mock-top-tux', name: '턱시도', category: 'TOP', price: 400, rarity: 'EPIC', assetKey: 'top/tuxedo.png', effectType: 'COIN_BOOST', effectValue: 30),
+    purchasedAt: '2026-04-08T00:00:00Z',
+  ),
+  // ── BOTTOM ──
+  const UserItem(
     id: 'ui-3',
-    item: ShopItem(
-      id: 'mock-bottom',
-      name: '청바지',
-      category: 'BOTTOM',
-      price: 30,
-      rarity: 'COMMON',
-      assetKey: 'bottom/jeans.png',
-    ),
+    item: ShopItem(id: 'mock-bottom', name: '청바지', category: 'BOTTOM', price: 30, rarity: 'COMMON', assetKey: 'bottom/jeans.png'),
     purchasedAt: '2026-04-10T00:00:00Z',
+  ),
+  const UserItem(
+    id: 'ui-3b',
+    item: ShopItem(id: 'mock-bottom-skirt', name: '치마', category: 'BOTTOM', price: 120, rarity: 'RARE', assetKey: 'bottom/skirt.png', effectType: 'VERIFY_BONUS', effectValue: 3),
+    purchasedAt: '2026-04-09T00:00:00Z',
+  ),
+  // ── SHOES ──
+  const UserItem(
+    id: 'ui-4',
+    item: ShopItem(id: 'mock-shoes', name: '운동화', category: 'SHOES', price: 40, rarity: 'COMMON', assetKey: 'shoes/sneakers.png'),
+    purchasedAt: '2026-04-10T00:00:00Z',
+  ),
+  const UserItem(
+    id: 'ui-4b',
+    item: ShopItem(id: 'mock-shoes-boots', name: '부츠', category: 'SHOES', price: 120, rarity: 'RARE', assetKey: 'shoes/boots.png', effectType: 'STREAK_SHIELD', effectValue: 1),
+    purchasedAt: '2026-04-09T00:00:00Z',
+  ),
+  // ── ACCESSORY ──
+  const UserItem(
+    id: 'ui-5',
+    item: ShopItem(id: 'mock-acc', name: '선글라스', category: 'ACCESSORY', price: 120, rarity: 'RARE', assetKey: 'accessory/sunglasses.png', effectType: 'COIN_BOOST', effectValue: 10),
+    purchasedAt: '2026-04-10T00:00:00Z',
+  ),
+  const UserItem(
+    id: 'ui-5b',
+    item: ShopItem(id: 'mock-acc-wings', name: '천사날개', category: 'ACCESSORY', price: 400, rarity: 'EPIC', assetKey: 'accessory/angel_wings.png', effectType: 'COIN_BOOST', effectValue: 25),
+    purchasedAt: '2026-04-08T00:00:00Z',
   ),
 ];
 

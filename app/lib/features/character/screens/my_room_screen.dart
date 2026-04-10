@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../models/character_data.dart';
@@ -47,13 +46,17 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
     final filtered =
         allItems.where((ui) => ui.item.category.toUpperCase() == catKey).toList();
 
+    // 착용 중인 아이템들의 효과 합산
+    final equippedItems = _getEquippedItems(allItems, character);
+    final stats = _calcStats(equippedItems);
+
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // ── 코인 잔액 + 상점
+            // ── 코인 잔액
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               child: Row(
                 children: [
                   const Text('🪙', style: TextStyle(fontSize: 18)),
@@ -65,28 +68,36 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
                       color: theme.colorScheme.primary,
                     ),
                   ),
-                  const Spacer(),
-                  TextButton(
-                    onPressed: () => context.go('/shop'),
-                    child: const Text('상점 →'),
+                ],
+              ),
+            ),
+
+            // ── 캐릭터 + 스탯
+            SizedBox(
+              height: 180,
+              child: Row(
+                children: [
+                  // 캐릭터
+                  Expanded(
+                    flex: 3,
+                    child: Center(
+                      child: CharacterAvatar(
+                        character: character,
+                        size: 150,
+                        showEffect: true,
+                      ),
+                    ),
+                  ),
+                  // 스탯창
+                  Expanded(
+                    flex: 2,
+                    child: _StatPanel(stats: stats),
                   ),
                 ],
               ),
             ),
 
-            // ── 캐릭터
-            SizedBox(
-              height: 190,
-              child: Center(
-                child: CharacterAvatar(
-                  character: character,
-                  size: 170,
-                  showEffect: true,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
 
             // ── 카테고리 탭
             TabBar(
@@ -177,6 +188,163 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
           }
         },
       ),
+    );
+  }
+}
+
+// ─── 스탯 계산 ───
+
+/// 착용 중인 아이템들만 추출.
+List<ShopItem> _getEquippedItems(List<UserItem> allItems, CharacterData? c) {
+  if (c == null) return [];
+  final equippedIds = <String?>[
+    c.hat?.id, c.top?.id, c.bottom?.id, c.shoes?.id, c.accessory?.id,
+  ].whereType<String>().toSet();
+  return allItems
+      .where((ui) => equippedIds.contains(ui.item.id))
+      .map((ui) => ui.item)
+      .toList();
+}
+
+/// 효과 합산 결과.
+class _Stats {
+  final int coinBoost;      // 총 코인 부스트 %
+  final int verifyBonus;    // 총 인증 보너스 코인
+  final int streakShield;   // 총 연속 실드 횟수
+
+  const _Stats({
+    this.coinBoost = 0,
+    this.verifyBonus = 0,
+    this.streakShield = 0,
+  });
+
+  bool get isEmpty => coinBoost == 0 && verifyBonus == 0 && streakShield == 0;
+}
+
+_Stats _calcStats(List<ShopItem> items) {
+  int coin = 0, verify = 0, shield = 0;
+  for (final item in items) {
+    if (item.effectType == null) continue;
+    final v = item.effectValue ?? 0;
+    switch (item.effectType) {
+      case 'COIN_BOOST':
+        coin += v;
+      case 'VERIFY_BONUS':
+        verify += v;
+      case 'STREAK_SHIELD':
+        shield += v;
+    }
+  }
+  return _Stats(coinBoost: coin, verifyBonus: verify, streakShield: shield);
+}
+
+/// 스탯 패널 — 캐릭터 오른쪽에 표시.
+class _StatPanel extends StatelessWidget {
+  final _Stats stats;
+  const _StatPanel({required this.stats});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Container(
+      margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '장비 능력치',
+            style: theme.textTheme.labelSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: theme.colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _StatRow(
+            icon: '💰',
+            label: '코인 부스트',
+            value: '+${stats.coinBoost}%',
+            active: stats.coinBoost > 0,
+          ),
+          const SizedBox(height: 6),
+          _StatRow(
+            icon: '⭐',
+            label: '인증 보너스',
+            value: '+${stats.verifyBonus}',
+            active: stats.verifyBonus > 0,
+          ),
+          const SizedBox(height: 6),
+          _StatRow(
+            icon: '🛡️',
+            label: '연속 실드',
+            value: '${stats.streakShield}회',
+            active: stats.streakShield > 0,
+          ),
+          if (stats.isEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              '효과 아이템을\n착용해보세요!',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontSize: 9,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  final String icon;
+  final String label;
+  final String value;
+  final bool active;
+
+  const _StatRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.active,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final color = active
+        ? theme.colorScheme.onSurface
+        : theme.colorScheme.onSurfaceVariant.withOpacity(0.5);
+
+    return Row(
+      children: [
+        Text(icon, style: TextStyle(fontSize: 12, color: active ? null : Colors.grey)),
+        const SizedBox(width: 4),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(fontSize: 10, color: color),
+            maxLines: 1,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: active ? FontWeight.w800 : FontWeight.w400,
+            color: active ? theme.colorScheme.primary : color,
+          ),
+        ),
+      ],
     );
   }
 }
