@@ -79,11 +79,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       : null,
                   child: (user?.profileImageUrl == null ||
                           (user?.profileImageUrl?.isEmpty ?? true))
-                      ? Icon(
-                          Icons.person,
-                          size: 32,
-                          color: theme.colorScheme.primary,
-                        )
+                      ? const Text('😊', style: TextStyle(fontSize: 32))
                       : null,
                 ),
                 const SizedBox(width: 16),
@@ -124,7 +120,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Dark mode toggle
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            secondary: const Icon(Icons.dark_mode_outlined),
+            secondary: const Text('🌙', style: TextStyle(fontSize: 24)),
             title: const Text('다크 모드'),
             subtitle: const Text('앱 화면을 어둡게 표시합니다'),
             value: settings.darkMode,
@@ -136,7 +132,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Notifications toggle
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            secondary: const Icon(Icons.notifications_outlined),
+            secondary: const Text('🔔', style: TextStyle(fontSize: 24)),
             title: const Text('알림'),
             subtitle: const Text('푸시 알림을 받습니다'),
             value: settings.notificationsEnabled,
@@ -160,7 +156,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.logout),
+                  : const Text('👋', style: TextStyle(fontSize: 20)),
               label: Text(_isLoggingOut ? '로그아웃 중...' : '로그아웃'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: theme.colorScheme.error,

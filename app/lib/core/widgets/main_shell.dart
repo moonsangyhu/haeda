@@ -75,36 +75,51 @@ class MainShell extends ConsumerWidget {
         },
         destinations: [
           const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
+            icon: Opacity(
+              opacity: 0.5,
+              child: Text('🏡', style: TextStyle(fontSize: 22)),
+            ),
+            selectedIcon: Text('🏡', style: TextStyle(fontSize: 26)),
             label: '내 챌린지',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.explore_outlined),
-            selectedIcon: Icon(Icons.explore),
+            icon: Opacity(
+              opacity: 0.5,
+              child: Text('🔍', style: TextStyle(fontSize: 22)),
+            ),
+            selectedIcon: Text('🔍', style: TextStyle(fontSize: 26)),
             label: '탐색',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.camera_alt_outlined, size: 32),
-            selectedIcon: Icon(Icons.camera_alt, size: 32),
+            icon: Opacity(
+              opacity: 0.5,
+              child: Text('📸', style: TextStyle(fontSize: 24)),
+            ),
+            selectedIcon: Text('📸', style: TextStyle(fontSize: 28)),
             label: '인증',
           ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: unreadCount > 0,
               label: Text('$unreadCount'),
-              child: const Icon(Icons.notifications_outlined),
+              child: const Opacity(
+                opacity: 0.5,
+                child: Text('🔔', style: TextStyle(fontSize: 22)),
+              ),
             ),
             selectedIcon: Badge(
               isLabelVisible: unreadCount > 0,
               label: Text('$unreadCount'),
-              child: const Icon(Icons.notifications),
+              child: const Text('🔔', style: TextStyle(fontSize: 26)),
             ),
             label: '알림',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.settings_outlined),
-            selectedIcon: Icon(Icons.settings),
+            icon: Opacity(
+              opacity: 0.5,
+              child: Text('⚙️', style: TextStyle(fontSize: 22)),
+            ),
+            selectedIcon: Text('⚙️', style: TextStyle(fontSize: 26)),
             label: '설정',
           ),
         ],

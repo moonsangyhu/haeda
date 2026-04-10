@@ -26,7 +26,9 @@ class _StatusBarContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final streakIcon = stats.verifiedToday ? '🌺' : '🥀';
+    final streakIcon = stats.verifiedToday ? '🔥' : '💤';
+    final isDark = theme.brightness == Brightness.dark;
+    final pillOpacity = isDark ? 0.10 : 0.15;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -40,25 +42,37 @@ class _StatusBarContent extends StatelessWidget {
               Semantics(
                 label: '스트릭 ${stats.streak}일, 오늘 인증 ${stats.verifiedToday ? "완료" : "미완료"}',
                 excludeSemantics: true,
-                child: _StatItem(
-                  icon: streakIcon,
-                  value: '${stats.streak}',
+                child: _StatPill(
+                  color: const Color(0xFFFF6B35),
+                  opacity: pillOpacity,
+                  child: _StatItem(
+                    icon: streakIcon,
+                    value: '${stats.streak}',
+                  ),
                 ),
               ),
               Semantics(
                 label: '활성 챌린지 ${stats.activeChallenges}개, 완료 ${stats.completedChallenges}개',
                 excludeSemantics: true,
-                child: _StatItem(
-                  icon: '🏃',
-                  value: '${stats.activeChallenges}/${stats.completedChallenges}',
+                child: _StatPill(
+                  color: const Color(0xFFFFB800),
+                  opacity: pillOpacity,
+                  child: _StatItem(
+                    icon: '⚡',
+                    value: '${stats.activeChallenges}/${stats.completedChallenges}',
+                  ),
                 ),
               ),
               Semantics(
                 label: '젬 ${stats.gems}개',
                 excludeSemantics: true,
-                child: _StatItem(
-                  icon: '💎',
-                  value: '${stats.gems}',
+                child: _StatPill(
+                  color: const Color(0xFF4FC3F7),
+                  opacity: pillOpacity,
+                  child: _StatItem(
+                    icon: '💎',
+                    value: '${stats.gems}',
+                  ),
                 ),
               ),
             ],
@@ -70,6 +84,30 @@ class _StatusBarContent extends StatelessWidget {
           color: theme.colorScheme.outline.withValues(alpha: 0.4),
         ),
       ],
+    );
+  }
+}
+
+class _StatPill extends StatelessWidget {
+  const _StatPill({
+    required this.color,
+    required this.opacity,
+    required this.child,
+  });
+
+  final Color color;
+  final double opacity;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: opacity),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: child,
     );
   }
 }
