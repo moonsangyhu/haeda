@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:flutter_contacts/models/contact/contact_property.dart';
+import 'package:flutter_contacts/models/permissions/permission_status.dart';
+import 'package:flutter_contacts/models/permissions/permission_type.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
@@ -14,7 +18,8 @@ class ContactSearchScreen extends ConsumerStatefulWidget {
 
 class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
   final _phoneController = TextEditingController();
-  bool _loading = false;
+  bool _contactsLoading = false;
+  bool _searchLoading = false;
   List<ContactMatchItem>? _matches;
   String? _error;
   final Set<String> _sentRequests = {};
@@ -25,14 +30,71 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
     super.dispose();
   }
 
-  Future<void> _search() async {
+  /// 기기 연락처에서 친구 찾기
+  Future<void> _loadFromContacts() async {
+    setState(() {
+      _contactsLoading = true;
+      _error = null;
+    });
+
+    try {
+      final status = await FlutterContacts.permissions
+          .request(PermissionType.read);
+      if (status != PermissionStatus.granted &&
+          status != PermissionStatus.limited) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('연락처 접근 권한이 필요해요.')),
+          );
+        }
+        setState(() => _contactsLoading = false);
+        return;
+      }
+
+      final contacts = await FlutterContacts.getAll(
+        properties: {ContactProperty.phone},
+      );
+      final phoneNumbers = <String>[];
+      for (final contact in contacts) {
+        for (final phone in contact.phones) {
+          phoneNumbers.add(_normalizePhone(phone.number));
+        }
+      }
+
+      if (phoneNumbers.isEmpty) {
+        setState(() {
+          _matches = [];
+          _contactsLoading = false;
+        });
+        return;
+      }
+
+      final dio = ref.read(dioProvider);
+      final response = await dio.post(
+        '/friends/contact-match',
+        data: {'phone_numbers': phoneNumbers},
+      );
+      final data =
+          ContactMatchData.fromJson(response.data as Map<String, dynamic>);
+      setState(() {
+        _matches = data.matches;
+        _contactsLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = '연락처를 불러오는 중 오류가 발생했어요.';
+        _contactsLoading = false;
+      });
+    }
+  }
+
+  /// 전화번호 직접 입력으로 검색
+  Future<void> _searchByPhone() async {
     final raw = _phoneController.text.trim();
     if (raw.isEmpty) return;
 
-    final normalized = _normalizePhone(raw);
-
     setState(() {
-      _loading = true;
+      _searchLoading = true;
       _error = null;
     });
 
@@ -41,19 +103,19 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
       final response = await dio.post(
         '/friends/contact-match',
         data: {
-          'phone_numbers': [normalized],
+          'phone_numbers': [_normalizePhone(raw)],
         },
       );
       final data =
           ContactMatchData.fromJson(response.data as Map<String, dynamic>);
       setState(() {
         _matches = data.matches;
-        _loading = false;
+        _searchLoading = false;
       });
     } catch (e) {
       setState(() {
         _error = '검색 중 오류가 발생했어요.';
-        _loading = false;
+        _searchLoading = false;
       });
     }
   }
@@ -96,8 +158,54 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
       appBar: AppBar(title: const Text('친구 찾기')),
       body: Column(
         children: [
+          // 연락처에서 찾기 버튼
           Padding(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: _contactsLoading ? null : _loadFromContacts,
+                icon: _contactsLoading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Icon(Icons.contacts),
+                label: Text(
+                  _contactsLoading ? '연락처에서 찾는 중...' : '연락처에서 친구 찾기',
+                ),
+              ),
+            ),
+          ),
+
+          // 구분선 + 직접 검색
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+            child: Row(
+              children: [
+                const Expanded(child: Divider()),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text(
+                    '또는 직접 검색',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+                const Expanded(child: Divider()),
+              ],
+            ),
+          ),
+
+          // 전화번호 입력
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Row(
               children: [
                 Expanded(
@@ -115,13 +223,13 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
                         vertical: 14,
                       ),
                     ),
-                    onSubmitted: (_) => _search(),
+                    onSubmitted: (_) => _searchByPhone(),
                   ),
                 ),
                 const SizedBox(width: 12),
                 FilledButton(
-                  onPressed: _loading ? null : _search,
-                  child: _loading
+                  onPressed: _searchLoading ? null : _searchByPhone,
+                  child: _searchLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
@@ -135,6 +243,7 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
               ],
             ),
           ),
+
           const Divider(height: 1),
           Expanded(child: _buildResults(theme)),
         ],
@@ -145,7 +254,17 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
   Widget _buildResults(ThemeData theme) {
     if (_error != null) {
       return Center(
-        child: Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_error!, style: TextStyle(color: theme.colorScheme.error)),
+            const SizedBox(height: 12),
+            OutlinedButton(
+              onPressed: _loadFromContacts,
+              child: const Text('다시 시도'),
+            ),
+          ],
+        ),
       );
     }
 
@@ -157,7 +276,8 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
             Icon(Icons.person_search, size: 64, color: theme.colorScheme.outline),
             const SizedBox(height: 16),
             Text(
-              '전화번호로 친구를 검색해보세요',
+              '연락처에서 자동으로 찾거나\n전화번호로 직접 검색해보세요',
+              textAlign: TextAlign.center,
               style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
             ),
           ],

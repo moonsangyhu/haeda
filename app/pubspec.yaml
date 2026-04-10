@@ -23,6 +23,7 @@ dependencies:
   webview_flutter: ^4.7.0
   shared_preferences: ^2.2.0
   flutter_svg: ^2.2.4
+  flutter_contacts: ^2.0.2
 
 dev_dependencies:
   flutter_test:
