@@ -212,7 +212,7 @@ class _ChallengeSpaceBody extends ConsumerWidget {
 
     // allCompleted 날짜는 완료 결과 화면으로 이동
     final matchingDay = days.where((d) => d.date == date).firstOrNull;
-    if (matchingDay != null && matchingDay.allCompleted) {
+    if (matchingDay != null && matchingDay.allCompleted && status == 'completed') {
       context.push('/challenges/$challengeId/completion');
       return;
     }
