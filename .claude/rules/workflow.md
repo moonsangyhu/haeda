@@ -20,6 +20,24 @@
 - Distinguish between actually verified and unverified items.
 - Do not declare slice complete without smoke test.
 
+## Mandatory Local Build & Deploy
+
+Every feature/fix that changes source code (app/ or server/) MUST end with a local container rebuild and health check. This is **non-negotiable** — no feature is complete without it.
+
+| Changed Area | Required Command | Health Check |
+|-------------|-----------------|--------------|
+| server/ only | `docker compose up --build -d backend` | `curl -s http://localhost:8000/health` |
+| app/ only | `cd app && flutter build ios --simulator` | App runs on iOS simulator |
+| Both | `docker compose up --build -d backend` + `cd app && flutter build ios --simulator` | Backend health + simulator |
+
+**Flutter 검증은 반드시 iOS simulator 빌드를 사용한다.** `flutter build web`은 검증으로 인정하지 않는다.
+
+**Rules:**
+- Run AFTER commit/push, BEFORE declaring work complete
+- If health check fails, fix and rebuild — do NOT skip
+- Config-only changes (.claude/, docs/) are exempt
+- This applies to all workflows: slice, fix, refine, manual feature work
+
 ## Cross-Layer Isolation
 
 - Do not touch app/ code when working on server/. Vice versa.

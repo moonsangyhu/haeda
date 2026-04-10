@@ -24,9 +24,10 @@ Builder agents MUST run a full build as the final step — analyze/test alone is
 
 | Agent | Required Build Command |
 |-------|----------------------|
-| `flutter-builder` | `cd app && flutter build web` |
+| `flutter-builder` | `cd app && flutter build ios --simulator` |
 | `backend-builder` | `cd server && docker compose build` or `python -m py_compile` |
 
+- **flutter-builder는 반드시 iOS simulator 빌드**를 사용한다. `flutter build web`은 검증으로 인정하지 않는다.
 - If build fails, the agent must fix the error and rebuild before reporting completion.
 - Do NOT report "implementation complete" without a passing build.
 
