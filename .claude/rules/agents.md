@@ -31,6 +31,8 @@ Builder agents MUST run a full build as the final step — analyze/test alone is
 - If build fails, the agent must fix the error and rebuild before reporting completion.
 - Do NOT report "implementation complete" without a passing build.
 
+**Main(Opus)은 flutter-builder 완료 후, 반드시 시뮬레이터에서 앱을 실행(`flutter run -d <device-id>`)하여 화면을 확인해야 한다.** 빌드 성공만으로 검증 완료가 아님. 시뮬레이터에서 앱이 떠서 화면을 볼 수 있어야 검증 완료.
+
 ## Post-Implementation (Mandatory)
 
 After builder agent completes with passing build, Main (Opus) MUST run `/commit` to:
@@ -38,7 +40,7 @@ After builder agent completes with passing build, Main (Opus) MUST run `/commit`
 2. Push directly to main (no branches, no PRs)
 3. Write implementation log to `impl-log/<name>.md`
 
-Do NOT stop after "build success" — the cycle is: **implement → build → commit → push to main → impl-log**.
+Do NOT stop after "build success" — the cycle is: **implement → build → commit → push to main → simulator 실행 확인 → impl-log**.
 
 ## Implementation Log (`impl-log/`)
 

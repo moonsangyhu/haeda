@@ -116,18 +116,20 @@ docker compose up --build -d backend
 curl -s --max-time 10 http://localhost:8000/health
 ```
 
-### 5-2. iOS Simulator Build (app/ changed) — MANDATORY
+### 5-2. iOS Simulator 실행 (app/ changed) — MANDATORY
 
 **app/ 파일이 하나라도 변경되었으면 반드시 실행. 예외 없음.**
 
 ```bash
-cd app && flutter build ios --simulator
+cd app && flutter run -d <simulator-device-id>
 ```
 
+- `flutter run`은 빌드를 포함하므로 별도 `flutter build` 불필요.
+- **`flutter build ios --simulator`(빌드만)는 검증으로 인정하지 않는다.** 시뮬레이터에서 앱이 실행되어 화면을 확인할 수 있어야 검증 완료.
 - `flutter build web`은 검증으로 인정하지 않는다.
 - `docker compose up --build -d frontend`는 iOS 빌드를 대체할 수 없다.
 - 이 단계를 건너뛰면 작업 완료로 선언할 수 없다.
-- 빌드 실패 시 수정 후 재빌드. 절대 skip 금지.
+- 실행 실패 시 수정 후 재실행. 절대 skip 금지.
 
 ## Step 6: Summary
 

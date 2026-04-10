@@ -27,10 +27,13 @@ Every feature/fix that changes source code (app/ or server/) MUST end with a loc
 | Changed Area | Required Command | Health Check |
 |-------------|-----------------|--------------|
 | server/ only | `docker compose up --build -d backend` | `curl -s http://localhost:8000/health` |
-| app/ only | `cd app && flutter build ios --simulator` | App runs on iOS simulator |
-| Both | `docker compose up --build -d backend` + `cd app && flutter build ios --simulator` | Backend health + simulator |
+| app/ only | `cd app && flutter run -d <simulator-device-id>` | 시뮬레이터에서 앱 실행 확인 |
+| Both | `docker compose up --build -d backend` + `cd app && flutter run -d <simulator-device-id>` | Backend health + 시뮬레이터 실행 |
 
-**Flutter 검증은 반드시 iOS simulator 빌드를 사용한다.** `flutter build web`은 검증으로 인정하지 않는다.
+**Flutter 검증은 반드시 iOS simulator에서 앱을 실행하여 확인한다.**
+- `flutter build ios --simulator`(빌드만)는 검증으로 인정하지 않는다.
+- `flutter build web`은 검증으로 인정하지 않는다.
+- 시뮬레이터에서 앱이 실행되어 화면을 확인할 수 있는 상태까지가 검증 완료.
 
 **Rules:**
 - Run AFTER commit/push, BEFORE declaring work complete
