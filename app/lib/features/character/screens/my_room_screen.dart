@@ -55,16 +55,19 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
           children: [
             const SizedBox(height: 8),
 
-            // ── 캐릭터 + 스탯
-            SizedBox(
-              height: 180,
+            // ── 캐릭터 + 스탯 (큰 영역)
+            Expanded(
+              flex: 5,
               child: Row(
                 children: [
-                  // 캐릭터 (다마고치 바운스)
+                  // 캐릭터
                   Expanded(
                     flex: 3,
                     child: Center(
-                      child: _BouncingCharacter(character: character),
+                      child: CharacterAvatar(
+                        character: character,
+                        size: 220,
+                      ),
                     ),
                   ),
                   // 스탯창
@@ -76,18 +79,17 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
               ),
             ),
 
-            const SizedBox(height: 4),
-
             // ── 카테고리 탭
             TabBar(
               controller: _tabCtrl,
               isScrollable: false,
               labelPadding: EdgeInsets.zero,
-              tabs: _tabs.map((t) => Tab(text: t, height: 36)).toList(),
+              tabs: _tabs.map((t) => Tab(text: t, height: 34)).toList(),
             ),
 
-            // ── 아이템 그리드
+            // ── 아이템 그리드 (작은 영역, 스크롤 가능)
             Expanded(
+              flex: 3,
               child: filtered.isEmpty
                   ? Center(
                       child: Text(
@@ -167,56 +169,6 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
           }
         },
       ),
-    );
-  }
-}
-
-// ─── 다마고치 바운스 캐릭터 ───
-
-class _BouncingCharacter extends StatefulWidget {
-  final CharacterData? character;
-  const _BouncingCharacter({required this.character});
-
-  @override
-  State<_BouncingCharacter> createState() => _BouncingCharacterState();
-}
-
-class _BouncingCharacterState extends State<_BouncingCharacter>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl;
-  late final Animation<double> _bounce;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1200),
-    )..repeat(reverse: true);
-    _bounce = Tween<double>(begin: 0, end: -8).animate(
-      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _bounce,
-      builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _bounce.value),
-          child: CharacterAvatar(
-            character: widget.character,
-            size: 150,
-          ),
-        );
-      },
     );
   }
 }
