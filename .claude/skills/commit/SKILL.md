@@ -105,22 +105,29 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 git push origin main
 ```
 
-## Step 5: Rebuild (if source changed)
+## Step 5: Rebuild & Verify (if source changed)
 
-Skip if only config/.claude files changed.
+Skip if only config/.claude files changed. Set Bash timeout to 600000.
 
-- **app/ changed**: `docker compose up --build -d frontend`
-- **server/ changed**: `docker compose up --build -d backend`
-- **Both**: `docker compose up --build -d backend frontend`
-
-Set Bash timeout to 600000.
-
-### Health Check
+### 5-1. Backend (server/ changed)
 
 ```bash
+docker compose up --build -d backend
 curl -s --max-time 10 http://localhost:8000/health
-curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
 ```
+
+### 5-2. iOS Simulator Build (app/ changed) — MANDATORY
+
+**app/ 파일이 하나라도 변경되었으면 반드시 실행. 예외 없음.**
+
+```bash
+cd app && flutter build ios --simulator
+```
+
+- `flutter build web`은 검증으로 인정하지 않는다.
+- `docker compose up --build -d frontend`는 iOS 빌드를 대체할 수 없다.
+- 이 단계를 건너뛰면 작업 완료로 선언할 수 없다.
+- 빌드 실패 시 수정 후 재빌드. 절대 skip 금지.
 
 ## Step 6: Summary
 
@@ -136,4 +143,5 @@ curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
 | Build | {passed/skipped} |
 | Impl Log | impl-log/{name}.md |
 | Rebuild | {done/skipped} |
+| iOS Build | {pass/skipped} |
 ```
