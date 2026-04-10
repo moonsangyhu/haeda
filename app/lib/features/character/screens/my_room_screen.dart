@@ -8,7 +8,7 @@ import '../models/item_data.dart';
 import '../providers/character_provider.dart';
 import '../providers/coin_provider.dart';
 
-/// 내 방 탭 - 캐릭터 꾸미기 메인 화면.
+/// 내 방 탭 — 캐릭터 + 카테고리별 아이템 그리드 + 탭→바텀시트.
 class MyRoomScreen extends ConsumerStatefulWidget {
   const MyRoomScreen({super.key});
 
@@ -16,55 +16,53 @@ class MyRoomScreen extends ConsumerStatefulWidget {
   ConsumerState<MyRoomScreen> createState() => _MyRoomScreenState();
 }
 
-class _MyRoomScreenState extends ConsumerState<MyRoomScreen> {
-  void _showTransactionSheet() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => const _CoinTransactionSheet(),
-    );
+class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
+    with SingleTickerProviderStateMixin {
+  static const _tabs = ['모자', '상의', '하의', '신발', '액세서리'];
+  static const _keys = ['HAT', 'TOP', 'BOTTOM', 'SHOES', 'ACCESSORY'];
+
+  late final TabController _tabCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabCtrl = TabController(length: _tabs.length, vsync: this);
+    _tabCtrl.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _tabCtrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final characterAsync = ref.watch(myCharacterProvider);
-    final balanceAsync = ref.watch(coinBalanceProvider);
-    final itemsAsync = ref.watch(myItemsProvider);
-    final character = characterAsync.valueOrNull;
-    final items = itemsAsync.valueOrNull ?? [];
+    final character = ref.watch(myCharacterProvider).valueOrNull;
+    final balance = ref.watch(coinBalanceProvider).valueOrNull;
+    final allItems = ref.watch(myItemsProvider).valueOrNull ?? [];
+
+    final catKey = _keys[_tabCtrl.index];
+    final filtered =
+        allItems.where((ui) => ui.item.category.toUpperCase() == catKey).toList();
 
     return Scaffold(
       body: SafeArea(
         child: Column(
           children: [
-            // Top: coin balance
+            // ── 코인 잔액 + 상점
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Row(
                 children: [
-                  const Text('🪙', style: TextStyle(fontSize: 20)),
-                  const SizedBox(width: 6),
-                  GestureDetector(
-                    onTap: _showTransactionSheet,
-                    child: balanceAsync.when(
-                      loading: () => const SizedBox(
-                        width: 60,
-                        height: 20,
-                        child: LinearProgressIndicator(),
-                      ),
-                      error: (_, __) => const Text('- 코인'),
-                      data: (b) => Text(
-                        '${b.balance} 코인',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
+                  const Text('🪙', style: TextStyle(fontSize: 18)),
+                  const SizedBox(width: 4),
+                  Text(
+                    '${balance?.balance ?? 0} 코인',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: theme.colorScheme.primary,
                     ),
                   ),
                   const Spacer(),
@@ -76,57 +74,58 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen> {
               ),
             ),
 
-            // Character area
-            _CharacterSection(character: character),
-
-            const SizedBox(height: 12),
-
-            // Section header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  Text(
-                    '보유 아이템',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${items.length}개',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
+            // ── 캐릭터
+            SizedBox(
+              height: 190,
+              child: Center(
+                child: CharacterAvatar(
+                  character: character,
+                  size: 170,
+                  showEffect: true,
+                ),
               ),
             ),
 
             const SizedBox(height: 8),
 
-            // All items list (no category tabs)
+            // ── 카테고리 탭
+            TabBar(
+              controller: _tabCtrl,
+              isScrollable: false,
+              labelPadding: EdgeInsets.zero,
+              tabs: _tabs.map((t) => Tab(text: t, height: 36)).toList(),
+            ),
+
+            // ── 아이템 그리드
             Expanded(
-              child: items.isEmpty
+              child: filtered.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🛍️', style: TextStyle(fontSize: 40)),
-                          const SizedBox(height: 8),
-                          Text(
-                            '보유한 아이템이 없어요.\n상점에서 아이템을 구매해보세요!',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
+                      child: Text(
+                        '보유한 아이템이 없어요',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     )
-                  : _AllItemsList(
-                      items: items,
-                      character: character,
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(14),
+                      gridDelegate:
+                          const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 3,
+                        childAspectRatio: 0.78,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
+                      ),
+                      itemCount: filtered.length,
+                      itemBuilder: (ctx, i) {
+                        final ui = filtered[i];
+                        final equipped = _isEquipped(ui, character);
+                        return _ItemCard(
+                          userItem: ui,
+                          isEquipped: equipped,
+                          onTap: () => _showItemSheet(ui, equipped),
+                        );
+                      },
                     ),
             ),
           ],
@@ -134,49 +133,10 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen> {
       ),
     );
   }
-}
 
-class _CharacterSection extends StatelessWidget {
-  final CharacterData? character;
-  const _CharacterSection({required this.character});
-
-  bool get _hasEpic {
-    final c = character;
+  bool _isEquipped(UserItem ui, CharacterData? c) {
     if (c == null) return false;
-    return [c.hat, c.top, c.bottom, c.shoes, c.accessory]
-        .any((s) => s?.rarity == 'EPIC');
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 220,
-      child: Center(
-        child: CharacterAvatar(
-          character: character,
-          size: 180,
-          showEffect: _hasEpic,
-        ),
-      ),
-    );
-  }
-}
-
-/// 전체 보유 아이템을 리스트로 표시. 등급별 테두리 색상 + 착용 중 뱃지.
-class _AllItemsList extends ConsumerWidget {
-  final List<UserItem> items;
-  final CharacterData? character;
-
-  const _AllItemsList({
-    required this.items,
-    required this.character,
-  });
-
-  bool _isEquipped(UserItem ui) {
-    final c = character;
-    if (c == null) return false;
-    final cat = ui.item.category.toUpperCase();
-    switch (cat) {
+    switch (ui.item.category.toUpperCase()) {
       case 'HAT':
         return c.hat?.id == ui.item.id;
       case 'TOP':
@@ -192,56 +152,38 @@ class _AllItemsList extends ConsumerWidget {
     }
   }
 
-  String _slotKey(UserItem ui) {
-    switch (ui.item.category.toUpperCase()) {
-      case 'HAT':
-        return 'hat';
-      case 'TOP':
-        return 'top';
-      case 'BOTTOM':
-        return 'bottom';
-      case 'SHOES':
-        return 'shoes';
-      case 'ACCESSORY':
-        return 'accessory';
-      default:
-        return 'hat';
-    }
-  }
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: items.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 10),
-      itemBuilder: (ctx, i) {
-        final ui = items[i];
-        final equipped = _isEquipped(ui);
-        return _ItemTile(
-          userItem: ui,
-          isEquipped: equipped,
-          onTap: () async {
-            final notifier = ref.read(characterUpdateProvider.notifier);
-            final slot = _slotKey(ui);
-            final newId = equipped ? null : ui.item.id;
-            final ok = await notifier.updateSlot(slot, newId);
-            if (!ctx.mounted) return;
-            if (!ok) {
-              ScaffoldMessenger.of(ctx).showSnackBar(
-                const SnackBar(content: Text('아이템 변경에 실패했어요.')),
-              );
-            }
-          },
-        );
-      },
+  void _showItemSheet(UserItem ui, bool equipped) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _ItemDetailSheet(
+        userItem: ui,
+        isEquipped: equipped,
+        onEquipToggle: () async {
+          Navigator.pop(ctx);
+          final slot = ui.item.category.toLowerCase();
+          final newId = equipped ? null : ui.item.id;
+          final ok = await ref
+              .read(characterUpdateProvider.notifier)
+              .updateSlot(slot, newId);
+          if (!mounted) return;
+          if (!ok) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('아이템 변경에 실패했어요.')),
+            );
+          }
+        },
+      ),
     );
   }
 }
 
-/// 등급별 테두리 색상.
-/// COMMON=회색, RARE=노란색, EPIC=보라색, LEGENDARY=황금색.
-Color _rarityBorderColor(String rarity) {
+// ─── 등급별 테두리 색상 ───
+
+Color _rarityBorder(String rarity) {
   switch (rarity) {
     case 'RARE':
       return const Color(0xFFFFD600); // 노란색
@@ -249,12 +191,24 @@ Color _rarityBorderColor(String rarity) {
       return const Color(0xFF9C27B0); // 보라색
     case 'LEGENDARY':
       return const Color(0xFFFFAB00); // 황금색
-    default: // COMMON
+    default:
       return const Color(0xFFBDBDBD); // 회색
   }
 }
 
-/// 등급 라벨 텍스트.
+Color _rarityTextColor(String rarity) {
+  switch (rarity) {
+    case 'RARE':
+      return const Color(0xFFE6A800);
+    case 'EPIC':
+      return const Color(0xFF7B1FA2);
+    case 'LEGENDARY':
+      return const Color(0xFFFF8F00);
+    default:
+      return const Color(0xFF757575);
+  }
+}
+
 String _rarityLabel(String rarity) {
   switch (rarity) {
     case 'COMMON':
@@ -270,8 +224,8 @@ String _rarityLabel(String rarity) {
   }
 }
 
-String _categoryLabel(String category) {
-  switch (category.toUpperCase()) {
+String _categoryLabel(String cat) {
+  switch (cat.toUpperCase()) {
     case 'HAT':
       return '모자';
     case 'TOP':
@@ -283,28 +237,11 @@ String _categoryLabel(String category) {
     case 'ACCESSORY':
       return '액세서리';
     default:
-      return category;
+      return cat;
   }
 }
 
-String _categoryEmoji(String category) {
-  switch (category.toUpperCase()) {
-    case 'HAT':
-      return '🎩';
-    case 'TOP':
-      return '👕';
-    case 'BOTTOM':
-      return '👖';
-    case 'SHOES':
-      return '👟';
-    case 'ACCESSORY':
-      return '✨';
-    default:
-      return '🎁';
-  }
-}
-
-String _effectDescription(String type, int value) {
+String _effectText(String type, int value) {
   switch (type) {
     case 'STREAK_SHIELD':
       return '🛡️ 연속 깨짐 $value회 방지';
@@ -317,13 +254,14 @@ String _effectDescription(String type, int value) {
   }
 }
 
-/// 아이템 리스트 타일 — 등급별 테두리 + 착용 중 뱃지.
-class _ItemTile extends StatelessWidget {
+// ─── 아이템 카드 (그리드) ───
+
+class _ItemCard extends StatelessWidget {
   final UserItem userItem;
   final bool isEquipped;
   final VoidCallback onTap;
 
-  const _ItemTile({
+  const _ItemCard({
     required this.userItem,
     required this.isEquipped,
     required this.onTap,
@@ -333,160 +271,250 @@ class _ItemTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final item = userItem.item;
-    final borderColor = _rarityBorderColor(item.rarity);
+    final border = _rarityBorder(item.rarity);
 
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isEquipped
-              ? borderColor.withOpacity(0.08)
-              : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(16),
+          color: isEquipped ? border.withOpacity(0.08) : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: borderColor,
+            color: border,
             width: isEquipped ? 2.5 : 1.5,
           ),
-          boxShadow: [
-            if (isEquipped)
-              BoxShadow(
-                color: borderColor.withOpacity(0.25),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-          ],
+          boxShadow: isEquipped
+              ? [BoxShadow(color: border.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 2))]
+              : null,
         ),
-        child: Row(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon area
+            // 도트 아이템 미리보기
+            ItemPreview(
+              assetKey: item.assetKey,
+              rarity: item.rarity,
+              size: 52,
+            ),
+            const SizedBox(height: 6),
+            // 이름
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Text(
+                item.name,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  fontWeight: isEquipped ? FontWeight.w700 : FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(height: 4),
+            // 등급 뱃지
             Container(
-              width: 52,
-              height: 52,
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
-                color: borderColor.withOpacity(0.12),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(
-                  color: borderColor.withOpacity(0.3),
-                  width: 1,
-                ),
+                color: border.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: border, width: 0.5),
               ),
-              child: Center(
-                child: Text(
-                  _categoryEmoji(item.category),
-                  style: const TextStyle(fontSize: 26),
+              child: Text(
+                _rarityLabel(item.rarity),
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w700,
+                  color: _rarityTextColor(item.rarity),
                 ),
-              ),
-            ),
-
-            const SizedBox(width: 14),
-
-            // Item info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Name + rarity badge row
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          item.name,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 2,
-                        ),
-                        decoration: BoxDecoration(
-                          color: borderColor.withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                            color: borderColor,
-                            width: 1,
-                          ),
-                        ),
-                        child: Text(
-                          _rarityLabel(item.rarity),
-                          style: TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                            color: borderColor == const Color(0xFFBDBDBD)
-                                ? const Color(0xFF757575)
-                                : borderColor,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 4),
-
-                  // Category + effect
-                  Row(
-                    children: [
-                      Text(
-                        _categoryLabel(item.category),
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      if (item.effectType != null) ...[
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: Text(
-                            _effectDescription(
-                              item.effectType!,
-                              item.effectValue ?? 0,
-                            ),
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.tertiary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ],
               ),
             ),
-
-            // Equipped badge
-            if (isEquipped)
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color: borderColor.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: borderColor, width: 1),
-                ),
-                child: Text(
-                  '착용 중',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: borderColor == const Color(0xFFBDBDBD)
-                        ? const Color(0xFF616161)
-                        : borderColor,
-                  ),
+            // 착용 중
+            if (isEquipped) ...[
+              const SizedBox(height: 4),
+              Text(
+                '착용 중',
+                style: TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w800,
+                  color: _rarityTextColor(item.rarity),
                 ),
               ),
+            ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── 아이템 상세 바텀시트 ───
+
+class _ItemDetailSheet extends StatelessWidget {
+  final UserItem userItem;
+  final bool isEquipped;
+  final VoidCallback onEquipToggle;
+
+  const _ItemDetailSheet({
+    required this.userItem,
+    required this.isEquipped,
+    required this.onEquipToggle,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final item = userItem.item;
+    final border = _rarityBorder(item.rarity);
+    final hasEffect = item.effectType != null;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Handle
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+
+          // 아이템 이름
+          Text(
+            item.name,
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 큰 도트 미리보기
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: border.withOpacity(0.06),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: border, width: 2),
+            ),
+            child: ItemPreview(
+              assetKey: item.assetKey,
+              rarity: item.rarity,
+              size: 120,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // 등급 + 카테고리
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: border.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: border, width: 1),
+                ),
+                child: Text(
+                  _rarityLabel(item.rarity),
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: _rarityTextColor(item.rarity),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                _categoryLabel(item.category),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '🪙 ${item.price}',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // 효과
+          if (hasEffect)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.tertiaryContainer.withOpacity(0.3),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                _effectText(item.effectType!, item.effectValue ?? 0),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.tertiary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            )
+          else
+            Text(
+              '장식용 아이템',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+
+          const SizedBox(height: 20),
+
+          // 착용/해제 버튼
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton(
+              onPressed: onEquipToggle,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isEquipped
+                    ? theme.colorScheme.surfaceContainerHighest
+                    : border,
+                foregroundColor: isEquipped
+                    ? theme.colorScheme.onSurface
+                    : Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                elevation: isEquipped ? 0 : 2,
+              ),
+              child: Text(
+                isEquipped ? '해제하기' : '착용하기',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // 닫기
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              '닫기',
+              style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -495,15 +523,6 @@ class _ItemTile extends StatelessWidget {
 /// 코인 거래 내역 바텀시트.
 class _CoinTransactionSheet extends ConsumerWidget {
   const _CoinTransactionSheet();
-
-  String _formatDate(String isoDate) {
-    try {
-      final dt = DateTime.parse(isoDate).toLocal();
-      return '${dt.month}/${dt.day} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
-    } catch (_) {
-      return isoDate;
-    }
-  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -515,7 +534,7 @@ class _CoinTransactionSheet extends ConsumerWidget {
       minChildSize: 0.35,
       maxChildSize: 0.85,
       expand: false,
-      builder: (ctx, scrollController) => Column(
+      builder: (ctx, scrollCtrl) => Column(
         children: [
           const SizedBox(height: 12),
           Container(
@@ -544,25 +563,22 @@ class _CoinTransactionSheet extends ConsumerWidget {
                   return const Center(child: Text('거래 내역이 없어요.'));
                 }
                 return ListView.separated(
-                  controller: scrollController,
+                  controller: scrollCtrl,
                   itemCount: txList.items.length,
                   separatorBuilder: (_, __) => const Divider(height: 1),
                   itemBuilder: (ctx, i) {
                     final tx = txList.items[i];
-                    final isGain = tx.amount > 0;
+                    final gain = tx.amount > 0;
                     return ListTile(
                       dense: true,
-                      leading: Text(
-                        isGain ? '🪙' : '💸',
-                        style: const TextStyle(fontSize: 20),
-                      ),
+                      leading: Text(gain ? '🪙' : '💸',
+                          style: const TextStyle(fontSize: 20)),
                       title: Text(tx.type),
-                      subtitle: Text(_formatDate(tx.createdAt)),
                       trailing: Text(
-                        '${isGain ? '+' : ''}${tx.amount}',
+                        '${gain ? '+' : ''}${tx.amount}',
                         style: TextStyle(
                           fontWeight: FontWeight.w700,
-                          color: isGain
+                          color: gain
                               ? const Color(0xFF2E7D32)
                               : theme.colorScheme.error,
                         ),
@@ -578,4 +594,3 @@ class _CoinTransactionSheet extends ConsumerWidget {
     );
   }
 }
-
