@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_contacts/models/contact/contact_property.dart';
 import 'package:flutter_contacts/models/permissions/permission_status.dart';
 import 'package:flutter_contacts/models/permissions/permission_type.dart';
@@ -155,7 +156,13 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('친구 찾기')),
+      appBar: AppBar(
+        title: const Text('친구 찾기'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+        ),
+      ),
       body: Column(
         children: [
           // 연락처에서 찾기 버튼
