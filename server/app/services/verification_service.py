@@ -222,6 +222,9 @@ async def create_verification(
     await db.commit()
     await db.refresh(verification)
 
+    from app.services import feed_service
+    await feed_service.create_feed_item(db, user_id, "verification", verification.id, challenge_id)
+
     return VerificationCreateResponse(
         id=verification.id,
         date=verification.date,

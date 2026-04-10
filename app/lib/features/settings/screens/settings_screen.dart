@@ -145,6 +145,47 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
           const SizedBox(height: 8),
           const Divider(indent: 20, endIndent: 20),
+          const SizedBox(height: 8),
+
+          // ── Friend management section header ──
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+            child: Text(
+              '친구',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            leading: Icon(Icons.people, size: 26, color: theme.colorScheme.primary),
+            title: const Text('친구 목록'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/friends'),
+          ),
+
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            leading: Icon(Icons.mail, size: 26, color: theme.colorScheme.primary),
+            title: const Text('받은 요청'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/friends/requests'),
+          ),
+
+          ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+            leading: Icon(Icons.person_add, size: 26, color: theme.colorScheme.primary),
+            title: const Text('연락처로 친구 찾기'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/friends/contact-search'),
+          ),
+
+          const SizedBox(height: 8),
+          const Divider(indent: 20, endIndent: 20),
           const SizedBox(height: 16),
 
           // ── Logout button ──

@@ -11,6 +11,9 @@ from app.models.gem_transaction import GemTransaction
 from app.models.item import Item
 from app.models.user_item import UserItem
 from app.models.character_equip import CharacterEquip
+from app.models.friendship import Friendship
+from app.models.feed_item import FeedItem
+from app.models.clap import Clap
 
 __all__ = [
     "Base",
@@ -26,4 +29,7 @@ __all__ = [
     "Item",
     "UserItem",
     "CharacterEquip",
+    "Friendship",
+    "FeedItem",
+    "Clap",
 ]

@@ -357,6 +357,9 @@ async def join_challenge(
     await db.commit()
     await db.refresh(member)
 
+    from app.services import feed_service
+    await feed_service.create_feed_item(db, user_id, "challenge_join", member.id, challenge.id)
+
     return JoinResponse(
         challenge_id=challenge_id,
         joined_at=member.joined_at,

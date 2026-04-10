@@ -9,7 +9,7 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/kakao_oauth_screen.dart';
 import 'features/auth/screens/profile_setup_screen.dart';
 import 'features/my_page/screens/my_page_screen.dart';
-import 'features/notifications/screens/notifications_screen.dart';
+import 'features/feed/screens/feed_screen.dart';
 import 'features/challenge_space/screens/challenge_space_screen.dart';
 import 'features/challenge_space/screens/create_verification_screen.dart';
 import 'features/challenge_space/screens/daily_verifications_screen.dart';
@@ -22,6 +22,9 @@ import 'features/challenge_complete/screens/challenge_completion_screen.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'features/character/screens/my_room_screen.dart';
 import 'features/character/screens/shop_screen.dart';
+import 'features/friends/screens/friend_list_screen.dart';
+import 'features/friends/screens/friend_requests_screen.dart';
+import 'features/friends/screens/contact_search_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -43,7 +46,7 @@ final _router = GoRouter(
       path: '/profile-setup',
       builder: (context, state) => const ProfileSetupScreen(),
     ),
-    // Bottom tab shell: 내 방 / 상점 / 챌린지(center) / 알림 / 설정
+    // Bottom tab shell: 내 방 / 상점 / 챌린지(center) / 피드 / 설정
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
@@ -75,12 +78,12 @@ final _router = GoRouter(
             ),
           ],
         ),
-        // index 3: 알림
+        // index 3: 피드
         StatefulShellBranch(
           routes: [
             GoRoute(
-              path: '/notifications',
-              builder: (context, state) => const NotificationsScreen(),
+              path: '/feed',
+              builder: (context, state) => const FeedScreen(),
             ),
           ],
         ),
@@ -170,6 +173,19 @@ final _router = GoRouter(
         final code = state.pathParameters['code']!;
         return InvitePreviewScreen(inviteCode: code);
       },
+    ),
+    // 친구 관리
+    GoRoute(
+      path: '/friends',
+      builder: (context, state) => const FriendListScreen(),
+    ),
+    GoRoute(
+      path: '/friends/requests',
+      builder: (context, state) => const FriendRequestsScreen(),
+    ),
+    GoRoute(
+      path: '/friends/contact-search',
+      builder: (context, state) => const ContactSearchScreen(),
     ),
   ],
 );

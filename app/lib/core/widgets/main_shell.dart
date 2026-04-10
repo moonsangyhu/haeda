@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/character/providers/character_provider.dart';
-import '../../features/notifications/providers/notification_provider.dart';
 import '../../features/status_bar/widgets/status_bar.dart';
 import 'character_avatar.dart';
 import 'cute_icon.dart';
@@ -17,7 +16,6 @@ class MainShell extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final unreadCount = ref.watch(unreadCountProvider).valueOrNull ?? 0;
     final character = ref.watch(myCharacterProvider).valueOrNull;
     final currentIndex = navigationShell.currentIndex;
     final theme = Theme.of(context);
@@ -41,7 +39,6 @@ class MainShell extends ConsumerWidget {
       extendBody: true,
       bottomNavigationBar: _BottomBar(
         currentIndex: currentIndex,
-        unreadCount: unreadCount,
         character: character,
         theme: theme,
         onTap: (index) {
@@ -58,14 +55,12 @@ class MainShell extends ConsumerWidget {
 class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.currentIndex,
-    required this.unreadCount,
     required this.character,
     required this.theme,
     required this.onTap,
   });
 
   final int currentIndex;
-  final int unreadCount;
   final dynamic character; // CharacterData?
   final ThemeData theme;
   final ValueChanged<int> onTap;
@@ -119,20 +114,22 @@ class _BottomBar extends StatelessWidget {
                 onTap: () => onTap(2),
                 theme: theme,
               ),
-              // 3: 알림
+              // 3: 피드
               _TabItem(
                 index: 3,
                 isSelected: currentIndex == 3,
-                label: '알림',
-                icon: Badge(
-                  isLabelVisible: unreadCount > 0,
-                  label: Text('$unreadCount'),
-                  child: const CuteIcon('bell', size: 22, opacity: 0.45),
+                label: '피드',
+                icon: Icon(
+                  Icons.dynamic_feed,
+                  size: 22,
+                  color: theme.colorScheme.onSurfaceVariant.withValues(
+                    alpha: 0.45,
+                  ),
                 ),
-                selectedIcon: Badge(
-                  isLabelVisible: unreadCount > 0,
-                  label: Text('$unreadCount'),
-                  child: const CuteIcon('bell', size: 24),
+                selectedIcon: Icon(
+                  Icons.dynamic_feed,
+                  size: 24,
+                  color: theme.colorScheme.primary,
                 ),
                 onTap: onTap,
               ),
