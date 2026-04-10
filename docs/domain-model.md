@@ -90,6 +90,7 @@ User 1──N DeviceToken
 | user_id | UUID | FK → User, NOT NULL | 참여자 |
 | joined_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 참여일시 |
 | badge | VARCHAR(20) | NULLABLE | 완료 배지 (챌린지 종료 시 부여) |
+| notify_streak | BOOLEAN | NOT NULL, DEFAULT TRUE | 연속 인증 알림 수신 여부 (챌린지별 토글) |
 
 **제약 조건:**
 - UNIQUE(challenge_id, user_id) — 동일 챌린지에 중복 참여 불가
@@ -178,7 +179,7 @@ User 1──N DeviceToken
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 생성일시 |
 
 **제약 조건:**
-- `type IN ('verification_reminder', 'member_verified', 'day_completed', 'challenge_completed')`
+- `type IN ('verification_reminder', 'member_verified', 'day_completed', 'challenge_completed', 'streak_milestone')`
 
 ---
 

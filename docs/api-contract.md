@@ -265,6 +265,34 @@
 | ALREADY_JOINED | 이미 참여 중 |
 | CHALLENGE_ENDED | 이미 종료된 챌린지 |
 
+
+---
+
+### PATCH `/challenges/{id}/members/me/settings` — 멤버 알림 설정
+
+챌린지별 알림 설정을 변경한다. 현재는 연속 인증 알림 토글만 지원.
+
+**Request:**
+```json
+{
+  "notify_streak": false
+}
+```
+
+**Response (200):**
+```json
+{
+  "data": {
+    "notify_streak": false
+  }
+}
+```
+
+**에러:**
+| code | 조건 |
+|------|------|
+| CHALLENGE_NOT_FOUND | 존재하지 않는 챌린지 |
+| NOT_A_MEMBER | 챌린지 참여자가 아님 |
 ---
 
 ### GET `/challenges/{id}/completion` — 챌린지 완료 결과 (Flow 8)
@@ -673,3 +701,4 @@
 | member_verified | 인증 제출 시 | 같은 챌린지 다른 멤버 | `{ challenge_id, user_nickname }` |
 | day_completed | 전원 인증 달성 시 | 전체 멤버 | `{ challenge_id, date, season_icon_type }` |
 | challenge_completed | 챌린지 기간 종료 시 | 전체 멤버 | `{ challenge_id, achievement_rate, badge }` |
+| streak_milestone | 연속 인증 마일스톤 달성 시 (3, 7, 14, 30일) | 같은 챌린지 다른 멤버 (notify_streak=true) | `{ challenge_id, user_id, streak_days }` |

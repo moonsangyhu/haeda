@@ -3,12 +3,15 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.exceptions import AppException
+from app.models.challenge_member import ChallengeMember
 from app.schemas.challenge import ChallengeCreate, PublicChallengeListResponse
+from app.schemas.challenge_member import MemberSettingsUpdate
 from app.schemas.nudge import NudgeSendRequest
 from app.services import calendar_service, challenge_service, nudge_service, verification_service
 
@@ -176,6 +179,30 @@ async def join_challenge(
         user_id=user_id,
     )
     return {"data": result.model_dump()}
+
+
+@router.patch("/{challenge_id}/members/me/settings")
+async def update_member_settings(
+    challenge_id: uuid.UUID,
+    body: MemberSettingsUpdate,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    stmt = select(ChallengeMember).where(
+        ChallengeMember.challenge_id == challenge_id,
+        ChallengeMember.user_id == user_id,
+    )
+    result = await db.execute(stmt)
+    member = result.scalar_one_or_none()
+    if member is None:
+        raise AppException(
+            status_code=404,
+            code="NOT_A_MEMBER",
+            message="챌린지 참여자가 아닙니다.",
+        )
+    member.notify_streak = body.notify_streak
+    await db.commit()
+    return {"data": {"notify_streak": member.notify_streak}}
 
 
 @router.post("/{challenge_id}/nudge", status_code=201)

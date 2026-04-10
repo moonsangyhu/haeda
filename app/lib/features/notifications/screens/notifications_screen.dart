@@ -96,6 +96,8 @@ class _NotificationTile extends StatelessWidget {
         return Icons.chat_bubble_outline;
       case 'challenge_complete':
         return Icons.emoji_events_outlined;
+      case 'streak_milestone':
+        return Icons.local_fire_department_outlined;
       default:
         return Icons.notifications_outlined;
     }

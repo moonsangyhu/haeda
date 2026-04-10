@@ -17,6 +17,7 @@ from app.schemas.verification import (
     VerificationCreateResponse,
     VerificationItem,
 )
+from app.services import streak_service
 from app.services.calendar_service import _determine_season
 
 
@@ -123,6 +124,20 @@ async def create_verification(
     )
     db.add(verification)
     await db.flush()  # id 확보를 위해 flush (commit 전)
+
+    # streak 계산 및 마일스톤 알림
+    streak_count = await streak_service.calculate_streak(
+        db=db,
+        challenge_id=challenge_id,
+        user_id=user_id,
+        verification_date=verification_date,
+    )
+    await streak_service.notify_streak_milestone(
+        db=db,
+        challenge_id=challenge_id,
+        user_id=user_id,
+        streak_count=streak_count,
+    )
 
     # 8. 전원 인증 판정
     # 해당 날짜 인증 수 카운트 (방금 flush된 레코드 포함)

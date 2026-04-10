@@ -8,6 +8,7 @@ import '../../../core/widgets/error_widget.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../models/calendar_data.dart';
 import '../providers/challenge_detail_provider.dart';
+import '../providers/member_settings_provider.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/calendar_grid.dart';
 import '../widgets/member_nudge_list.dart';
@@ -58,6 +59,13 @@ class _ChallengeSpaceScreenState
     });
   }
 
+  void _showChallengeSettings(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => _ChallengeSettingsSheet(challengeId: widget.challengeId),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final detailAsync =
@@ -93,7 +101,7 @@ class _ChallengeSpaceScreenState
           ),
         ),
         actions: [
-          if (detailAsync.valueOrNull != null)
+          if (detailAsync.valueOrNull != null) ...[
             IconButton(
               icon: const EmojiIcon('💌'),
               tooltip: '초대 코드 공유',
@@ -111,6 +119,12 @@ class _ChallengeSpaceScreenState
                 );
               },
             ),
+            IconButton(
+              icon: const Icon(Icons.settings_outlined),
+              tooltip: '챌린지 설정',
+              onPressed: () => _showChallengeSettings(context),
+            ),
+          ],
         ],
       ),
       body: detailAsync.when(
@@ -461,6 +475,48 @@ class _MemberSection extends ConsumerWidget {
       members: calendarData.members,
       verifiedMemberIds: todayEntry?.verifiedMembers ?? [],
       currentUserId: currentUserId,
+    );
+  }
+}
+
+class _ChallengeSettingsSheet extends ConsumerWidget {
+  final String challengeId;
+
+  const _ChallengeSettingsSheet({required this.challengeId});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final settings = ref.watch(memberSettingsProvider(challengeId));
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              child: Text(
+                '알림 설정',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+            ),
+            SwitchListTile(
+              title: const Text('연속 인증 알림'),
+              subtitle: const Text('다른 멤버의 연속 인증 달성 시 알림 받기'),
+              value: settings.notifyStreak,
+              onChanged: (value) {
+                ref
+                    .read(memberSettingsProvider(challengeId).notifier)
+                    .toggleStreakNotification(value);
+              },
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

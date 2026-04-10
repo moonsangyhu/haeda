@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, String, UniqueConstraint
+from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -29,6 +29,9 @@ class ChallengeMember(Base):
         nullable=False, server_default=func.now()
     )
     badge: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    notify_streak: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, server_default="true"
+    )
 
     # relationships
     challenge: Mapped["Challenge"] = relationship(
