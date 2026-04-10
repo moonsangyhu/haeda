@@ -17,7 +17,6 @@ class ChallengeCreateResponse with _$ChallengeCreateResponse {
     @JsonKey(name: 'verification_frequency')
     required Map<String, dynamic> verificationFrequency,
     @JsonKey(name: 'photo_required') required bool photoRequired,
-    @JsonKey(name: 'is_public') required bool isPublic,
     @JsonKey(name: 'invite_code') required String inviteCode,
     required String status,
     required ChallengeCreatorBrief creator,

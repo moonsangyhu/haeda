@@ -68,9 +68,9 @@ async def seed():
             text(
                 "INSERT INTO challenges "
                 "(id, creator_id, title, description, category, start_date, end_date, "
-                "verification_frequency, photo_required, invite_code, is_public, status) "
+                "verification_frequency, photo_required, invite_code, status) "
                 "VALUES (:id, :creator_id, :title, :description, :category, :start_date, :end_date, "
-                ":frequency, :photo_required, :invite_code, :is_public, :status)"
+                ":frequency, :photo_required, :invite_code, :status)"
             ),
             {
                 "id": str(CHALLENGE_1_ID),
@@ -83,7 +83,6 @@ async def seed():
                 "frequency": '{"type": "daily"}',
                 "photo_required": False,
                 "invite_code": "SPORT30A",
-                "is_public": False,
                 "status": "active",
             },
         )

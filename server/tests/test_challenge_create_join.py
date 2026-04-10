@@ -40,7 +40,6 @@ async def test_create_challenge_happy_path(
     assert data["end_date"] == "2026-05-04"
     assert data["verification_frequency"] == {"type": "daily"}
     assert data["photo_required"] is True
-    assert data["is_public"] is False
     assert data["status"] == "active"
     assert data["member_count"] == 1
     assert data["creator"]["id"] == str(user.id)

@@ -10,7 +10,7 @@ from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.exceptions import AppException
 from app.models.challenge_member import ChallengeMember
-from app.schemas.challenge import ChallengeCreate, PublicChallengeListResponse
+from app.schemas.challenge import ChallengeCreate
 from app.schemas.challenge_member import MemberSettingsUpdate
 from app.schemas.nudge import NudgeSendRequest
 from app.services import calendar_service, challenge_service, nudge_service, verification_service
@@ -30,22 +30,6 @@ async def create_challenge(
         db=db,
         user_id=user_id,
         data=body,
-    )
-    return {"data": result.model_dump()}
-
-
-@router.get("")
-async def list_public_challenges(
-    cursor: str | None = Query(default=None, description="페이지네이션 커서"),
-    limit: int = Query(default=20, ge=1, description="페이지 크기 (기본 20, 최대 50)"),
-    category: str | None = Query(default=None, description="카테고리 필터"),
-    db: AsyncSession = Depends(get_db),
-) -> dict:
-    result = await challenge_service.get_public_challenges(
-        db=db,
-        cursor=cursor,
-        limit=limit,
-        category=category,
     )
     return {"data": result.model_dump()}
 

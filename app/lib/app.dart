@@ -9,7 +9,6 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/auth/screens/kakao_oauth_screen.dart';
 import 'features/auth/screens/profile_setup_screen.dart';
 import 'features/my_page/screens/my_page_screen.dart';
-import 'features/explore/screens/explore_screen.dart';
 import 'features/notifications/screens/notifications_screen.dart';
 import 'features/challenge_space/screens/challenge_space_screen.dart';
 import 'features/challenge_space/screens/create_verification_screen.dart';
@@ -42,7 +41,7 @@ final _router = GoRouter(
       path: '/profile-setup',
       builder: (context, state) => const ProfileSetupScreen(),
     ),
-    // Bottom tab shell: 내 챌린지 / 탐색 / 알림 / 설정
+    // Bottom tab shell: 내 챌린지 / 알림 / 설정
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
@@ -52,14 +51,6 @@ final _router = GoRouter(
             GoRoute(
               path: '/my-page',
               builder: (context, state) => const MyPageScreen(),
-            ),
-          ],
-        ),
-        StatefulShellBranch(
-          routes: [
-            GoRoute(
-              path: '/explore',
-              builder: (context, state) => const ExploreScreen(),
             ),
           ],
         ),

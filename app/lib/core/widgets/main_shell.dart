@@ -47,11 +47,6 @@ class MainShell extends ConsumerWidget {
             selectedIcon: CuteIcon('home', size: 28),
             label: '내 챌린지',
           ),
-          const NavigationDestination(
-            icon: CuteIcon('search', size: 24, opacity: 0.5),
-            selectedIcon: CuteIcon('search', size: 28),
-            label: '탐색',
-          ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: unreadCount > 0,

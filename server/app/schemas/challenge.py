@@ -14,7 +14,6 @@ class ChallengeCreate(BaseModel):
     end_date: date
     verification_frequency: dict
     photo_required: bool = False
-    is_public: bool = False
 
 
 class ChallengeCreateResponse(BaseModel):
@@ -26,7 +25,6 @@ class ChallengeCreateResponse(BaseModel):
     end_date: date
     verification_frequency: dict
     photo_required: bool
-    is_public: bool
     invite_code: str
     status: str
     creator: UserBrief
@@ -65,7 +63,6 @@ class ChallengeDetail(BaseModel):
     end_date: date
     verification_frequency: dict
     photo_required: bool
-    is_public: bool
     invite_code: str
     status: str
     creator: UserBrief
@@ -128,22 +125,3 @@ class CompletionResponse(BaseModel):
     members: list[CompletionMember]
     day_completions: int
     calendar_summary: CompletionCalendarSummary
-
-
-# --- Public challenge listing (P1: GET /challenges) ---
-
-
-class PublicChallengeListItem(BaseModel):
-    id: uuid.UUID
-    title: str
-    category: str
-    start_date: date
-    end_date: date
-    member_count: int
-    photo_required: bool
-    creator: UserBrief
-
-
-class PublicChallengeListResponse(BaseModel):
-    challenges: list[PublicChallengeListItem]
-    next_cursor: str | None

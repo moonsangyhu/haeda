@@ -39,7 +39,6 @@ async def expired_daily_challenge(db_session: AsyncSession, user: User) -> Chall
         verification_frequency={"type": "daily"},
         photo_required=False,
         invite_code="EXP10001",
-        is_public=False,
         status="active",
     )
     db_session.add(c)
@@ -62,7 +61,6 @@ async def expired_weekly_challenge(db_session: AsyncSession, user: User) -> Chal
         verification_frequency={"type": "weekly", "times_per_week": 3},
         photo_required=False,
         invite_code="EXP20002",
-        is_public=False,
         status="active",
     )
     db_session.add(c)
@@ -85,7 +83,6 @@ async def future_challenge(db_session: AsyncSession, user: User) -> Challenge:
         verification_frequency={"type": "daily"},
         photo_required=False,
         invite_code="FUT30003",
-        is_public=False,
         status="active",
     )
     db_session.add(c)
@@ -108,7 +105,6 @@ async def already_completed_challenge(db_session: AsyncSession, user: User) -> C
         verification_frequency={"type": "daily"},
         photo_required=False,
         invite_code="DONE4444",
-        is_public=False,
         status="completed",
     )
     db_session.add(c)

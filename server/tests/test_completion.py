@@ -37,7 +37,6 @@ async def completed_challenge(db_session: AsyncSession, user: User) -> Challenge
         verification_frequency={"type": "daily"},
         photo_required=False,
         invite_code="DONE1234",
-        is_public=False,
         status="completed",
     )
     db_session.add(c)

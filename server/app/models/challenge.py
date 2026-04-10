@@ -37,9 +37,6 @@ class Challenge(Base):
         Boolean, nullable=False, default=False, server_default="false"
     )
     invite_code: Mapped[str] = mapped_column(String(8), unique=True, nullable=False)
-    is_public: Mapped[bool] = mapped_column(
-        Boolean, nullable=False, default=False, server_default="false"
-    )
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="active", server_default="active"
     )
