@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/widgets/cute_icon.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../providers/settings_provider.dart';
 
@@ -79,7 +81,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       : null,
                   child: (user?.profileImageUrl == null ||
                           (user?.profileImageUrl?.isEmpty ?? true))
-                      ? const Text('😊', style: TextStyle(fontSize: 32))
+                      ? SvgPicture.asset('assets/icons/smile.svg', width: 36, height: 36)
                       : null,
                 ),
                 const SizedBox(width: 16),
@@ -120,7 +122,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Dark mode toggle
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            secondary: const Text('🌙', style: TextStyle(fontSize: 24)),
+            secondary: const CuteIcon('moon', size: 26),
             title: const Text('다크 모드'),
             subtitle: const Text('앱 화면을 어둡게 표시합니다'),
             value: settings.darkMode,
@@ -132,7 +134,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           // Notifications toggle
           SwitchListTile(
             contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-            secondary: const Text('🔔', style: TextStyle(fontSize: 24)),
+            secondary: const CuteIcon('bell', size: 26),
             title: const Text('알림'),
             subtitle: const Text('푸시 알림을 받습니다'),
             value: settings.notificationsEnabled,
@@ -156,7 +158,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                       height: 18,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Text('👋', style: TextStyle(fontSize: 20)),
+                  : const CuteIcon('wave', size: 22),
               label: Text(_isLoggingOut ? '로그아웃 중...' : '로그아웃'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: theme.colorScheme.error,

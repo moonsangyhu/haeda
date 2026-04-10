@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../features/my_page/providers/my_challenges_provider.dart';
 import '../../features/notifications/providers/notification_provider.dart';
 import '../../features/status_bar/widgets/status_bar.dart';
+import 'cute_icon.dart';
 import 'verify_bottom_sheet.dart';
 
 class MainShell extends ConsumerWidget {
@@ -75,51 +76,36 @@ class MainShell extends ConsumerWidget {
         },
         destinations: [
           const NavigationDestination(
-            icon: Opacity(
-              opacity: 0.5,
-              child: Text('🏡', style: TextStyle(fontSize: 22)),
-            ),
-            selectedIcon: Text('🏡', style: TextStyle(fontSize: 26)),
+            icon: CuteIcon('home', size: 24, opacity: 0.5),
+            selectedIcon: CuteIcon('home', size: 28),
             label: '내 챌린지',
           ),
           const NavigationDestination(
-            icon: Opacity(
-              opacity: 0.5,
-              child: Text('🔍', style: TextStyle(fontSize: 22)),
-            ),
-            selectedIcon: Text('🔍', style: TextStyle(fontSize: 26)),
+            icon: CuteIcon('search', size: 24, opacity: 0.5),
+            selectedIcon: CuteIcon('search', size: 28),
             label: '탐색',
           ),
           const NavigationDestination(
-            icon: Opacity(
-              opacity: 0.5,
-              child: Text('📸', style: TextStyle(fontSize: 24)),
-            ),
-            selectedIcon: Text('📸', style: TextStyle(fontSize: 28)),
+            icon: CuteIcon('camera', size: 26, opacity: 0.5),
+            selectedIcon: CuteIcon('camera', size: 32),
             label: '인증',
           ),
           NavigationDestination(
             icon: Badge(
               isLabelVisible: unreadCount > 0,
               label: Text('$unreadCount'),
-              child: const Opacity(
-                opacity: 0.5,
-                child: Text('🔔', style: TextStyle(fontSize: 22)),
-              ),
+              child: const CuteIcon('bell', size: 24, opacity: 0.5),
             ),
             selectedIcon: Badge(
               isLabelVisible: unreadCount > 0,
               label: Text('$unreadCount'),
-              child: const Text('🔔', style: TextStyle(fontSize: 26)),
+              child: const CuteIcon('bell', size: 28),
             ),
             label: '알림',
           ),
           const NavigationDestination(
-            icon: Opacity(
-              opacity: 0.5,
-              child: Text('⚙️', style: TextStyle(fontSize: 22)),
-            ),
-            selectedIcon: Text('⚙️', style: TextStyle(fontSize: 26)),
+            icon: CuteIcon('settings', size: 24, opacity: 0.5),
+            selectedIcon: CuteIcon('settings', size: 28),
             label: '설정',
           ),
         ],

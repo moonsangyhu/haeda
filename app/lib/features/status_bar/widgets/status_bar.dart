@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../models/user_stats.dart';
 import '../providers/user_stats_provider.dart';
 
@@ -26,7 +27,7 @@ class _StatusBarContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final streakIcon = stats.verifiedToday ? '🔥' : '💤';
+    final streakAsset = stats.verifiedToday ? 'fire' : 'sleep';
     final isDark = theme.brightness == Brightness.dark;
     final pillOpacity = isDark ? 0.10 : 0.15;
 
@@ -46,7 +47,7 @@ class _StatusBarContent extends StatelessWidget {
                   color: const Color(0xFFFF6B35),
                   opacity: pillOpacity,
                   child: _StatItem(
-                    icon: streakIcon,
+                    asset: streakAsset,
                     value: '${stats.streak}',
                   ),
                 ),
@@ -58,7 +59,7 @@ class _StatusBarContent extends StatelessWidget {
                   color: const Color(0xFFFFB800),
                   opacity: pillOpacity,
                   child: _StatItem(
-                    icon: '⚡',
+                    asset: 'lightning',
                     value: '${stats.activeChallenges}/${stats.completedChallenges}',
                   ),
                 ),
@@ -70,7 +71,7 @@ class _StatusBarContent extends StatelessWidget {
                   color: const Color(0xFF4FC3F7),
                   opacity: pillOpacity,
                   child: _StatItem(
-                    icon: '💎',
+                    asset: 'gem',
                     value: '${stats.gems}',
                   ),
                 ),
@@ -114,11 +115,11 @@ class _StatPill extends StatelessWidget {
 
 class _StatItem extends StatelessWidget {
   const _StatItem({
-    required this.icon,
+    required this.asset,
     required this.value,
   });
 
-  final String icon;
+  final String asset;
   final String value;
 
   @override
@@ -128,7 +129,11 @@ class _StatItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(icon, style: const TextStyle(fontSize: 20)),
+        SvgPicture.asset(
+          'assets/icons/$asset.svg',
+          width: 20,
+          height: 20,
+        ),
         const SizedBox(width: 4),
         Text(
           value,
