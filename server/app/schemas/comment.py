@@ -3,6 +3,7 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
+from app.schemas.character_schema import MemberCharacter
 from app.schemas.user import UserBrief
 
 
@@ -10,6 +11,7 @@ class CommentAuthor(BaseModel):
     id: uuid.UUID
     nickname: str
     profile_image_url: str | None
+    character: MemberCharacter | None = None
 
     model_config = {"from_attributes": True}
 

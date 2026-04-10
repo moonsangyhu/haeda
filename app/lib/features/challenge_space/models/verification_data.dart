@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../features/character/models/coin_earned.dart';
+import '../../character/models/character_data.dart';
 
 part 'verification_data.freezed.dart';
 part 'verification_data.g.dart';
@@ -29,6 +30,7 @@ class VerificationUser with _$VerificationUser {
     required String id,
     required String nickname,
     @JsonKey(name: 'profile_image_url') String? profileImageUrl,
+    CharacterData? character,
   }) = _VerificationUser;
 
   factory VerificationUser.fromJson(Map<String, dynamic> json) =>

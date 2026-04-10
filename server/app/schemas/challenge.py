@@ -3,20 +3,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel
 
+from app.schemas.character_schema import CharacterSlotBrief, MemberCharacter
 from app.schemas.user import UserBrief
-
-
-class CharacterSlotBrief(BaseModel):
-    asset_key: str
-    rarity: str
-
-
-class MemberCharacter(BaseModel):
-    hat: CharacterSlotBrief | None
-    top: CharacterSlotBrief | None
-    bottom: CharacterSlotBrief | None
-    shoes: CharacterSlotBrief | None
-    accessory: CharacterSlotBrief | None
 
 
 class CalendarMember(BaseModel):

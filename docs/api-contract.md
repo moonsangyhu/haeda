@@ -499,7 +499,14 @@
         "user": {
           "id": "uuid",
           "nickname": "김철수",
-          "profile_image_url": "string"
+          "profile_image_url": "string",
+          "character": {
+            "hat": { "asset_key": "hat/pink_beanie.png", "rarity": "COMMON" } | null,
+            "top": null,
+            "bottom": null,
+            "shoes": null,
+            "accessory": null
+          } | null
         },
         "photo_urls": ["string"] | null,
         "diary_text": "오늘은 5km 달렸다!",
@@ -524,7 +531,14 @@
     "user": {
       "id": "uuid",
       "nickname": "김철수",
-      "profile_image_url": "string"
+      "profile_image_url": "string",
+      "character": {
+        "hat": { "asset_key": "hat/pink_beanie.png", "rarity": "COMMON" } | null,
+        "top": null,
+        "bottom": null,
+        "shoes": null,
+        "accessory": null
+      } | null
     },
     "date": "2026-04-01",
     "photo_urls": ["string"] | null,
@@ -535,7 +549,14 @@
         "author": {
           "id": "uuid",
           "nickname": "이영희",
-          "profile_image_url": "string"
+          "profile_image_url": "string",
+          "character": {
+            "hat": null,
+            "top": { "asset_key": "top/striped_tee.png", "rarity": "COMMON" } | null,
+            "bottom": null,
+            "shoes": null,
+            "accessory": null
+          } | null
         },
         "content": "대단해요! 👏",
         "created_at": "2026-04-01T09:00:00Z"

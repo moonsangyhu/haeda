@@ -2,11 +2,14 @@ import uuid
 
 from pydantic import BaseModel
 
+from app.schemas.character_schema import MemberCharacter
+
 
 class UserBrief(BaseModel):
     id: uuid.UUID
     nickname: str
     profile_image_url: str | None
+    character: MemberCharacter | None = None
 
     model_config = {"from_attributes": True}
 

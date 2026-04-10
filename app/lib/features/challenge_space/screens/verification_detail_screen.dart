@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../models/comment_data.dart';
@@ -128,18 +129,9 @@ class _AuthorSection extends StatelessWidget {
 
     return Row(
       children: [
-        CircleAvatar(
-          radius: 24,
-          backgroundColor: theme.colorScheme.primaryContainer,
-          backgroundImage: user.profileImageUrl != null
-              ? NetworkImage(user.profileImageUrl!)
-              : null,
-          child: user.profileImageUrl == null
-              ? Text(
-                  user.nickname.isNotEmpty ? user.nickname[0] : '?',
-                  style: const TextStyle(fontSize: 16),
-                )
-              : null,
+        CharacterAvatar(
+          character: detail.user.character,
+          size: 48,
         ),
         const SizedBox(width: 12),
         Column(
@@ -358,18 +350,9 @@ class _CommentItemTile extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
-            radius: 16,
-            backgroundColor: theme.colorScheme.primaryContainer,
-            backgroundImage: author.profileImageUrl != null
-                ? NetworkImage(author.profileImageUrl!)
-                : null,
-            child: author.profileImageUrl == null
-                ? Text(
-                    author.nickname.isNotEmpty ? author.nickname[0] : '?',
-                    style: const TextStyle(fontSize: 12),
-                  )
-                : null,
+          CharacterAvatar(
+            character: comment.author.character,
+            size: 32,
           ),
           const SizedBox(width: 8),
           Expanded(

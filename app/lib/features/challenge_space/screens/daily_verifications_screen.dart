@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/season_icons.dart';
+import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -179,20 +180,9 @@ class _VerificationListItem extends StatelessWidget {
 
     return ListTile(
       onTap: () => context.push('/verifications/${item.id}'),
-      leading: CircleAvatar(
-        radius: 22,
-        backgroundColor: theme.colorScheme.primaryContainer,
-        backgroundImage: item.user.profileImageUrl != null
-            ? NetworkImage(item.user.profileImageUrl!)
-            : null,
-        child: item.user.profileImageUrl == null
-            ? Text(
-                item.user.nickname.isNotEmpty
-                    ? item.user.nickname[0]
-                    : '?',
-                style: const TextStyle(fontSize: 14),
-              )
-            : null,
+      leading: CharacterAvatar(
+        character: item.user.character,
+        size: 44,
       ),
       title: Row(
         children: [

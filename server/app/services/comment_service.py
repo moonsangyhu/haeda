@@ -16,6 +16,7 @@ from app.schemas.comment import (
     VerificationDetailResponse,
 )
 from app.schemas.user import UserBrief
+from app.services.character_helpers import load_member_characters
 
 
 async def _get_verification_or_404(
@@ -75,6 +76,9 @@ async def get_verification_detail(
     comments_result = await db.execute(comments_stmt)
     comment_rows = comments_result.all()
 
+    all_user_ids = [verification_user.id] + [row.User.id for row in comment_rows]
+    char_map = await load_member_characters(db, list(set(all_user_ids)))
+
     comments = [
         CommentItem(
             id=row.Comment.id,
@@ -82,6 +86,7 @@ async def get_verification_detail(
                 id=row.User.id,
                 nickname=row.User.nickname,
                 profile_image_url=row.User.profile_image_url,
+                character=char_map.get(row.User.id),
             ),
             content=row.Comment.content,
             created_at=row.Comment.created_at,
@@ -96,6 +101,7 @@ async def get_verification_detail(
             id=verification_user.id,
             nickname=verification_user.nickname,
             profile_image_url=verification_user.profile_image_url,
+            character=char_map.get(verification_user.id),
         ),
         date=verification.date,
         photo_urls=verification.photo_urls,
@@ -161,6 +167,9 @@ async def get_comments(
     has_next = len(rows) > limit
     page_rows = rows[:limit]
 
+    author_ids = list({row.User.id for row in page_rows})
+    char_map = await load_member_characters(db, author_ids)
+
     comments = [
         CommentItem(
             id=row.Comment.id,
@@ -168,6 +177,7 @@ async def get_comments(
                 id=row.User.id,
                 nickname=row.User.nickname,
                 profile_image_url=row.User.profile_image_url,
+                character=char_map.get(row.User.id),
             ),
             content=row.Comment.content,
             created_at=row.Comment.created_at,
@@ -211,6 +221,8 @@ async def create_comment(
     user_result = await db.execute(user_stmt)
     author = user_result.scalar_one()
 
+    char_map = await load_member_characters(db, [user_id])
+
     # 5. Comment 레코드 생성
     comment = Comment(
         id=uuid.uuid4(),
@@ -228,6 +240,7 @@ async def create_comment(
             id=author.id,
             nickname=author.nickname,
             profile_image_url=author.profile_image_url,
+            character=char_map.get(user_id),
         ),
         content=comment.content,
         created_at=comment.created_at,

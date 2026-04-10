@@ -1,5 +1,6 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'verification_data.dart';
+import '../../character/models/character_data.dart';
 
 part 'comment_data.freezed.dart';
 part 'comment_data.g.dart';
@@ -11,6 +12,7 @@ class CommentAuthor with _$CommentAuthor {
     required String id,
     required String nickname,
     @JsonKey(name: 'profile_image_url') String? profileImageUrl,
+    CharacterData? character,
   }) = _CommentAuthor;
 
   factory CommentAuthor.fromJson(Map<String, dynamic> json) =>

@@ -20,6 +20,7 @@ from app.schemas.verification import (
 )
 from app.services import gem_service, streak_service
 from app.services.calendar_service import _determine_season
+from app.services.character_helpers import load_member_characters
 
 
 async def _get_challenge_or_404(db: AsyncSession, challenge_id: uuid.UUID) -> Challenge:
@@ -262,6 +263,10 @@ async def get_daily_verifications(
     verif_result = await db.execute(verif_stmt)
     verif_rows = verif_result.all()
 
+    # 캐릭터 정보 로딩
+    user_ids = [row.User.id for row in verif_rows]
+    char_map = await load_member_characters(db, user_ids)
+
     # 4. DayCompletion 조회
     dc_stmt = select(DayCompletion).where(
         DayCompletion.challenge_id == challenge_id,
@@ -291,6 +296,7 @@ async def get_daily_verifications(
                 id=row.User.id,
                 nickname=row.User.nickname,
                 profile_image_url=row.User.profile_image_url,
+                character=char_map.get(row.User.id),
             ),
             photo_urls=row.Verification.photo_urls,
             diary_text=row.Verification.diary_text,
