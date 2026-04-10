@@ -86,7 +86,7 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
                   ),
                   const Spacer(),
                   TextButton(
-                    onPressed: () => context.push('/shop'),
+                    onPressed: () => context.go('/shop'),
                     child: const Text('상점'),
                   ),
                 ],
@@ -144,9 +144,9 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
               ),
             ),
 
-            // Bottom link
+            // Bottom link - navigate to shop tab
             GestureDetector(
-              onTap: () => context.push('/shop'),
+              onTap: () => context.go('/shop'),
               child: Padding(
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 child: Text(
@@ -395,6 +395,23 @@ class _ItemCard extends StatelessWidget {
                 ),
               ),
             ),
+            if (userItem.item.effectType != null) ...[
+              const SizedBox(height: 2),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2),
+                child: Text(
+                  _effectShortLabel(userItem.item.effectType!),
+                  style: TextStyle(
+                    fontSize: 8,
+                    color: theme.colorScheme.tertiary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
             if (isEquipped) ...[
               const SizedBox(height: 4),
               Text(
@@ -427,6 +444,19 @@ String _categoryEmoji(String category) {
       return '✨';
     default:
       return '🎁';
+  }
+}
+
+String _effectShortLabel(String effectType) {
+  switch (effectType) {
+    case 'STREAK_SHIELD':
+      return '🛡️ 실드';
+    case 'COIN_BOOST':
+      return '💰 부스트';
+    case 'VERIFY_BONUS':
+      return '⭐ 보너스';
+    default:
+      return '';
   }
 }
 

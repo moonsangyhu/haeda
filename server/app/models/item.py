@@ -20,6 +20,8 @@ class Item(Base):
     price: Mapped[int] = mapped_column(Integer, nullable=False)
     rarity: Mapped[str] = mapped_column(String(10), nullable=False)
     asset_key: Mapped[str] = mapped_column(String(100), nullable=False)
+    effect_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
+    effect_value: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(

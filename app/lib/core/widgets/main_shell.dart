@@ -20,9 +20,9 @@ class MainShell extends ConsumerWidget {
     return Scaffold(
       body: Column(
         children: [
-          SafeArea(
+          const SafeArea(
             bottom: false,
-            child: const StatusBar(),
+            child: StatusBar(),
           ),
           Expanded(
             child: MediaQuery.removePadding(
@@ -51,6 +51,11 @@ class MainShell extends ConsumerWidget {
             icon: Icon(Icons.bedroom_parent_outlined, size: 24),
             selectedIcon: Icon(Icons.bedroom_parent, size: 28),
             label: '내 방',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.storefront_outlined, size: 24),
+            selectedIcon: Icon(Icons.storefront, size: 28),
+            label: '상점',
           ),
           NavigationDestination(
             icon: Badge(

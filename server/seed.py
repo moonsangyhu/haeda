@@ -23,6 +23,16 @@ USER_2_ID = uuid.UUID("22222222-2222-2222-2222-222222222222")
 USER_3_ID = uuid.UUID("33333333-3333-3333-3333-333333333333")
 CHALLENGE_1_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
 
+# ── 고정 아이템 UUID (user_items / character_equips 참조용) ──
+ITEM_CAP = uuid.UUID("10000000-0000-0000-0000-000000000001")      # 캡모자
+ITEM_BEANIE = uuid.UUID("10000000-0000-0000-0000-000000000002")   # 비니
+ITEM_HEADBAND = uuid.UUID("10000000-0000-0000-0000-000000000003") # 머리띠
+ITEM_WHITE_TEE = uuid.UUID("10000000-0000-0000-0000-000000000011") # 흰티
+ITEM_HOODIE = uuid.UUID("10000000-0000-0000-0000-000000000014")   # 후드티
+ITEM_JEANS = uuid.UUID("10000000-0000-0000-0000-000000000021")    # 청바지
+ITEM_SNEAKERS = uuid.UUID("10000000-0000-0000-0000-000000000032") # 운동화
+ITEM_BOOTS = uuid.UUID("10000000-0000-0000-0000-000000000034")    # 부츠
+
 
 def _season(d: date) -> str:
     m = d.month
@@ -154,72 +164,159 @@ async def seed():
             d = date.fromordinal(d.toordinal() + 1)
 
         # ── Items (30개: 카테고리당 6개) ──
+        # (category, name, price, rarity, asset_key, effect_type, effect_value)
         items_data = [
             # HAT
-            ("HAT", "캡모자", 30, "COMMON", "hat/cap.png"),
-            ("HAT", "비니", 40, "COMMON", "hat/beanie.png"),
-            ("HAT", "머리띠", 50, "COMMON", "hat/headband.png"),
-            ("HAT", "페도라", 120, "RARE", "hat/fedora.png"),
-            ("HAT", "베레모", 150, "RARE", "hat/beret.png"),
-            ("HAT", "왕관", 400, "EPIC", "hat/crown.png"),
+            (ITEM_CAP,      "HAT", "캡모자",  30,  "COMMON", "hat/cap.png",    None,            None),
+            (ITEM_BEANIE,   "HAT", "비니",    40,  "COMMON", "hat/beanie.png", None,            None),
+            (ITEM_HEADBAND, "HAT", "머리띠",  50,  "COMMON", "hat/headband.png", None,          None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000004"), "HAT", "페도라",  120, "RARE",   "hat/fedora.png",   "COIN_BOOST",    10),
+            (uuid.UUID("10000000-0000-0000-0000-000000000005"), "HAT", "베레모",  150, "RARE",   "hat/beret.png",    "STREAK_SHIELD", 1),
+            (uuid.UUID("10000000-0000-0000-0000-000000000006"), "HAT", "왕관",    400, "EPIC",   "hat/crown.png",    "STREAK_SHIELD", 3),
             # TOP
-            ("TOP", "흰티", 30, "COMMON", "top/white_tee.png"),
-            ("TOP", "줄무늬티", 40, "COMMON", "top/striped_tee.png"),
-            ("TOP", "민소매", 50, "COMMON", "top/sleeveless.png"),
-            ("TOP", "후드티", 120, "RARE", "top/hoodie.png"),
-            ("TOP", "가디건", 150, "RARE", "top/cardigan.png"),
-            ("TOP", "턱시도", 400, "EPIC", "top/tuxedo.png"),
+            (ITEM_WHITE_TEE, "TOP", "흰티",    30,  "COMMON", "top/white_tee.png",  None,            None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000012"), "TOP", "줄무늬티", 40,  "COMMON", "top/striped_tee.png", None,          None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000013"), "TOP", "민소매",   50,  "COMMON", "top/sleeveless.png",  None,          None),
+            (ITEM_HOODIE,    "TOP", "후드티",  120, "RARE",   "top/hoodie.png",      "VERIFY_BONUS",  3),
+            (uuid.UUID("10000000-0000-0000-0000-000000000015"), "TOP", "가디건",   150, "RARE",   "top/cardigan.png",    "COIN_BOOST",   15),
+            (uuid.UUID("10000000-0000-0000-0000-000000000016"), "TOP", "턱시도",   400, "EPIC",   "top/tuxedo.png",      "COIN_BOOST",   30),
             # BOTTOM
-            ("BOTTOM", "청바지", 30, "COMMON", "bottom/jeans.png"),
-            ("BOTTOM", "반바지", 40, "COMMON", "bottom/shorts.png"),
-            ("BOTTOM", "면바지", 50, "COMMON", "bottom/chinos.png"),
-            ("BOTTOM", "치마", 120, "RARE", "bottom/skirt.png"),
-            ("BOTTOM", "카고바지", 150, "RARE", "bottom/cargo.png"),
-            ("BOTTOM", "황금바지", 400, "EPIC", "bottom/golden_pants.png"),
+            (ITEM_JEANS, "BOTTOM", "청바지",   30,  "COMMON", "bottom/jeans.png",        None,            None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000022"), "BOTTOM", "반바지",   40,  "COMMON", "bottom/shorts.png",       None,            None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000023"), "BOTTOM", "면바지",   50,  "COMMON", "bottom/chinos.png",       None,            None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000024"), "BOTTOM", "치마",     120, "RARE",   "bottom/skirt.png",        "VERIFY_BONUS",  3),
+            (uuid.UUID("10000000-0000-0000-0000-000000000025"), "BOTTOM", "카고바지", 150, "RARE",   "bottom/cargo.png",        "STREAK_SHIELD", 1),
+            (uuid.UUID("10000000-0000-0000-0000-000000000026"), "BOTTOM", "황금바지", 400, "EPIC",   "bottom/golden_pants.png", "VERIFY_BONUS",  10),
             # SHOES
-            ("SHOES", "슬리퍼", 30, "COMMON", "shoes/slippers.png"),
-            ("SHOES", "운동화", 40, "COMMON", "shoes/sneakers.png"),
-            ("SHOES", "샌들", 50, "COMMON", "shoes/sandals.png"),
-            ("SHOES", "부츠", 120, "RARE", "shoes/boots.png"),
-            ("SHOES", "하이탑", 150, "RARE", "shoes/hightops.png"),
-            ("SHOES", "날개신발", 400, "EPIC", "shoes/winged_shoes.png"),
+            (uuid.UUID("10000000-0000-0000-0000-000000000031"), "SHOES", "슬리퍼",   30,  "COMMON", "shoes/slippers.png",   None,            None),
+            (ITEM_SNEAKERS,                                      "SHOES", "운동화",   40,  "COMMON", "shoes/sneakers.png",   None,            None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000033"), "SHOES", "샌들",     50,  "COMMON", "shoes/sandals.png",    None,            None),
+            (ITEM_BOOTS,                                         "SHOES", "부츠",     120, "RARE",   "shoes/boots.png",      "STREAK_SHIELD", 1),
+            (uuid.UUID("10000000-0000-0000-0000-000000000035"), "SHOES", "하이탑",   150, "RARE",   "shoes/hightops.png",   "COIN_BOOST",    10),
+            (uuid.UUID("10000000-0000-0000-0000-000000000036"), "SHOES", "날개신발", 400, "EPIC",   "shoes/winged_shoes.png", "STREAK_SHIELD", 3),
             # ACCESSORY
-            ("ACCESSORY", "시계", 30, "COMMON", "accessory/watch.png"),
-            ("ACCESSORY", "가방", 40, "COMMON", "accessory/bag.png"),
-            ("ACCESSORY", "스카프", 50, "COMMON", "accessory/scarf.png"),
-            ("ACCESSORY", "선글라스", 120, "RARE", "accessory/sunglasses.png"),
-            ("ACCESSORY", "이어폰", 150, "RARE", "accessory/earphones.png"),
-            ("ACCESSORY", "천사날개", 400, "EPIC", "accessory/angel_wings.png"),
+            (uuid.UUID("10000000-0000-0000-0000-000000000041"), "ACCESSORY", "시계",     30,  "COMMON", "accessory/watch.png",       None,           None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000042"), "ACCESSORY", "가방",     40,  "COMMON", "accessory/bag.png",         None,           None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000043"), "ACCESSORY", "스카프",   50,  "COMMON", "accessory/scarf.png",       None,           None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000044"), "ACCESSORY", "선글라스", 120, "RARE",   "accessory/sunglasses.png",  "COIN_BOOST",   10),
+            (uuid.UUID("10000000-0000-0000-0000-000000000045"), "ACCESSORY", "이어폰",   150, "RARE",   "accessory/earphones.png",   "VERIFY_BONUS", 5),
+            (uuid.UUID("10000000-0000-0000-0000-000000000046"), "ACCESSORY", "천사날개", 400, "EPIC",   "accessory/angel_wings.png", "COIN_BOOST",   25),
         ]
 
-        for category, name, price, rarity, asset_key in items_data:
+        for item_id, category, name, price, rarity, asset_key, effect_type, effect_value in items_data:
             await db.execute(
                 text(
-                    "INSERT INTO items (id, name, category, price, rarity, asset_key, is_active, sort_order) "
-                    "VALUES (:id, :name, :category, :price, :rarity, :asset_key, true, :sort_order)"
+                    "INSERT INTO items "
+                    "(id, name, category, price, rarity, asset_key, is_active, sort_order, effect_type, effect_value) "
+                    "VALUES (:id, :name, :category, :price, :rarity, :asset_key, true, :sort_order, :effect_type, :effect_value)"
                 ),
                 {
-                    "id": str(uuid.uuid4()),
+                    "id": str(item_id),
                     "name": name,
                     "category": category,
                     "price": price,
                     "rarity": rarity,
                     "asset_key": asset_key,
                     "sort_order": price,
+                    "effect_type": effect_type,
+                    "effect_value": effect_value,
                 },
             )
 
-        # ── GemTransactions (김철수에게 초기 코인 200 지급) ──
+        # ── GemTransactions (유저별 초기 코인 지급) ──
+        gem_data = [
+            (USER_1_ID, 500, "DAILY_LOGIN"),   # 김철수 500코인
+            (USER_2_ID, 300, "DAILY_LOGIN"),   # 이영희 300코인
+            (USER_3_ID, 100, "DAILY_LOGIN"),   # 박지민 100코인
+        ]
+        for uid, amount, reason in gem_data:
+            await db.execute(
+                text(
+                    "INSERT INTO gem_transactions (id, user_id, amount, reason) "
+                    "VALUES (:id, :user_id, :amount, :reason)"
+                ),
+                {
+                    "id": str(uuid.uuid4()),
+                    "user_id": str(uid),
+                    "amount": amount,
+                    "reason": reason,
+                },
+            )
+
+        # ── UserItems ──
+        # 김철수: 캡모자, 흰티, 청바지, 운동화
+        # 이영희: 비니, 후드티, 부츠
+        # 박지민: 머리띠
+        user_items_data = [
+            (USER_1_ID, ITEM_CAP),
+            (USER_1_ID, ITEM_WHITE_TEE),
+            (USER_1_ID, ITEM_JEANS),
+            (USER_1_ID, ITEM_SNEAKERS),
+            (USER_2_ID, ITEM_BEANIE),
+            (USER_2_ID, ITEM_HOODIE),
+            (USER_2_ID, ITEM_BOOTS),
+            (USER_3_ID, ITEM_HEADBAND),
+        ]
+        for uid, iid in user_items_data:
+            await db.execute(
+                text(
+                    "INSERT INTO user_items (id, user_id, item_id) "
+                    "VALUES (:id, :user_id, :item_id)"
+                ),
+                {
+                    "id": str(uuid.uuid4()),
+                    "user_id": str(uid),
+                    "item_id": str(iid),
+                },
+            )
+
+        # ── CharacterEquips ──
+        # 김철수: 전부 장착
         await db.execute(
             text(
-                "INSERT INTO gem_transactions (id, user_id, amount, reason) "
-                "VALUES (:id, :user_id, :amount, :reason)"
+                "INSERT INTO character_equips "
+                "(user_id, hat_item_id, top_item_id, bottom_item_id, shoes_item_id, accessory_item_id) "
+                "VALUES (:user_id, :hat, :top, :bottom, :shoes, :accessory)"
             ),
             {
-                "id": str(uuid.uuid4()),
                 "user_id": str(USER_1_ID),
-                "amount": 200,
-                "reason": "DAILY_LOGIN",
+                "hat": str(ITEM_CAP),
+                "top": str(ITEM_WHITE_TEE),
+                "bottom": str(ITEM_JEANS),
+                "shoes": str(ITEM_SNEAKERS),
+                "accessory": None,
+            },
+        )
+        # 이영희: 비니 + 후드티만 장착
+        await db.execute(
+            text(
+                "INSERT INTO character_equips "
+                "(user_id, hat_item_id, top_item_id, bottom_item_id, shoes_item_id, accessory_item_id) "
+                "VALUES (:user_id, :hat, :top, :bottom, :shoes, :accessory)"
+            ),
+            {
+                "user_id": str(USER_2_ID),
+                "hat": str(ITEM_BEANIE),
+                "top": str(ITEM_HOODIE),
+                "bottom": None,
+                "shoes": None,
+                "accessory": None,
+            },
+        )
+        # 박지민: 머리띠만 장착
+        await db.execute(
+            text(
+                "INSERT INTO character_equips "
+                "(user_id, hat_item_id, top_item_id, bottom_item_id, shoes_item_id, accessory_item_id) "
+                "VALUES (:user_id, :hat, :top, :bottom, :shoes, :accessory)"
+            ),
+            {
+                "user_id": str(USER_3_ID),
+                "hat": str(ITEM_HEADBAND),
+                "top": None,
+                "bottom": None,
+                "shoes": None,
+                "accessory": None,
             },
         )
 
@@ -230,8 +327,10 @@ async def seed():
         print(f"  Members: 3")
         print(f"  Verifications: 46 (16+14+16)")
         print(f"  DayCompletions: 14 (3/5~3/18)")
-        print(f"  Items: 30 (6 per category)")
-        print(f"  GemTransactions: 1 (김철수 200 coins)")
+        print(f"  Items: 30 (6 per category, with effect data)")
+        print(f"  GemTransactions: 3 (김철수 500, 이영희 300, 박지민 100)")
+        print(f"  UserItems: 8 (김철수 4, 이영희 3, 박지민 1)")
+        print(f"  CharacterEquips: 3")
         print(f"\nTest tokens (use as Bearer <uuid>):")
         print(f"  김철수: {USER_1_ID}")
         print(f"  이영희: {USER_2_ID}")

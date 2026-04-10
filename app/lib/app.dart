@@ -43,7 +43,7 @@ final _router = GoRouter(
       path: '/profile-setup',
       builder: (context, state) => const ProfileSetupScreen(),
     ),
-    // Bottom tab shell: 내 챌린지 / 내 방 / 알림 / 설정
+    // Bottom tab shell: 내 챌린지 / 내 방 / 상점 / 알림 / 설정
     StatefulShellRoute.indexedStack(
       builder: (context, state, navigationShell) =>
           MainShell(navigationShell: navigationShell),
@@ -66,7 +66,16 @@ final _router = GoRouter(
             ),
           ],
         ),
-        // index 2: 알림
+        // index 2: 상점
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/shop',
+              builder: (context, state) => const ShopScreen(),
+            ),
+          ],
+        ),
+        // index 3: 알림
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -75,7 +84,7 @@ final _router = GoRouter(
             ),
           ],
         ),
-        // index 3: 설정
+        // index 4: 설정
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -161,11 +170,6 @@ final _router = GoRouter(
         final code = state.pathParameters['code']!;
         return InvitePreviewScreen(inviteCode: code);
       },
-    ),
-    // 상점 (push navigation)
-    GoRoute(
-      path: '/shop',
-      builder: (context, state) => const ShopScreen(),
     ),
   ],
 );

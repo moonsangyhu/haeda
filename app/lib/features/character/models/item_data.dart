@@ -14,6 +14,8 @@ class ShopItem with _$ShopItem {
     required String rarity,
     @JsonKey(name: 'asset_key') required String assetKey,
     @JsonKey(name: 'is_owned') @Default(false) bool isOwned,
+    @JsonKey(name: 'effect_type') String? effectType,
+    @JsonKey(name: 'effect_value') int? effectValue,
   }) = _ShopItem;
 
   factory ShopItem.fromJson(Map<String, dynamic> json) =>

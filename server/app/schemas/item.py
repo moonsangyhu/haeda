@@ -13,6 +13,8 @@ class ShopItemResponse(BaseModel):
     asset_key: str
     sort_order: int
     is_owned: bool
+    effect_type: str | None = None
+    effect_value: int | None = None
 
     model_config = {"from_attributes": True}
 

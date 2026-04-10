@@ -5,7 +5,7 @@ import '../models/item_data.dart';
 import '../providers/coin_provider.dart';
 import '../providers/shop_provider.dart';
 
-/// 상점 화면 — push navigation (not a tab).
+/// 상점 화면 — bottom tab (index 2).
 class ShopScreen extends ConsumerStatefulWidget {
   const ShopScreen({super.key});
 
@@ -109,6 +109,7 @@ class _ShopScreenState extends ConsumerState<ShopScreen>
 
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: const Text('상점'),
         actions: [
           Padding(
@@ -258,6 +259,18 @@ class _ShopItemCard extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
             ),
+            if (item.effectType != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                _effectDescription(item.effectType!, item.effectValue ?? 0),
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.tertiary,
+                  fontSize: 10,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
             const SizedBox(height: 8),
             // Price / owned
             if (item.isOwned)
@@ -297,6 +310,19 @@ class _ShopItemCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+String _effectDescription(String type, int value) {
+  switch (type) {
+    case 'STREAK_SHIELD':
+      return '🛡️ 연속 깨짐 ${value}회 방지';
+    case 'COIN_BOOST':
+      return '💰 코인 획득 +$value%';
+    case 'VERIFY_BONUS':
+      return '⭐ 인증 시 +$value 코인';
+    default:
+      return '';
   }
 }
 
