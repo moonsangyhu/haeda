@@ -19,10 +19,13 @@ class MyPageScreen extends ConsumerWidget {
         title: const Text('내 페이지'),
         centerTitle: false,
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/create'),
-        tooltip: '챌린지 만들기',
-        child: const Icon(Icons.add),
+      floatingActionButton: Padding(
+        padding: const EdgeInsets.only(bottom: 72),
+        child: FloatingActionButton(
+          onPressed: () => context.push('/create'),
+          tooltip: '챌린지 만들기',
+          child: const Icon(Icons.add),
+        ),
       ),
       body: challengesAsync.when(
         loading: () => const LoadingWidget(),
