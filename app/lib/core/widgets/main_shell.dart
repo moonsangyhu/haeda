@@ -213,8 +213,8 @@ class _TabItem extends StatelessWidget {
   }
 }
 
-/// Center "챌린지" tab — raised/elevated with colorful gradient + challenge icon
-class _CenterTabItem extends StatelessWidget {
+/// Center "챌린지" tab — pulsing fire gradient button with hot palette
+class _CenterTabItem extends StatefulWidget {
   const _CenterTabItem({
     required this.isSelected,
     required this.onTap,
@@ -226,67 +226,128 @@ class _CenterTabItem extends StatelessWidget {
   final ThemeData theme;
 
   @override
+  State<_CenterTabItem> createState() => _CenterTabItemState();
+}
+
+class _CenterTabItemState extends State<_CenterTabItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _curved;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+    _curved = CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Raised circular button with challenge icon inside
-          Transform.translate(
-            offset: const Offset(0, -14),
-            child: Container(
-              width: 56,
-              height: 56,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: LinearGradient(
-                  colors: isSelected
-                      ? const [Color(0xFF7C4DFF), Color(0xFFE040FB)]
-                      : const [Color(0xFFB388FF), Color(0xFFF48FB1)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: const Color(0xFF7C4DFF).withOpacity(
-                      isSelected ? 0.4 : 0.2,
+    return Semantics(
+      button: true,
+      label: '챌린지',
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedBuilder(
+          animation: _curved,
+          builder: (context, child) {
+            final t = _curved.value;
+            final scale = 1.0 + 0.06 * t;
+            final glowMul = 0.7 + 0.3 * t;
+            final innerBlur = 14.0 + 6.0 * t;
+
+            final innerOpacity =
+                (widget.isSelected ? 0.55 : 0.35) * glowMul;
+            final outerOpacity =
+                (widget.isSelected ? 0.35 : 0.20) * glowMul;
+
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Transform.translate(
+                  offset: const Offset(0, -18),
+                  child: Transform.scale(
+                    scale: scale,
+                    child: Container(
+                      width: 60,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          colors: widget.isSelected
+                              ? const [
+                                  Color(0xFFFF1744),
+                                  Color(0xFFFF6D00),
+                                  Color(0xFFFFD600),
+                                ]
+                              : const [
+                                  Color(0xFFFF6B6B),
+                                  Color(0xFFFF8A3D),
+                                  Color(0xFFFFC837),
+                                ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFFFF3D00)
+                                .withValues(alpha: innerOpacity),
+                            blurRadius: innerBlur,
+                            offset: Offset.zero,
+                          ),
+                          BoxShadow(
+                            color: const Color(0xFFFFC837)
+                                .withValues(alpha: outerOpacity),
+                            blurRadius: 24,
+                            spreadRadius: 2,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                        border: Border.all(
+                          color: Colors.white,
+                          width: widget.isSelected ? 3.0 : 2.5,
+                        ),
+                      ),
+                      child: const Center(
+                        child: ColorFiltered(
+                          colorFilter: ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
+                          child: CuteIcon('fire', size: 30),
+                        ),
+                      ),
                     ),
-                    blurRadius: isSelected ? 12 : 6,
-                    offset: const Offset(0, 3),
                   ),
-                ],
-                border: Border.all(
-                  color: Colors.white,
-                  width: 2.5,
                 ),
-              ),
-              child: Center(
-                child: ColorFiltered(
-                  colorFilter: const ColorFilter.mode(
-                    Colors.white,
-                    BlendMode.srcIn,
+                Transform.translate(
+                  offset: const Offset(0, -10),
+                  child: Text(
+                    '챌린지',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: widget.isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: widget.isSelected
+                          ? const Color(0xFFFF1744)
+                          : const Color(0xFFFF6B6B),
+                    ),
                   ),
-                  child: const CuteIcon('home', size: 28),
                 ),
-              ),
-            ),
-          ),
-          // Label below
-          Transform.translate(
-            offset: const Offset(0, -10),
-            child: Text(
-              '챌린지',
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected
-                    ? const Color(0xFF7C4DFF)
-                    : theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-        ],
+              ],
+            );
+          },
+        ),
       ),
     );
   }
