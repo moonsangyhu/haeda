@@ -1044,3 +1044,24 @@ class _ItemIconPainter extends CustomPainter {
   bool shouldRepaint(_ItemIconPainter old) =>
       old.assetKey != assetKey || old.rarity != rarity;
 }
+
+/// Paints a pixel-art character into [dst] on an external [canvas].
+///
+/// Uses a static (non-animated) frame: shimmer=1.0, sparkle disabled.
+/// Safe to call from a [dart:ui] off-screen canvas (e.g. photo stamping).
+/// Does nothing if [character] is null.
+void paintCharacterIntoCanvas(
+  Canvas canvas, {
+  required CharacterData? character,
+  required Rect dst,
+}) {
+  if (character == null) return;
+  final painter = _PixelCharacterPainter(
+    character: character,
+    shimmerValue: null,
+  );
+  canvas.save();
+  canvas.translate(dst.left, dst.top);
+  painter.paint(canvas, dst.size);
+  canvas.restore();
+}

@@ -6,13 +6,16 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/season_icons.dart';
 import '../../../core/widgets/loading_widget.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../../character/models/coin_earned.dart';
+import '../../character/providers/character_provider.dart';
 import '../models/verification_data.dart';
 import '../providers/calendar_provider.dart';
 import '../providers/challenge_detail_provider.dart';
 import '../providers/verification_provider.dart';
 import '../../my_page/providers/my_challenges_provider.dart';
 import '../../status_bar/providers/user_stats_provider.dart';
+import '../utils/verification_photo_stamper.dart';
 
 class CreateVerificationScreen extends ConsumerStatefulWidget {
   final String challengeId;
@@ -93,12 +96,27 @@ class _CreateVerificationScreenState
       maxHeight: 1920,
       imageQuality: 85,
     );
-    if (photo != null) {
-      final bytes = await photo.readAsBytes();
-      setState(() {
-        _selectedPhotos.add((file: photo, bytes: bytes));
-      });
+    if (photo == null) return;
+    final rawBytes = await photo.readAsBytes();
+
+    final character = ref.read(myCharacterProvider).valueOrNull;
+    final nickname =
+        ref.read(authStateProvider).valueOrNull?.nickname ?? '';
+    Uint8List stamped;
+    try {
+      stamped = await stampVerificationPhoto(
+        photoBytes: rawBytes,
+        character: character,
+        nickname: nickname,
+        timestamp: DateTime.now(),
+      );
+    } catch (_) {
+      stamped = rawBytes;
     }
+    if (!mounted) return;
+    setState(() {
+      _selectedPhotos.add((file: photo, bytes: stamped));
+    });
   }
 
   Future<void> _pickFromGallery() async {
