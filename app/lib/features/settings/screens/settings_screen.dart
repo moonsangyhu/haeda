@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/cute_icon.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../character/providers/character_provider.dart';
 import '../providers/settings_provider.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -57,8 +59,11 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     final theme = Theme.of(context);
     final authState = ref.watch(authStateProvider);
     final user = authState.valueOrNull;
+    final character = ref.watch(myCharacterProvider).valueOrNull;
     final settings = ref.watch(settingsProvider);
     final notifier = ref.read(settingsProvider.notifier);
+    final bgColor =
+        AppTheme.characterBackgroundFromHex(user?.backgroundColor);
 
     return Scaffold(
       appBar: AppBar(
@@ -72,17 +77,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 32,
-                  backgroundColor: theme.colorScheme.primary.withAlpha(51),
-                  backgroundImage: (user?.profileImageUrl != null &&
-                          (user!.profileImageUrl?.isNotEmpty ?? false))
-                      ? NetworkImage(user.profileImageUrl!)
-                      : null,
-                  child: (user?.profileImageUrl == null ||
-                          (user?.profileImageUrl?.isEmpty ?? true))
-                      ? SvgPicture.asset('assets/icons/smile.svg', width: 36, height: 36)
-                      : null,
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: bgColor,
+                  ),
+                  alignment: Alignment.center,
+                  child: CharacterAvatar(character: character, size: 52),
                 ),
                 const SizedBox(width: 16),
                 Column(
