@@ -21,11 +21,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
 
-    final storage = ref.read(tokenStorageProvider);
-    final token = await storage.getAccessToken();
-
+    await ref.read(authStateProvider.notifier).checkAuthOnStartup();
     if (!mounted) return;
-    if (token != null) {
+
+    final user = ref.read(authStateProvider).valueOrNull;
+    if (user != null) {
       context.go('/my-page');
     } else {
       context.go('/login');

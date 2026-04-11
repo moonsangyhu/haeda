@@ -56,6 +56,8 @@ class _MemberNudgeListState extends ConsumerState<MemberNudgeList> {
             _showSnackBar('오늘 이미 콕 찔렀어요');
           case 'ALREADY_VERIFIED':
             _showSnackBar('이미 인증을 완료했어요');
+          case 'CANNOT_NUDGE_SELF':
+            _showSnackBar('자기 자신을 콕 찌를 수는 없어요');
           default:
             _showSnackBar('오류가 발생했어요');
         }

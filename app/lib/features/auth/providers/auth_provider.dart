@@ -20,14 +20,35 @@ class AuthState extends _$AuthState {
     return const AsyncData(null);
   }
 
-  /// 앱 시작 시 저장된 토큰 확인
+  /// 앱 시작 시 저장된 토큰으로 사용자 정보를 복원
   Future<void> checkAuthOnStartup() async {
     final storage = ref.read(tokenStorageProvider);
     final token = await storage.getAccessToken();
     if (token == null) {
       state = const AsyncData(null);
+      return;
     }
-    // 토큰이 있으면 state를 변경하지 않음 — splash screen이 /my-page로 이동
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.get('/me');
+      // ResponseInterceptor already unwrapped `data` field
+      final map = response.data as Map<String, dynamic>;
+      final user = AuthUser(
+        id: map['id'] as String,
+        nickname: map['nickname'] as String?,
+        profileImageUrl: map['profile_image_url'] as String?,
+        isNew: false,
+      );
+      state = AsyncData(user);
+    } on DioException catch (e) {
+      // Token invalid/expired → clear and force re-login
+      if (e.response?.statusCode == 401) {
+        await storage.clearTokens();
+      }
+      state = const AsyncData(null);
+    } catch (_) {
+      state = const AsyncData(null);
+    }
   }
 
   /// 카카오 액세스 토큰으로 서버 로그인
