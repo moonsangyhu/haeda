@@ -3,9 +3,28 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../character/models/character_data.dart';
+import '../../character/providers/character_provider.dart';
 import '../models/comment_data.dart';
 import '../providers/comment_provider.dart';
 import '../providers/verification_provider.dart';
+
+/// 렌더링 대상 유저가 현재 로그인 유저면 myCharacterProvider의 라이브 상태를,
+/// 그렇지 않으면 응답에 임베드된 character를 사용한다.
+/// 캐릭터 샵에서 외형을 바꾼 직후에도 인증/댓글 화면이 최신 외형을 보여준다.
+CharacterData? _resolveCharacter(
+  WidgetRef ref,
+  String renderedUserId,
+  CharacterData? embedded,
+) {
+  final myId = ref.watch(authStateProvider).valueOrNull?.id;
+  if (myId != null && myId == renderedUserId) {
+    final mine = ref.watch(myCharacterProvider).valueOrNull;
+    if (mine != null) return mine;
+  }
+  return embedded;
+}
 
 class VerificationDetailScreen extends ConsumerStatefulWidget {
   final String verificationId;
@@ -108,7 +127,7 @@ class _VerificationDetailScreenState
   }
 }
 
-class _AuthorSection extends StatelessWidget {
+class _AuthorSection extends ConsumerWidget {
   final VerificationDetail detail;
 
   const _AuthorSection({required this.detail});
@@ -123,14 +142,15 @@ class _AuthorSection extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final user = detail.user;
+    final character = _resolveCharacter(ref, user.id, user.character);
 
     return Row(
       children: [
         CharacterAvatar(
-          character: detail.user.character,
+          character: character,
           size: 48,
         ),
         const SizedBox(width: 12),
@@ -321,7 +341,7 @@ class _CommentsSection extends StatelessWidget {
   }
 }
 
-class _CommentItemTile extends StatelessWidget {
+class _CommentItemTile extends ConsumerWidget {
   final CommentItem comment;
 
   const _CommentItemTile({required this.comment});
@@ -341,9 +361,10 @@ class _CommentItemTile extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final author = comment.author;
+    final character = _resolveCharacter(ref, author.id, author.character);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
@@ -351,7 +372,7 @@ class _CommentItemTile extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           CharacterAvatar(
-            character: comment.author.character,
+            character: character,
             size: 32,
           ),
           const SizedBox(width: 8),

@@ -1,6 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
+import '../../challenge_space/providers/calendar_provider.dart';
+import '../../challenge_space/providers/comment_provider.dart';
+import '../../challenge_space/providers/verification_provider.dart';
 import '../models/character_data.dart';
 import '../models/item_data.dart';
 
@@ -164,15 +167,25 @@ class MyCharacterNotifier extends StateNotifier<AsyncValue<CharacterData>> {
 
     final updated = _applySlot(current, slot, newSlot);
     state = AsyncValue.data(updated);
+    _invalidateCharacterConsumers();
 
     // API 호출 (백엔드 있으면 동기화, 없으면 무시)
+    // 백엔드 CharacterUpdateRequest는 ${slot}_item_id 필드명을 받는다.
     try {
-      await _dio.put('/me/character', data: {slot: itemId});
+      await _dio.put('/me/character', data: {'${slot}_item_id': itemId});
     } catch (_) {
       // 로컬 상태는 이미 반영됨
     }
 
     return true;
+  }
+
+  /// 내 캐릭터가 임베드된 응답을 캐시하는 프로바이더들을 무효화한다.
+  /// 다른 화면에서도 최신 외형이 즉시 반영되도록 한다.
+  void _invalidateCharacterConsumers() {
+    _ref.invalidate(verificationDetailProvider);
+    _ref.invalidate(dailyVerificationsProvider);
+    _ref.invalidate(calendarProvider);
   }
 
   /// 외형 커스터마이징 저장.
@@ -190,6 +203,7 @@ class MyCharacterNotifier extends StateNotifier<AsyncValue<CharacterData>> {
       hairStyle: hairStyle,
     );
     state = AsyncValue.data(updated);
+    _invalidateCharacterConsumers();
 
     try {
       await _dio.put('/me/character/appearance', data: {

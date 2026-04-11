@@ -6,6 +6,7 @@ import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../character/providers/character_provider.dart';
 import '../models/verification_data.dart';
 import '../providers/verification_provider.dart';
 
@@ -169,19 +170,23 @@ class _DailyVerificationsBody extends StatelessWidget {
   }
 }
 
-class _VerificationListItem extends StatelessWidget {
+class _VerificationListItem extends ConsumerWidget {
   final VerificationItem item;
 
   const _VerificationListItem({required this.item});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final myId = ref.watch(authStateProvider).valueOrNull?.id;
+    final character = (myId != null && myId == item.user.id)
+        ? ref.watch(myCharacterProvider).valueOrNull ?? item.user.character
+        : item.user.character;
 
     return ListTile(
       onTap: () => context.push('/verifications/${item.id}'),
       leading: CharacterAvatar(
-        character: item.user.character,
+        character: character,
         size: 44,
       ),
       title: Row(

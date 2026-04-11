@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/widgets/character_avatar.dart';
+import '../../character/models/character_data.dart';
+import '../../character/providers/character_provider.dart';
 import '../models/calendar_data.dart';
 import '../providers/nudge_provider.dart';
 
@@ -132,7 +134,7 @@ class _MemberNudgeListState extends ConsumerState<MemberNudgeList> {
   }
 }
 
-class _MemberRow extends StatelessWidget {
+class _MemberRow extends ConsumerWidget {
   final CalendarMember member;
   final bool isSelf;
   final bool isVerified;
@@ -150,9 +152,14 @@ class _MemberRow extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final canNudge = !isSelf && !isVerified && !isNudged && !isLoading;
+    // 본인이면 캘린더 응답에 임베드된 스냅샷 대신
+    // 내 방에서 막 바꾼 라이브 캐릭터 상태를 보여준다.
+    final CharacterData? effectiveCharacter = isSelf
+        ? ref.watch(myCharacterProvider).valueOrNull ?? member.character
+        : member.character;
 
     return InkWell(
       onTap: canNudge ? onNudge : null,
@@ -162,9 +169,10 @@ class _MemberRow extends StatelessWidget {
           children: [
             // Avatar — tap to view character detail
             GestureDetector(
-              onTap: () => _showCharacterSheet(context, member),
+              onTap: () =>
+                  _showCharacterSheet(context, member, effectiveCharacter),
               child: CharacterAvatar(
-                character: member.character,
+                character: effectiveCharacter,
                 size: 40,
                 showEffect: false,
               ),
@@ -280,8 +288,12 @@ class _MemberRow extends StatelessWidget {
     );
   }
 
-  void _showCharacterSheet(BuildContext context, CalendarMember m) {
-    if (m.character == null) return;
+  void _showCharacterSheet(
+    BuildContext context,
+    CalendarMember m,
+    CharacterData? character,
+  ) {
+    if (character == null) return;
     showModalBottomSheet<void>(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -302,7 +314,7 @@ class _MemberRow extends StatelessWidget {
             ),
             const SizedBox(height: 20),
             CharacterAvatar(
-              character: m.character,
+              character: character,
               size: 120,
               showEffect: true,
             ),
