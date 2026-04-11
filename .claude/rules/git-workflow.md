@@ -24,17 +24,25 @@ Rules:
 - Parallel worktree: `claude --worktree slice-{NN} -n slice-{NN}`
 - See `docs/worktree-runbook.md` for detailed rules
 
-## Direct Push to Main (No PR)
+## Direct Push to Main (No PR, Rebase-Retry)
 
 This is a solo project. All commits go directly to `main`. Do NOT create branches or PRs.
+
+Because work runs in parallel worktrees, **bare `git push` is forbidden** — two worktrees may race for `origin/main`. Always use the rebase-retry loop defined in `.claude/rules/worktree-parallel.md`:
 
 ```bash
 git add <specific files>
 git commit -m "<message>"
-git push origin main
+
+# rebase-retry push — never bare push
+git fetch origin main
+git rebase origin/main || { git rebase --abort; echo "rebase conflict — STOP"; exit 1; }
+git push origin main   # on non-fast-forward, retry fetch+rebase+push up to 3 times
 ```
 
 **This rule is absolute** — no feature branches, no PRs, no `gh pr create`. Ever.
+
+**Rebase conflict = STOP.** It means the worktree role contract was violated. Report the conflicting files and hand to the user. Never auto-resolve, never `--force`.
 
 ## Forbidden
 

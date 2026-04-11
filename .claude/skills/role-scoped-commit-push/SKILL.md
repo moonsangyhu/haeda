@@ -26,6 +26,10 @@ Argument: `$ARGUMENTS`
 
 ## Allowed Paths by Role
 
+Two categories: **hard path boundary** (role-exclusive directories) and **shared directories** (any role may write, collision prevented by filename convention).
+
+### Hard Path Boundary
+
 | Role | Allowed Path Patterns |
 |------|----------------------|
 | `front` | `app/lib/**`, `app/pubspec.yaml`, `app/pubspec.lock` |
@@ -33,13 +37,24 @@ Argument: `$ARGUMENTS`
 | `qa` | `app/test/**`, `server/tests/**` |
 | `claude` | `.claude/**`, `CLAUDE.md` |
 
-### Common Exclusions
+The 4 roles' hard boundaries do not overlap. Any file under these paths belongs to at most one role.
 
-- `docs/**` — docs are excluded from auto-commit scope for all roles. Commit manually only.
+### Shared Directories (filename MUST embed role)
 
-### No Overlap
+| Directory | Required filename pattern | Rationale |
+|-----------|--------------------------|-----------|
+| `impl-log/` | contains `-{role}` or `-{role}.md` | doc-writer records per-worktree |
+| `test-reports/` | contains `-{role}` or `{role}-` | QA evidence per-worktree |
+| `docs/reports/` | `YYYY-MM-DD-{role}-*.md` | feature reports per-worktree |
 
-The 4 roles' allowed paths do not overlap. Any file belongs to at most one role.
+`{role}` must be exactly one of `backend`, `front`, `qa`, `claude`.
+
+Files in shared directories whose names do NOT embed the current role are OUT OF SCOPE (they belong to another worktree or are grandfathered legacy). Do not stage them.
+
+### Source-of-Truth Docs (never writable)
+
+- `docs/prd.md`, `docs/user-flows.md`, `docs/domain-model.md`, `docs/api-contract.md` — excluded for all roles, always.
+- Other top-level `docs/**` files — excluded by default. Commit manually only.
 
 ---
 
@@ -120,14 +135,20 @@ Filter changed files (modified, added, deleted, untracked) to only those matchin
 
 **Path Matching Rules:**
 
-| Role | Match Condition |
-|------|----------------|
-| `front` | Starts with `app/lib/` OR matches `app/pubspec.yaml` or `app/pubspec.lock` |
-| `backend` | Starts with `server/app/` OR starts with `server/alembic/` OR matches `server/alembic.ini` or `server/pyproject.toml` or `server/seed.py` |
-| `qa` | Starts with `app/test/` OR starts with `server/tests/` |
-| `claude` | Starts with `.claude/` OR matches `CLAUDE.md` |
+A file is in scope for a role if it matches EITHER (a) the hard path boundary OR (b) a shared directory with a role-embedded filename.
 
-Additionally, files starting with `docs/` are always excluded for all roles.
+| Role | Hard Boundary | Shared-Dir Filename Pattern |
+|------|---------------|----------------------------|
+| `front` | Starts with `app/lib/` OR matches `app/pubspec.yaml` or `app/pubspec.lock` | `impl-log/*-front*.md`, `test-reports/*front*`, `docs/reports/*-front-*.md` |
+| `backend` | Starts with `server/app/` OR `server/alembic/` OR matches `server/alembic.ini`, `server/pyproject.toml`, `server/seed.py` | `impl-log/*-backend*.md`, `test-reports/*backend*`, `docs/reports/*-backend-*.md` |
+| `qa` | Starts with `app/test/` OR `server/tests/` | `impl-log/*-qa*.md`, `test-reports/*qa*`, `docs/reports/*-qa-*.md` |
+| `claude` | Starts with `.claude/` OR matches `CLAUDE.md` | `impl-log/*-claude*.md`, `docs/reports/*-claude-*.md` |
+
+Protected files (never in scope for any role):
+- `docs/prd.md`, `docs/user-flows.md`, `docs/domain-model.md`, `docs/api-contract.md`
+- Any `docs/**` file outside `docs/reports/`
+
+Shared-directory files whose names do NOT embed the current role are out of scope — they belong to another worktree.
 
 If no matching changed files -> exit:
 ```
@@ -186,20 +207,31 @@ EOF
 
 If commit fails (pre-commit hook, etc.) -> output error and abort. No auto-retry.
 
-### Step 6: Push
+### Step 6: Push via Rebase-Retry
+
+Parallel worktrees share `origin/main`. Never use a bare `git push` — it will race with other worktrees and get `non-fast-forward`. Use the rebase-retry loop:
 
 ```bash
-git push
+for attempt in 1 2 3; do
+  git fetch origin main
+  if ! git rebase origin/main; then
+    git rebase --abort 2>/dev/null
+    echo "Error: rebase conflict — role contract violated"
+    echo "Conflicting files:"
+    git diff --name-only --diff-filter=U
+    exit 1
+  fi
+  if git push origin main; then
+    break
+  fi
+  echo "Push rejected (non-fast-forward), retry $attempt/3"
+  sleep 1
+done
 ```
 
-If fails due to no upstream:
+If the worktree is on a branch other than `main`, the worktree setup is wrong — STOP and report. All roles commit on top of `main`.
 
-```bash
-BRANCH=$(git branch --show-current)
-git push -u origin "$BRANCH"
-```
-
-On push failure, output error as-is and abort. **Never** use `--force`.
+Rebase conflict = role contract violated. STOP, report conflict files, hand to user. **Never** use `--force`, `--force-with-lease`, or auto-resolve.
 
 ### Step 7: Output Result
 

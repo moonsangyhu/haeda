@@ -44,17 +44,34 @@ If tests or build fail, print failures and STOP. Do not commit broken code.
   - `refactor:` for restructuring
   - Keep under 72 chars, Korean or English matching the diff context
 
-### 3-2. Stage, commit, push directly to main
+### 3-2. Stage, commit, push via rebase-retry
 
 ```bash
 git add <changed files>   # specific files, not -A
 git commit -m "<message>
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-git push origin main
 ```
 
-**IMPORTANT**: No branches. No PRs. Always commit and push directly to main.
+Then push via the rebase-retry loop (NEVER bare `git push`):
+
+```bash
+for attempt in 1 2 3; do
+  git fetch origin main
+  if ! git rebase origin/main; then
+    git rebase --abort 2>/dev/null
+    echo "Rebase conflict — role contract violated, STOP"
+    exit 1
+  fi
+  if git push origin main; then
+    break
+  fi
+  echo "Push rejected (non-fast-forward), retry $attempt/3"
+  sleep 1
+done
+```
+
+**IMPORTANT**: No branches. No PRs. No bare `git push`. No `--force`. Always use the rebase-retry loop. See `.claude/rules/worktree-parallel.md`.
 
 ## Step 4: Write Implementation Log
 
@@ -95,14 +112,23 @@ Enough detail that another agent can understand what was done and undo it if nee
 - Build: {pass / skip}
 ```
 
-Commit and push the impl-log:
+The impl-log filename MUST embed the worktree role (`backend` / `front` / `qa` / `claude`) to prevent parallel-worktree collisions — e.g. `impl-log/feat-slice-07-backend.md`. See `.claude/rules/worktree-parallel.md` §Shared Directories.
+
+Commit and push the impl-log using the same rebase-retry loop from Step 3-2:
 
 ```bash
-git add impl-log/<name>.md
+git add impl-log/<name>-<role>.md
 git commit -m "docs: add impl-log for <name>
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-git push origin main
+
+# rebase-retry push
+for attempt in 1 2 3; do
+  git fetch origin main
+  git rebase origin/main || { git rebase --abort; echo "rebase conflict"; exit 1; }
+  git push origin main && break
+  sleep 1
+done
 ```
 
 ## Step 5: Rebuild & Verify (if source changed)

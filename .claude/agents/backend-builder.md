@@ -19,6 +19,22 @@ You are the MVP implementation agent for the Haeda FastAPI backend.
 
 ## Execution Phases
 
+### Phase 0: Worktree Role Check (MANDATORY)
+
+Before touching any file, confirm you are running inside a `backend`-role worktree and that `origin/main` is synced. See `.claude/rules/worktree-parallel.md`.
+
+```bash
+WT=$(basename "$(git rev-parse --show-toplevel)")
+case "$WT" in
+  backend*|slice-*-backend|fix-*-backend) ;;
+  *) echo "ERROR: not in a backend worktree (got: $WT)"; exit 1 ;;
+esac
+git fetch origin main
+git rebase origin/main || { git rebase --abort; echo "ERROR: worktree not clean vs origin/main"; exit 1; }
+```
+
+If the check fails, STOP and report to the main thread. Do not cross-patch into another role's worktree.
+
 ### Phase 1: Context Discovery (before writing any code)
 
 1. Read existing routers in `server/app/routers/` to understand naming and pattern conventions

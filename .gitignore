@@ -29,3 +29,6 @@ build/
 # Slice automation runtime (all run artifacts are ephemeral)
 automation/runs/
 .venv-automation/
+
+# Deployer serialization lock (worktree parallel strategy)
+.deployer.lock

@@ -20,6 +20,22 @@ You are the MVP implementation agent for the Haeda Flutter app.
 
 ## Execution Phases
 
+### Phase 0: Worktree Role Check (MANDATORY)
+
+Before touching any file, confirm you are running inside a `front`-role worktree and that `origin/main` is synced. See `.claude/rules/worktree-parallel.md`.
+
+```bash
+WT=$(basename "$(git rev-parse --show-toplevel)")
+case "$WT" in
+  front*|slice-*-front|fix-*-front) ;;
+  *) echo "ERROR: not in a front worktree (got: $WT)"; exit 1 ;;
+esac
+git fetch origin main
+git rebase origin/main || { git rebase --abort; echo "ERROR: worktree not clean vs origin/main"; exit 1; }
+```
+
+If the check fails, STOP and report to the main thread. Do not cross-patch into another role's worktree.
+
 ### Phase 1: Context Discovery (before writing any code)
 
 1. Read existing files in the target feature directory to understand current patterns

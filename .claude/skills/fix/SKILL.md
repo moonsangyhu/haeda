@@ -1,174 +1,142 @@
 ---
 name: fix
-description: Lightweight bug fix flow. Analyze → fix → QA → report → commit → push → rebuild. No approval gates.
+description: Lightweight bug fix flow. debugger → builder → code review → QA → deploy → doc-writer → commit. Skips product-planner and spec-keeper (no spec change). Agent-orchestrated, no approval gates.
 user_invocable: true
 disable_model_invocation: true
 ---
 
-# Fix — Lightweight Bug Fix Flow
+# Fix — Agent-Orchestrated Bug Fix Flow
 
-Fast-track workflow for bug fixes. Runs end-to-end without approval gates.
+Fast-track bug fix workflow. Runs end-to-end without approval gates.
 
-### Model Strategy (Token Optimization)
+**Prime rule — Main does not diagnose, fix, test, build, or write docs directly.** Every step runs inside a specialist subagent. Main only parses the bug report, spawns agents, and runs `/commit` at the end.
 
-| Phase | Executor | Model | Reason |
-|-------|----------|-------|--------|
-| Step 1 (Analyze) | Main | Opus | Root cause diagnosis |
-| Step 2 (Fix) | `flutter-builder` / `backend-builder` agent | Sonnet | Mechanical fix |
-| Step 3 (QA) | `qa-reviewer` agent | Sonnet | Checklist verification |
-| Step 4-7 (Report, Push, Rebuild) | Main | Opus | Coordination |
+Differences from `feature-flow`:
+- Skips `product-planner` and `spec-keeper` (bug fix assumes no spec change)
+- Starts with `debugger` instead of `product-planner`
+- All other steps (code-reviewer, qa-reviewer, deployer, doc-writer, commit) are identical
 
-**Rule**: Steps 2-3 MUST be delegated to agents (Sonnet). Do NOT fix or test directly in the main conversation.
+### Model Strategy
+
+| Phase | Executor | Model |
+|-------|----------|-------|
+| Step 0 (Parse bug) | Main | Opus |
+| Step 1 (Diagnose) | `debugger` | Sonnet |
+| Step 2 (Fix) | `backend-builder` / `flutter-builder` | Sonnet |
+| Step 3 (Code review) | `code-reviewer` | Sonnet |
+| Step 4 (QA) | `qa-reviewer` | Sonnet |
+| Step 4b (Debug retry) | `debugger` → builder | Sonnet |
+| Step 5 (Deploy) | `deployer` | Sonnet |
+| Step 6 (Document) | `doc-writer` | Sonnet |
+| Step 7 (Commit & Push) | Main + `/commit` | Opus |
+| Step 8 (Summary) | Main | Opus |
 
 Argument: `<bug description>`
 
 ---
 
-## Step 1: Analyze
+## Step 0: Parse Bug (Main)
 
-### 1-1. Search Codebase
+Main reads the bug report, identifies the affected area (from error messages, logs, or user description), and auto-proceeds. If critical info is missing (no reproduction, no error), ask the user before spawning debugger.
 
-Use Grep and Glob to find files related to the bug. Read the relevant code to understand the root cause.
+---
 
-### 1-2. Print Diagnosis
+## Step 1: Diagnose (debugger)
 
-```
-## Bug Fix — Diagnosis
+Spawn `debugger` with the bug description. The agent:
+- Reproduces the bug (test run, curl, log inspection)
+- Isolates the root cause with file:line evidence
+- Emits a fix spec naming the owning builder
 
-- **Bug**: {user's description}
-- **Root cause**: {one-line explanation}
-- **Affected files**: {file paths}
-- **Fix approach**: {one-line plan}
-```
+Main reads the fix spec and proceeds to Step 2.
 
-Auto-proceed to Step 2. Do not wait for approval.
+If debugger reports "cannot reproduce" or "insufficient evidence", STOP and ask the user for more info.
 
-## Step 2: Fix
+---
 
-Delegate the fix to the appropriate specialized agent based on the affected area.
+## Step 2: Fix (backend-builder / flutter-builder)
 
-### Frontend only (app/)
+Spawn the builder named in the debugger's fix spec, passing:
+- The fix spec verbatim
+- The instruction: "fix only, no refactor, no feature additions"
 
-Spawn `flutter-builder` agent with:
-- Bug description and root cause from Step 1
-- Affected files list
-- Instruction: "fix only, no refactor, no feature additions"
-- Scope: `app/` only. NEVER touch `server/`.
+Cross-layer bugs: spawn both builders in parallel with their respective portions of the fix spec.
 
-### Backend only (server/)
-
-Spawn `backend-builder` agent with:
-- Bug description and root cause from Step 1
-- Affected files list
-- Instruction: "fix only, no refactor, no feature additions"
-- Scope: `server/` only. NEVER touch `app/`.
-
-### Cross-Layer (both)
-
-Spawn both agents in parallel:
-1. `backend-builder` agent — fixes server/ changes
-2. `flutter-builder` agent — fixes app/ changes
-Wait for both to complete.
-
-### Agent Rules
-- Each agent works ONLY in its designated directory
+Rules:
+- Each agent works only in its designated directory
 - No agent may modify `docs/`
-- No agent may run `git commit`, `git add`, or `git push`
-- Do NOT refactor surrounding code
-- Do NOT add features beyond the fix
-- Follow existing code patterns
+- No agent may run git commands
+- Do not refactor surrounding code
+- Do not add features
 
-## Step 3: QA
+---
 
-### 3-1. Run Tests
+## Step 3: Code Review (code-reviewer)
 
-Run tests for the affected area:
-
-- **app/ changed**: `cd app && flutter analyze && flutter test`
-- **server/ changed**: `cd server && uv run pytest -v --tb=short`
-- **Both**: run both
-
-### 3-2. Spawn QA Agent
-
-Spawn `qa-reviewer` agent with:
-- Bug description and root cause from Step 1
-- Changed files from Step 2
-- Test results from 3-1
-
-### 3-3. Handle QA Verdict
+Spawn `code-reviewer` with the builder completion output.
 
 | Verdict | Action |
 |---------|--------|
-| **Complete** | Proceed to Step 4 |
-| **Partial / Incomplete** | Fix issues, re-run QA (max 2 retries) |
+| **Pass** | Auto-proceed to Step 4 |
+| **Changes Requested** | Re-spawn the owning builder with the fix list (max 1 retry), then re-review |
 
-After 2 failed retries, STOP and ask user.
+---
 
-## Step 4: Report
+## Step 4: QA (qa-reviewer)
 
-Generate a fix report at `docs/reports/YYYY-MM-DD-fix-<slug>.md`.
+Spawn `qa-reviewer` with:
+- Bug description and root cause from Step 1
+- Changed files from Step 2
+- Code review verdict from Step 3
 
-The `<slug>` is derived from the bug description (lowercase, hyphens, max 50 chars).
+| Verdict | Action |
+|---------|--------|
+| **Complete** | Auto-proceed to Step 5 |
+| **Partial / Incomplete** | Auto-enter Step 4b |
 
-### Report Template
+---
 
-```markdown
-# Fix Report: {summary}
+## Step 4b: Debug Retry (debugger → builder → re-QA)
 
-- Date: {YYYY-MM-DD}
-- Area: {frontend / backend / both}
-- Status: {complete / partial}
+Conditional — only runs when Step 4 fails.
 
-## Bug
-{user's original description}
+1. Re-spawn `debugger` with the new failing test output
+2. Re-spawn the builder with the updated fix spec
+3. Re-spawn `qa-reviewer`
 
-## Root Cause
-{diagnosis from Step 1}
+Max 2 retries. After 2 failed retries, STOP and hand to user.
 
-## Changed Files
-- {file path} — {brief description of change}
+---
 
-## Fix Details
-{what was changed and why}
+## Step 5: Deploy (deployer)
 
-## QA Results
-- Backend tests: {N passed, M failed / N/A}
-- Frontend tests: {N passed, M failed / N/A}
-- Lint: {pass / N issues}
-- QA verdict: {complete / partial / incomplete}
+Spawn `deployer`. The agent rebuilds affected services, runs `flutter build ios --simulator` + `flutter run` (if app/ changed), and verifies health.
 
-## Remaining Risks
-- {risk description, or "None identified"}
-```
+| Verdict | Action |
+|---------|--------|
+| **Success** | Auto-proceed to Step 6 |
+| **Failed** | STOP, print logs, hand to user |
 
-## Step 5: Commit & Push
+---
 
-```bash
-git add <changed files> docs/reports/{report-file}
-git commit -m "fix: <concise description>
+## Step 6: Document (doc-writer)
 
-Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-git push origin main
-```
+Spawn `doc-writer` with all prior outputs. The agent writes:
+- `impl-log/fix-<slug>.md`
+- `test-reports/fix-<slug>-test-report.md`
+- `docs/reports/YYYY-MM-DD-fix-<slug>.md`
 
-## Step 6: Rebuild & Verify
+---
 
-- **app/ changed**: `docker compose up --build -d frontend`
-- **server/ changed**: `docker compose up --build -d backend`
-- **Both**: `docker compose up --build -d backend frontend`
+## Step 7: Commit & Push (Main + /commit)
 
-Set Bash timeout to 600000.
+Main runs `/commit` to stage code + documentation, commit with a `fix:` conventional-commits message, and push to main.
 
-### Health Check
+Commit is forbidden before Step 6 completes.
 
-```bash
-curl -s --max-time 10 http://localhost:8000/health
-curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
-```
+---
 
-If health check fails, print logs and STOP.
-
-## Step 7: Summary
+## Step 8: Summary (Main)
 
 ```
 ## Bug Fix Complete
@@ -176,23 +144,25 @@ If health check fails, print logs and STOP.
 | Item | Value |
 |------|-------|
 | Bug | {description} |
-| Root cause | {cause} |
+| Root cause | {from debugger} |
 | Fix | {what changed} |
-| QA | complete |
-| Report | docs/reports/{filename} |
+| Code review | code-reviewer ✓ |
+| QA | qa-reviewer: complete |
+| Debug retries | {N | 0} |
+| Deploy | deployer: health OK, simulator running |
+| Documentation | impl-log + test-report + fix report |
 | Commit | {hash} |
-| Tests | {N passed, M failed} |
 | Push | done |
-| Rebuild | done |
-| Health | OK |
 ```
 
 ---
 
 ## Guardrails
 
+- **Main never diagnoses, fixes, tests, builds, reviews, or writes docs directly.** Spawn the specialist agent every time.
 - No approval gates — runs fully automatic
-- Only STOP on: QA failure (after 2 retries), health check failure
-- Do not modify `docs/` files (except `docs/reports/`)
+- STOP only on: debugger cannot reproduce, code review double failure, QA double failure after debug retry, deploy failure, or protected-file violation
+- Do not modify `docs/prd.md`, `docs/user-flows.md`, `docs/domain-model.md`, `docs/api-contract.md` — source of truth
+- `docs/reports/`, `impl-log/`, `test-reports/` are writable (doc-writer only)
 - Do not add features — fix only
 - Do not touch unrelated files

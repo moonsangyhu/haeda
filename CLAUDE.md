@@ -22,8 +22,9 @@ Detailed rules in `.claude/rules/`:
 
 - **coding-style.md** — terminology, API format, season icons, file size limits
 - **git-workflow.md** — conventional commits, session naming, branch naming
-- **agents.md** — 4-agent team, dispatch rules
+- **agents.md** — 10-agent team, dispatch rules, gate rules
 - **workflow.md** — 9-step slice flow, verification principles
+- **worktree-parallel.md** — role contract, rebase-retry push, deployer lockfile (MANDATORY for all worktree work)
 - **automation.md** — slice-auto, refinement pipeline
 - **security.md** — secrets, validation, encoding
 - **app-guard.md** — Flutter rules (app/** auto-load)

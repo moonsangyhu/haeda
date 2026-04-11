@@ -1,315 +1,180 @@
 ---
 name: feature-flow
-description: Enforced workflow for all feature work. Covers requirements analysis, planning, implementation (single or cross-layer), QA, reporting, and conditional push.
+description: Enforced workflow for all feature work. 9 steps: plan → spec verify → implement → code review → qa → [debug] → deploy → document → commit. Every step is delegated to a specialist agent; Main only orchestrates and runs the final commit.
 user_invocable: true
 disable_model_invocation: true
 ---
 
-# Feature Flow — Enforced Feature Workflow
+# Feature Flow — Agent-Orchestrated Feature Workflow
 
-All feature work MUST follow this 8-step workflow. No step may be skipped.
-**Auto-proceed mode**: All steps run end-to-end without user approval gates. Only STOP for user input when: QA fails 2 times, push conditions are not met, or a health check fails.
+All feature work MUST follow this 9-step workflow. No step may be skipped.
 
-### Model Strategy (Token Optimization)
+**Auto-proceed mode**: All steps run end-to-end without user approval gates. STOP only when: spec verify fails twice, code review fails twice, QA fails twice after debug loop, deploy fails, or doc-writer hits a protected-file violation.
 
-| Phase | Executor | Model | Reason |
-|-------|----------|-------|--------|
-| Step 1 (Analysis) | Main | Opus | Requires judgment, codebase understanding |
-| Step 2 (Plan) | Main | Opus | Architecture decisions |
-| Step 3 (Implementation) | `flutter-builder` / `backend-builder` agent | Sonnet | Mechanical coding, pattern-following |
-| Step 4 (QA) | `qa-reviewer` agent | Sonnet | Checklist-based verification |
-| Step 5-8 (Report, Push, Rebuild) | Main | Opus | Coordination, minimal tokens |
+**Prime rule — Main does not implement, review, test, build, or write docs directly.** Main parses the requirement, spawns the right agent, reads the agent's output, and spawns the next agent. Every execution step runs inside a subagent (Sonnet).
 
-**Rule**: Steps 3-4 MUST be delegated to agents (Sonnet). Do NOT implement or test directly in the main conversation — always spawn the appropriate agent.
+## Model Strategy
+
+| Phase | Executor | Model |
+|-------|----------|-------|
+| Step 0 (Parse requirement) | Main | Opus |
+| Step 1 (Plan) | `product-planner` | Sonnet |
+| Step 2 (Spec verify) | `spec-keeper` | Sonnet |
+| Step 3 (Implement) | `backend-builder` / `flutter-builder` (parallel) | Sonnet |
+| Step 4 (Code review) | `code-reviewer` | Sonnet |
+| Step 5 (QA) | `qa-reviewer` | Sonnet |
+| Step 5b (Debug, conditional) | `debugger` → builder | Sonnet |
+| Step 6 (Deploy) | `deployer` | Sonnet |
+| Step 7 (Document) | `doc-writer` | Sonnet |
+| Step 8 (Commit & Push) | Main + `/commit` | Opus |
+| Step 9 (Final output) | Main | Opus |
 
 Argument: `<requirement description>`
 
 ---
 
-## Step 1: Requirements Analysis
+## Step 0: Parse Requirement (Main)
 
-Parse the user's requirement and produce a structured scope document.
-
-### 1-1. Read Source of Truth (skim relevant sections only)
-
-- `docs/prd.md` — verify P0/P1 scope
-- `docs/user-flows.md` — find affected screens
-- `docs/api-contract.md` — find affected endpoints
-- `docs/domain-model.md` — find affected entities (only if domain logic is involved)
-
-### 1-2. Search Codebase
-
-Use Glob and Grep to find files related to the requirement.
-
-### 1-3. Output Scope Document
-
-Print the following to the user:
-
-```
-## Feature Flow — Requirements
-
-### Requirement
-{user's original request}
-
-### Summary
-{one-line summary}
-
-### Affected Area
-{frontend / backend / both}
-
-### Acceptance Criteria
-1. {criterion}
-2. {criterion}
-...
-
-### Out of Scope
-- {exclusion}
-...
-
-### Affected Files (estimated)
-- {file paths found in codebase search}
-
-### Spec References
-- prd.md: {section}
-- user-flows.md: {flow}
-- api-contract.md: {endpoints}
-```
-
-### 1-4. Print & Proceed
-
-Print the scope document for visibility, then **auto-proceed to Step 2**. Do not wait for approval.
+Main reads the user's requirement, normalizes it to a single sentence, and identifies any obvious red flags (P1 scope, spec conflict, missing info). If info is missing, ask the user BEFORE spawning any agent. Otherwise auto-proceed to Step 1.
 
 ---
 
-## Step 2: Plan
+## Step 1: Plan (product-planner)
 
-### 2-1. Create Implementation Plan
+Spawn `product-planner` with the requirement. The agent produces an executable feature spec including:
+- Acceptance Criteria
+- Affected Area (frontend / backend / both)
+- Backend Plan / Frontend Plan
+- Reusable existing code pointers
 
-Based on the requirements, create a plan internally (do NOT enter Plan Mode):
-
-- **If single area (frontend only or backend only)**:
-  - List files to create/modify
-  - List the subagent to use (`flutter-builder` for frontend, `backend-builder` for backend)
-  - Define test strategy
-
-- **If cross-layer (both app/ and server/)**:
-  - Split into backend plan and frontend plan
-  - Define execution order (typically backend first, then frontend)
-  - List subagents: `backend-builder` + `flutter-builder` (parallel via Agent teams)
-  - Define integration test strategy
-
-### 2-2. Print & Proceed
-
-Print the plan summary for visibility, then **auto-proceed to Step 3**. Do not wait for approval.
+Print a one-line summary from the agent's output. Auto-proceed to Step 2.
 
 ---
 
-## Step 3: Implementation
+## Step 2: Spec Verify (spec-keeper)
 
-### Single Area (frontend OR backend)
+Spawn `spec-keeper` with the feature plan from Step 1 pasted into the prompt. The agent compares the plan against `docs/prd.md`, `user-flows.md`, `domain-model.md`, `api-contract.md`.
 
-Use the appropriate subagent:
+| Result | Action |
+|--------|--------|
+| Zero mismatches | Auto-proceed to Step 3 |
+| Warnings only (P1/Open Question) | STOP and ask user |
+| Mismatches | Re-spawn `product-planner` with the mismatch list (max 1 retry). If it fails again, STOP. |
 
-- **Frontend only**: Spawn `flutter-builder` agent
-  - Scope: `app/` only. NEVER touch `server/`.
-  - After completion: run `cd app && flutter test`
+---
 
-- **Backend only**: Spawn `backend-builder` agent
-  - Scope: `server/` only. NEVER touch `app/`.
-  - After completion: run `cd server && uv run pytest -v --tb=short`
+## Step 3: Implement (backend-builder / flutter-builder)
 
-### Cross-Layer (both)
+Based on the feature plan's Affected Area:
 
-Use Agent teams for parallel execution:
+- **Backend only**: Spawn `backend-builder`.
+- **Frontend only**: Spawn `flutter-builder`.
+- **Both**: Spawn `backend-builder` and `flutter-builder` **in parallel** (single message, two Agent calls).
 
-1. Spawn `backend-builder` agent — implements server/ changes
-2. Spawn `flutter-builder` agent — implements app/ changes
-3. Wait for both to complete
-4. Run integration check:
-   ```bash
-   cd server && uv run pytest -v --tb=short
-   cd app && flutter test
-   ```
+Pass the relevant portion of the Step 1 plan (Backend Plan or Frontend Plan sections) into each agent's prompt.
 
-### Implementation Rules
+Each builder agent is responsible for:
+- Its own tests (pytest / flutter test)
+- Its own build (flutter build ios --simulator / docker compose build)
+- Reporting changed files
 
-- Each subagent works ONLY in its designated directory
+Rules:
 - No subagent may modify `docs/`
-- No subagent may run `git commit`, `git add`, or `git push`
-- Follow existing code patterns (Riverpod, GoRouter, SQLAlchemy async, Pydantic v2)
+- No subagent may touch the other layer
+- No subagent may run git commit, add, or push
+
+If a builder fails its own build, it must self-correct before reporting. If it cannot, it reports the failure and we STOP.
 
 ---
 
-## Step 4: QA
+## Step 4: Code Review (code-reviewer)
 
-Use the `qa-reviewer` agent to verify the implementation.
-
-### 4-1. Run Tests
-
-```bash
-# Backend (if changed)
-cd server && uv run pytest -v --tb=short
-
-# Frontend (if changed)
-cd app && flutter test
-
-# Lint (frontend)
-cd app && flutter analyze
-```
-
-### 4-2. Spawn QA Agent
-
-Spawn `qa-reviewer` with the feature context:
-- Acceptance criteria from Step 1
-- Changed files from Step 3
-- Test results from 4-1
-
-### 4-3. Handle QA Verdict
+Spawn `code-reviewer` with the builder completion outputs from Step 3.
 
 | Verdict | Action |
 |---------|--------|
-| **Complete** | Proceed to Step 5 |
-| **Partial** | Fix issues using the appropriate subagent, then re-run QA (max 2 retries) |
-| **Incomplete** | Fix critical issues, then re-run QA (max 2 retries) |
-
-After 2 failed retries, STOP and ask the user for guidance.
+| **Pass** | Auto-proceed to Step 5 |
+| **Changes Requested** | Re-spawn the owning builder with the blocking-issues list, then re-run code-reviewer (max 1 retry). If still Changes Requested, STOP. |
 
 ---
 
-## Step 5: Report
+## Step 5: QA (qa-reviewer)
 
-Generate a feature report at `docs/reports/YYYY-MM-DD-<slug>.md`.
+Spawn `qa-reviewer` with:
+- Acceptance criteria from Step 1
+- Changed files from Step 3
+- Code review verdict from Step 4
 
-The `<slug>` is derived from the summary (lowercase, hyphens, max 50 chars).
+The agent runs `pytest`, `flutter test`, `flutter analyze`, and the checklist review.
 
-### Report Template
-
-```markdown
-# Feature Report: {summary}
-
-- Date: {YYYY-MM-DD}
-- Area: {frontend / backend / both}
-- Status: {complete / partial}
-
-## Requirement
-{original requirement text}
-
-## Changed Files
-- {file path} — {brief description of change}
-...
-
-## Frontend Changes
-{summary of UI/widget changes, or "N/A"}
-
-## Backend Changes
-{summary of API/model changes, or "N/A"}
-
-## QA Results
-- Backend tests: {N passed, M failed / skipped}
-- Frontend tests: {N passed, M failed / skipped}
-- Lint: {pass / N issues}
-- QA verdict: {complete / partial / incomplete}
-
-### Acceptance Criteria
-| # | Criterion | Result | Evidence |
-|---|-----------|--------|----------|
-| 1 | {criterion} | PASS/FAIL | {brief} |
-...
-
-## Remaining Risks
-- {risk description, or "None identified"}
-
-## Push
-- Eligible: {yes / no}
-- Reason: {why eligible or not}
-```
+| Verdict | Action |
+|---------|--------|
+| **Complete** | Auto-proceed to Step 6 |
+| **Partial / Incomplete** | Auto-enter Step 5b (debug loop) |
 
 ---
 
-## Step 6: Push Eligibility Check
+## Step 5b: Debug Loop (debugger → builder → re-QA)
 
-Evaluate whether the work is ready to push:
+Conditional step — only runs when Step 5 returns partial/incomplete.
 
-### Push Conditions (ALL must be true)
+1. Spawn `debugger` with the failing test output and qa-reviewer verdict. The agent produces a **fix spec** naming the owning builder.
+2. Spawn the owning builder (`backend-builder` or `flutter-builder`) with the fix spec.
+3. Re-spawn `qa-reviewer`.
 
-1. QA verdict is "complete"
-2. All tests pass (0 failures)
-3. Report file exists in `docs/reports/`
-4. No files outside the affected area were modified
-
-### If Eligible
-
-**Auto-proceed to Step 7.** Print a one-line summary for visibility:
-```
-Push 조건 충족 — 자동 진행 (변경 {N}개, QA complete, tests passed)
-```
-
-### If Not Eligible
-
-Print:
-```
-Push 조건 미충족:
-- {reason 1}
-- {reason 2}
-
-수동으로 수정 후 다시 시도하거나, 강제 진행하려면 말씀해주세요.
-```
+Max 2 retries of the full 5b loop. After 2 failed retries, STOP and hand to user with the last debug report.
 
 ---
 
-## Step 7: Commit & Push
+## Step 6: Deploy (deployer)
 
-Auto-execute when push conditions are met.
+Spawn `deployer`. The agent:
+- Detects affected area via git diff
+- Rebuilds Docker services (`docker compose up --build -d <service>`)
+- Runs `flutter build ios --simulator` + `flutter run -d <simulator-id>` for frontend changes
+- Verifies `/health` and simulator boot
 
-### 7-1. Stage and Commit
-
-Use `/role-scoped-commit-push` with the appropriate role:
-
-- Frontend only: `/role-scoped-commit-push front feat: {summary}`
-- Backend only: `/role-scoped-commit-push backend feat: {summary}`
-- Cross-layer: Commit each area separately:
-  1. `/role-scoped-commit-push backend feat: {summary}`
-  2. `/role-scoped-commit-push front feat: {summary}`
-
-### 7-2. Also Commit Report
-
-```bash
-git add docs/reports/{report-file}
-git commit -m "docs: add feature report for {summary}
-
-Co-Authored-By: Claude <noreply@anthropic.com>"
-git push
-```
-
-### 7-3. Proceed to Step 8 (Local Rebuild)
+| Verdict | Action |
+|---------|--------|
+| **Success** | Auto-proceed to Step 7 |
+| **Failed** | STOP, print deployer logs, hand to user |
 
 ---
 
-## Step 8: Local Rebuild & Verify
+## Step 7: Document (doc-writer)
 
-After push, rebuild the local Docker environment so the running app reflects the latest changes.
+Spawn `doc-writer` with:
+- Feature plan from Step 1
+- Builder outputs from Step 3
+- Code review verdict from Step 4
+- QA verdict from Step 5
+- Deploy report from Step 6
 
-### 8-1. Rebuild Affected Services
+The agent writes:
+- `impl-log/<slug>.md`
+- `test-reports/<slug>-test-report.md`
+- `docs/reports/YYYY-MM-DD-<slug>.md`
 
-Determine which services to rebuild based on the affected area:
+If doc-writer reports a protected-file violation (attempted to touch `docs/prd.md` etc.), STOP — the plan was wrong.
 
-- **Frontend only**: `docker compose up --build -d frontend`
-- **Backend only**: `docker compose up --build -d backend`
-- **Both**: `docker compose up --build -d backend frontend`
+---
 
-Set Bash tool timeout to 600000 (10 minutes) — Flutter web build may be slow.
+## Step 8: Commit & Push (Main + /commit)
 
-### 8-2. Health Check
+Main runs `/commit` to:
+1. Stage code changes (from Step 3) + documentation (from Step 7)
+2. Commit with a conventional-commits message
+3. Push directly to main
 
-```bash
-# Backend
-curl -s --max-time 10 http://localhost:8000/health
+Commit is forbidden before Step 7 completes. Push is forbidden before commit.
 
-# Frontend
-curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
-```
+Cross-layer commits use `/role-scoped-commit-push` separately for `backend` and `front` roles.
 
-### 8-3. Final Output
+---
+
+## Step 9: Final Output (Main)
+
+Print the completion summary:
 
 ```
 ## Feature Flow Complete
@@ -318,15 +183,17 @@ curl -s --max-time 5 -o /dev/null -w "%{http_code}" http://localhost:3000
 |------|-------|
 | Feature | {summary} |
 | Area | {frontend / backend / both} |
-| QA | complete |
-| Report | docs/reports/{filename} |
-| Commits | {hash1}, {hash2} |
+| Plan | product-planner ✓ |
+| Spec verify | spec-keeper ✓ |
+| Implementation | {backend-builder / flutter-builder} ✓ |
+| Code review | code-reviewer ✓ |
+| QA | qa-reviewer: complete |
+| Debug loop | {N retries | skipped} |
+| Deploy | deployer: backend health OK, simulator running |
+| Documentation | impl-log + test-report + feature report |
+| Commit | {hash} |
 | Push | done |
-| Local rebuild | done |
-| Health check | Backend OK, Frontend 200 |
 ```
-
-If a service fails health check, print `docker compose logs {service}` output and ask the user for guidance.
 
 ---
 
@@ -334,11 +201,13 @@ If a service fails health check, print `docker compose logs {service}` output an
 
 These rules apply at ALL steps:
 
-- **P0/P1 scope**: Do not implement features beyond P1. Block if user requests out-of-scope features.
-- **Spec match**: Code must match docs/api-contract.md paths, field names, error codes exactly.
-- **No doc edits**: Never modify docs/ files (except docs/reports/).
-- **Cross-boundary prohibition**: Frontend agents never touch server/. Backend agents never touch app/.
-- **Plan first**: Never start implementation without an approved plan.
-- **QA before push**: Never push without QA verdict "complete".
-- **Report before push**: Never push without a report in docs/reports/.
-- **Auto-proceed**: All steps run without user approval. Only STOP when: QA fails 2 times, push conditions are not met, or health check fails.
+- **Main never implements, tests, builds, reviews, or writes docs directly.** Always spawn the specialist agent.
+- **P0/P1 scope**: Do not implement features beyond P1. product-planner blocks P1 silently; spec-keeper is the enforcement gate.
+- **Spec match**: Code must match `docs/api-contract.md` paths, field names, error codes exactly.
+- **No source-of-truth doc edits**: Never modify `docs/prd.md`, `docs/user-flows.md`, `docs/domain-model.md`, `docs/api-contract.md`. Only `docs/reports/` is writable, and only by doc-writer.
+- **Cross-boundary prohibition**: `flutter-builder` never touches `server/`. `backend-builder` never touches `app/`.
+- **Plan first**: Never start implementation without a product-planner plan validated by spec-keeper.
+- **QA before deploy**: Never deploy without qa-reviewer verdict "complete".
+- **Deploy before document**: Never write docs without a successful deploy report.
+- **Document before commit**: Never commit before doc-writer writes impl-log + test-report + feature report.
+- **Auto-proceed**: All steps run without user approval. STOP only on: spec verify double failure, code review double failure, QA double failure after debug loop, deploy failure, or protected-file violation.
