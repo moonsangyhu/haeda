@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../features/auth/providers/auth_provider.dart';
 import '../../features/character/providers/character_provider.dart';
 import '../../features/status_bar/widgets/status_bar.dart';
+import '../theme/app_theme.dart';
 import 'character_avatar.dart';
 import 'cute_icon.dart';
 
@@ -17,6 +19,8 @@ class MainShell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final character = ref.watch(myCharacterProvider).valueOrNull;
+    final backgroundHex =
+        ref.watch(authStateProvider).valueOrNull?.backgroundColor;
     final currentIndex = navigationShell.currentIndex;
     final theme = Theme.of(context);
 
@@ -40,6 +44,7 @@ class MainShell extends ConsumerWidget {
       bottomNavigationBar: _BottomBar(
         currentIndex: currentIndex,
         character: character,
+        backgroundHex: backgroundHex,
         theme: theme,
         onTap: (index) {
           navigationShell.goBranch(
@@ -56,12 +61,14 @@ class _BottomBar extends StatelessWidget {
   const _BottomBar({
     required this.currentIndex,
     required this.character,
+    required this.backgroundHex,
     required this.theme,
     required this.onTap,
   });
 
   final int currentIndex;
   final dynamic character; // CharacterData?
+  final String? backgroundHex;
   final ThemeData theme;
   final ValueChanged<int> onTap;
 
@@ -95,8 +102,17 @@ class _BottomBar extends StatelessWidget {
                 index: 0,
                 isSelected: currentIndex == 0,
                 label: '내 방',
-                icon: CharacterAvatar(character: character, size: 22),
-                selectedIcon: CharacterAvatar(character: character, size: 24),
+                icon: _CharacterTabIcon(
+                  character: character,
+                  backgroundHex: backgroundHex,
+                  size: 22,
+                ),
+                selectedIcon: _CharacterTabIcon(
+                  character: character,
+                  backgroundHex: backgroundHex,
+                  size: 24,
+                  selected: true,
+                ),
                 onTap: onTap,
               ),
               // 1: 상점
@@ -209,6 +225,48 @@ class _TabItem extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// 하단 내 방 탭의 캐릭터 아이콘 — 유저별 고유 원형 배경 위에 작은 캐릭터를 올린다.
+class _CharacterTabIcon extends StatelessWidget {
+  const _CharacterTabIcon({
+    required this.character,
+    required this.backgroundHex,
+    required this.size,
+    this.selected = false,
+  });
+
+  final dynamic character;
+  final String? backgroundHex;
+  final double size;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final bgColor = AppTheme.characterBackgroundFromHex(backgroundHex);
+    // 배경 원은 캐릭터보다 살짝 크게.
+    final diameter = size + 8;
+
+    return Container(
+      width: diameter,
+      height: diameter,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: bgColor,
+        boxShadow: selected
+            ? [
+                BoxShadow(
+                  color: bgColor.withValues(alpha: 0.55),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ]
+            : null,
+      ),
+      alignment: Alignment.center,
+      child: CharacterAvatar(character: character, size: size),
     );
   }
 }
