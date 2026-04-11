@@ -6,12 +6,28 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.dependencies import get_current_user_id
+from app.exceptions import AppException
 from app.models.gem_transaction import GemTransaction
+from app.models.user import User
 from app.schemas.coin import CoinBalanceResponse
 from app.schemas.item import AppearanceUpdateRequest, CharacterUpdateRequest
+from app.schemas.user import UserBrief
 from app.services import challenge_service, character_service, gem_service, shop_service, user_stats_service
 
 router = APIRouter(prefix="/me", tags=["me"])
+
+
+@router.get("")
+async def get_me(
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise AppException(status_code=404, code="USER_NOT_FOUND", message="사용자를 찾을 수 없습니다.")
+    brief = UserBrief(id=user.id, nickname=user.nickname, profile_image_url=user.profile_image_url)
+    return {"data": brief.model_dump()}
 
 
 @router.get("/challenges")
