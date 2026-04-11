@@ -41,33 +41,42 @@ Main reads the bug report, identifies the affected area (from error messages, lo
 
 ---
 
-## Step 1: Diagnose (debugger)
+## Step 1: Diagnose, Plan, Execute, Verify, Report (debugger)
 
-Spawn `debugger` with the bug description. The agent:
-- Reproduces the bug (test run, curl, log inspection)
-- Isolates the root cause with file:line evidence
-- Emits a fix spec naming the owning builder
+Spawn `debugger` with the bug description. The agent performs the full deep-debug loop:
+1. Reproduce the bug mechanically
+2. Trace it layer-by-layer across Frontend → API → Service → Data Access → Database
+3. Synthesize a single evidence-backed root cause
+4. Write a per-layer fix plan
+5. Execute in-role fixes and emit handoff specs for other roles
+6. Re-run the reproduction to verify the fix
+7. Generate the 3-file debug report (impl-log + test-report + docs/reports) via the doc-writer procedure
 
-Main reads the fix spec and proceeds to Step 2.
-
-If debugger reports "cannot reproduce" or "insufficient evidence", STOP and ask the user for more info.
+Main reads the debugger's output:
+- **In-role fixes already applied** — staged, unpushed. Proceed to Step 3 (code review).
+- **Handoff specs present** — Step 2 spawns the matching builder agent(s).
+- **Cannot reproduce / STOP** — halt the flow and ask the user for more info.
 
 ---
 
-## Step 2: Fix (backend-builder / flutter-builder)
+## Step 2: Apply Handoff Specs (backend-builder / flutter-builder)
 
-Spawn the builder named in the debugger's fix spec, passing:
-- The fix spec verbatim
+The debugger already applied in-role fixes in Step 1. This step only runs if the debugger emitted handoff specs for layers outside its worktree role.
+
+For each handoff spec, spawn the matching builder agent in its own worktree, passing:
+- The handoff spec verbatim (target file, current code, replacement code, regression test)
 - The instruction: "fix only, no refactor, no feature additions"
 
-Cross-layer bugs: spawn both builders in parallel with their respective portions of the fix spec.
+Cross-layer bugs: spawn the relevant builders in parallel.
 
 Rules:
-- Each agent works only in its designated directory
-- No agent may modify `docs/`
-- No agent may run git commands
+- Each agent works only in its designated worktree role
+- No agent modifies `docs/` source of truth
+- No agent runs git commands (main thread handles commit/push)
 - Do not refactor surrounding code
 - Do not add features
+
+If the debugger had no handoff specs (single-role fix), skip this step entirely.
 
 ---
 
@@ -119,12 +128,14 @@ Spawn `deployer`. The agent rebuilds affected services, runs `flutter build ios 
 
 ---
 
-## Step 6: Document (doc-writer)
+## Step 6: Document (doc-writer or debugger-authored)
 
-Spawn `doc-writer` with all prior outputs. The agent writes:
-- `impl-log/fix-<slug>.md`
-- `test-reports/fix-<slug>-test-report.md`
-- `docs/reports/YYYY-MM-DD-fix-<slug>.md`
+If the debugger already wrote the 3-file debug report in Step 1 Phase 7, this step is a no-op — skip to Step 7.
+
+Otherwise (e.g. the bug was fixed purely via handoff-spec builders without the debugger executing), spawn `doc-writer` with all prior outputs. The agent writes:
+- `impl-log/fix-<slug>-<role>.md`
+- `test-reports/fix-<slug>-<role>-test-report.md`
+- `docs/reports/YYYY-MM-DD-<role>-fix-<slug>.md`
 
 ---
 

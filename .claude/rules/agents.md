@@ -11,7 +11,7 @@ All implementation, review, build, and documentation work uses a 10-agent team. 
 | `ui-designer` | Sonnet | UI design / polish / accessibility | app/ only |
 | `code-reviewer` | Sonnet | Static code quality gate (style, reuse, security smells) | read-only + bash (git diff) |
 | `qa-reviewer` | Sonnet | Test execution + checklist review | read-only + bash |
-| `debugger` | Sonnet | Root-cause diagnosis, emits fix spec for builder | read-only + bash |
+| `debugger` | Sonnet | Deep cross-layer debugging (FE/BE/DB): reproduce → layer-by-layer analysis → fix plan → execute → verify → report | read+edit+bash within worktree role |
 | `deployer` | Sonnet | Docker rebuild, flutter ios simulator run, health check | bash only |
 | `doc-writer` | Sonnet | impl-log, test-reports, docs/reports/ | write to impl-log/, test-reports/, docs/reports/ only |
 
@@ -38,7 +38,7 @@ Detailed rules:
 - **Design**: UI/UX improvements go to `ui-designer` first, then `flutter-builder` integrates.
 - **Code Review**: After every builder completion, spawn `code-reviewer` before `qa-reviewer`. If verdict is `Changes Requested`, re-invoke the owning builder with the fix list (max 1 retry), then re-review.
 - **QA**: After `code-reviewer` passes, spawn `qa-reviewer` to run tests + checklist.
-- **Debug**: If `qa-reviewer` returns `partial` or `incomplete`, auto-spawn `debugger` to diagnose → hand off fix spec to builder → re-run qa-reviewer (max 2 retries).
+- **Debug**: If `qa-reviewer` returns `partial` or `incomplete`, auto-spawn `debugger`. The debugger performs deep cross-layer analysis (FE/BE/DB), plans, executes in-role fixes, writes handoff specs for other roles, verifies by re-reproduction, and generates a 3-file debug report (impl-log + test-report + docs/reports) following the doc-writer procedure. Main routes handoff specs to the matching builder and re-runs qa-reviewer (max 2 retries).
 - **Deploy**: After QA complete, spawn `deployer` for rebuild + health check + iOS simulator run.
 - **Documentation**: After deploy succeeds, spawn `doc-writer` for impl-log + test-report + feature report.
 - **Commit & Push**: Only after doc-writer completes, main thread runs `/commit` skill.
