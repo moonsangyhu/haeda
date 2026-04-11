@@ -59,19 +59,24 @@ Then push via the rebase-retry loop (NEVER bare `git push`):
 for attempt in 1 2 3; do
   git fetch origin main
   if ! git rebase origin/main; then
-    git rebase --abort 2>/dev/null
-    echo "Rebase conflict — role contract violated, STOP"
-    exit 1
+    # DO NOT auto-abort. Hand off to /resolve-conflict.
+    break
   fi
   if git push origin HEAD:main; then
-    break
+    exit 0
   fi
   echo "Push rejected (non-fast-forward), retry $attempt/3"
   sleep 1
 done
 ```
 
-**IMPORTANT**: No branches. No PRs. No bare `git push`. No `--force`. Always use the rebase-retry loop. See `.claude/rules/worktree-parallel.md`.
+**On rebase conflict**: the loop breaks without aborting so the repo stays in rebase-in-progress state. Next, invoke the `resolve-conflict` skill:
+
+1. Read `.claude/skills/resolve-conflict/SKILL.md` and follow its 7 phases.
+2. If the skill reports **success**, re-run the push step: `git fetch origin main && git push origin HEAD:main`. Retry the push up to 3 times with rebase if needed.
+3. If the skill reports **STOP**, do NOT continue. Emit the skill's STOP report to the user. The repo is left in rebase-in-progress state per the skill's contract.
+
+**IMPORTANT**: No branches. No PRs. No bare `git push`. No `--force`. See `.claude/rules/worktree-parallel.md`.
 
 ## Step 4: Write Implementation Log
 
@@ -122,10 +127,13 @@ git commit -m "docs: add impl-log for <name>
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
-# rebase-retry push
+# rebase-retry push — on conflict, invoke /resolve-conflict instead of aborting
 for attempt in 1 2 3; do
   git fetch origin main
-  git rebase origin/main || { git rebase --abort; echo "rebase conflict"; exit 1; }
+  if ! git rebase origin/main; then
+    echo "Rebase conflict — invoke .claude/skills/resolve-conflict/SKILL.md, then retry push"
+    break
+  fi
   git push origin HEAD:main && break
   sleep 1
 done

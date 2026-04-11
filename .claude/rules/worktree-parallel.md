@@ -72,14 +72,22 @@ push_with_rebase() {
 
 `HEAD:main` pushes the current commit onto the remote `main` ref regardless of what local branch name the worktree uses. This is the canonical form for worktree-based parallel work on a single shared remote branch.
 
-Why this always works under the role contract:
-- Path isolation + filename convention guarantee no overlapping changes.
+Why this usually works under the role contract:
+- Path isolation + filename convention guarantee no overlapping changes in the common case.
 - Rebase applies cleanly because the commits touch disjoint files.
-- The only failure mode is a race where a third worktree pushes between our fetch and push — the retry loop catches that.
+- The only failure mode for disjoint changes is a race where a third worktree pushes between our fetch and push — the retry loop catches that.
 
-**Rebase conflict = contract violation.** If rebase ever fails, an agent or human broke role isolation. STOP, report the conflicting files, and hand to the user. Do NOT attempt auto-resolution.
+**Rebase conflict → invoke `resolve-conflict` skill.** When rebase fails (contract violation, cross-worktree overlap, or shared-file edit), do NOT auto-abort. Instead:
 
-Forbidden flags: `--force`, `--force-with-lease`, `--no-verify`. Never.
+1. Stop the bash loop at the rebase failure (do not immediately `git rebase --abort`).
+2. Read and follow `.claude/skills/resolve-conflict/SKILL.md` phase by phase.
+3. The skill attempts lossless merge, running per-language syntax checks and post-rebase tests.
+4. If the skill completes successfully, resume the push step (`git push origin HEAD:main`).
+5. If the skill STOPs (ambiguity, syntax failure, test regression), it leaves the repo in rebase-in-progress state and emits a handoff report — hand that to the user.
+
+The skill is invariant-safe: it never drops functionality from either side. Its worst-case output is a STOP report, which is still strictly better than a hard abort because auto-resolvable files are already staged.
+
+Forbidden flags under all circumstances: `--force`, `--force-with-lease`, `--no-verify`, `-X theirs`, `-X ours`. Never.
 
 ## Deployer Lockfile
 

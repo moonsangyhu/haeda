@@ -91,10 +91,13 @@ git commit -m "docs: mark {branch-name} as rolled back
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
-# rebase-retry push — see .claude/rules/worktree-parallel.md
+# rebase-retry push — on conflict, invoke /resolve-conflict
 for attempt in 1 2 3; do
   git fetch origin main
-  git rebase origin/main || { git rebase --abort; echo "rebase conflict"; exit 1; }
+  if ! git rebase origin/main; then
+    echo "Rebase conflict — invoke .claude/skills/resolve-conflict/SKILL.md, then retry push"
+    break
+  fi
   git push origin HEAD:main && break
   sleep 1
 done

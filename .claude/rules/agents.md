@@ -42,6 +42,7 @@ Detailed rules:
 - **Deploy**: After QA complete, spawn `deployer` for rebuild + health check + iOS simulator run.
 - **Documentation**: After deploy succeeds, spawn `doc-writer` for impl-log + test-report + feature report.
 - **Commit & Push**: Only after doc-writer completes, main thread runs `/commit` skill.
+- **Conflict Resolution**: When any rebase-retry push fails with a git conflict (in any skill or agent), invoke `/resolve-conflict` skill per `.claude/skills/resolve-conflict/SKILL.md`. Never `git rebase --abort` without first trying this skill. The skill guarantees lossless merge or a STOP report — it will never silently drop functionality.
 - **Rollback**: When user requests rollback/undo, run `/rollback` skill.
 - **Main (Opus)**: Requirement parsing, agent orchestration, final /commit. Do NOT implement, test, build, or document directly.
 

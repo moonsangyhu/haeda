@@ -76,7 +76,10 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
 for attempt in 1 2 3; do
   git fetch origin main
-  git rebase origin/main || { git rebase --abort; echo "rebase conflict"; exit 1; }
+  if ! git rebase origin/main; then
+    echo "Rebase conflict — invoke .claude/skills/resolve-conflict/SKILL.md, then retry push"
+    break
+  fi
   git push origin HEAD:main && break
   sleep 1
 done

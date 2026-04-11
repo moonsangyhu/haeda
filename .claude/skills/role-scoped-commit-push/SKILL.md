@@ -215,14 +215,14 @@ Parallel worktrees share `origin/main`. Never use a bare `git push` — it will 
 for attempt in 1 2 3; do
   git fetch origin main
   if ! git rebase origin/main; then
-    git rebase --abort 2>/dev/null
-    echo "Error: rebase conflict — role contract violated"
+    # DO NOT auto-abort. Hand off to /resolve-conflict.
+    echo "Rebase conflict — invoke .claude/skills/resolve-conflict/SKILL.md"
     echo "Conflicting files:"
     git diff --name-only --diff-filter=U
-    exit 1
+    break
   fi
   if git push origin HEAD:main; then
-    break
+    exit 0
   fi
   echo "Push rejected (non-fast-forward), retry $attempt/3"
   sleep 1
@@ -231,7 +231,13 @@ done
 
 `HEAD:main` is used because worktrees are checked out on branches like `worktree-backend`, `worktree-front`, `worktree-claude` — not on `main` itself. The ref specifier pushes the current commit onto the remote `main` ref regardless of the local branch name.
 
-Rebase conflict = role contract violated. STOP, report conflict files, hand to user. **Never** use `--force`, `--force-with-lease`, or auto-resolve.
+**On rebase conflict**:
+1. The loop breaks without aborting, leaving the repo in rebase-in-progress state.
+2. Read and follow `.claude/skills/resolve-conflict/SKILL.md` to attempt lossless merge.
+3. If the skill succeeds, resume the push step (`git fetch origin main && git push origin HEAD:main`).
+4. If the skill STOPs, emit its report and hand to user. Do not force, do not abort — the skill manages repo state.
+
+**Never** use `--force`, `--force-with-lease`, `-X theirs`, `-X ours`, or `git rebase --abort` without first trying `resolve-conflict`.
 
 ### Step 7: Output Result
 

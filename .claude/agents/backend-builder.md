@@ -30,10 +30,17 @@ case "$WT" in
   *) echo "ERROR: not in a backend worktree (got: $WT)"; exit 1 ;;
 esac
 git fetch origin main
-git rebase origin/main || { git rebase --abort; echo "ERROR: worktree not clean vs origin/main"; exit 1; }
+if ! git rebase origin/main; then
+  echo "Rebase conflict on sync — DO NOT auto-abort"
+  echo "Read .claude/skills/resolve-conflict/SKILL.md and follow it to merge losslessly"
+  echo "If the skill STOPs, report its output to main thread and halt this build"
+  exit 1
+fi
 ```
 
-If the check fails, STOP and report to the main thread. Do not cross-patch into another role's worktree.
+If the worktree-name check fails, STOP and report to the main thread. Do not cross-patch into another role's worktree.
+
+If the sync rebase fails, do NOT run `git rebase --abort`. Follow `.claude/skills/resolve-conflict/SKILL.md` instead — it merges losslessly or hands off a STOP report. Only halt this build if the skill's report is STOP.
 
 ### Phase 1: Context Discovery (before writing any code)
 
