@@ -41,6 +41,10 @@ Every feature/fix that changes source code (app/ or server/) MUST end with a loc
 - Config-only changes (.claude/, docs/) are exempt
 - This applies to all workflows: slice, fix, refine, manual feature work
 
+## Task Report (Mandatory for every state-changing task)
+
+`.claude/rules/worktree-task-report.md` 에 정의된 대로, 모든 상태 변경 작업(feature, fix, config, rebase 포함)은 `docs/reports/YYYY-MM-DD-{role}-{slug}.md` 보고서를 git 에 남긴 뒤 커밋한다. 보고서 없이 `/commit` 을 실행하지 않는다.
+
 ## Cross-Layer Isolation
 
 - Do not touch app/ code when working on server/. Vice versa.

@@ -25,6 +25,8 @@ Detailed rules in `.claude/rules/`:
 - **agents.md** — 10-agent team, dispatch rules, gate rules
 - **workflow.md** — 9-step slice flow, verification principles
 - **worktree-parallel.md** — role contract, rebase-retry push, deployer lockfile (MANDATORY for all worktree work)
+- **worktree-task-report.md** — 작업 단위마다 `docs/reports/YYYY-MM-DD-{role}-{slug}.md` 보고서 생성 의무 (MANDATORY)
+- **claude-config-sync.md** — claude role의 `.claude/**` 변경은 즉시 push, 다른 role은 작업 시작 전 반드시 rebase (MANDATORY)
 - **automation.md** — slice-auto, refinement pipeline
 - **security.md** — secrets, validation, encoding
 - **app-guard.md** — Flutter rules (app/** auto-load)
