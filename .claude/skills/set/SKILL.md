@@ -67,13 +67,19 @@ After user approval, apply the changes using Edit or Write tools.
 
 Invoke the `/commit` skill to stage, commit, and push the changes.
 
-If `/commit` is unavailable, manually:
+If `/commit` is unavailable, manually — ALWAYS via rebase-retry (see `.claude/rules/worktree-parallel.md`):
 ```bash
 git add <changed files>
 git commit -m "chore(claude): <description>
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-git push origin main
+
+for attempt in 1 2 3; do
+  git fetch origin main
+  git rebase origin/main || { git rebase --abort; echo "rebase conflict"; exit 1; }
+  git push origin HEAD:main && break
+  sleep 1
+done
 ```
 
 ## Step 5: Summary

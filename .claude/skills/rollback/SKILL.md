@@ -90,7 +90,14 @@ git add impl-log/<branch-name>.md
 git commit -m "docs: mark {branch-name} as rolled back
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
-git push origin main
+
+# rebase-retry push — see .claude/rules/worktree-parallel.md
+for attempt in 1 2 3; do
+  git fetch origin main
+  git rebase origin/main || { git rebase --abort; echo "rebase conflict"; exit 1; }
+  git push origin HEAD:main && break
+  sleep 1
+done
 ```
 
 ## Step 7: Summary

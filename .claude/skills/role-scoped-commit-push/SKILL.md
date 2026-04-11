@@ -221,7 +221,7 @@ for attempt in 1 2 3; do
     git diff --name-only --diff-filter=U
     exit 1
   fi
-  if git push origin main; then
+  if git push origin HEAD:main; then
     break
   fi
   echo "Push rejected (non-fast-forward), retry $attempt/3"
@@ -229,7 +229,7 @@ for attempt in 1 2 3; do
 done
 ```
 
-If the worktree is on a branch other than `main`, the worktree setup is wrong — STOP and report. All roles commit on top of `main`.
+`HEAD:main` is used because worktrees are checked out on branches like `worktree-backend`, `worktree-front`, `worktree-claude` — not on `main` itself. The ref specifier pushes the current commit onto the remote `main` ref regardless of the local branch name.
 
 Rebase conflict = role contract violated. STOP, report conflict files, hand to user. **Never** use `--force`, `--force-with-lease`, or auto-resolve.
 

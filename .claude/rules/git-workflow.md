@@ -37,7 +37,8 @@ git commit -m "<message>"
 # rebase-retry push — never bare push
 git fetch origin main
 git rebase origin/main || { git rebase --abort; echo "rebase conflict — STOP"; exit 1; }
-git push origin main   # on non-fast-forward, retry fetch+rebase+push up to 3 times
+git push origin HEAD:main   # HEAD:main because worktrees are on branches like worktree-claude, not main
+                            # on non-fast-forward, retry fetch+rebase+push up to 3 times
 ```
 
 **This rule is absolute** — no feature branches, no PRs, no `gh pr create`. Ever.

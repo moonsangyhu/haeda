@@ -45,7 +45,7 @@ Existing files without role suffix are grandfathered (do not rename). New files 
 
 ## Rebase-Retry Push Loop
 
-Every push to `origin/main` MUST use this sequence instead of a bare `git push`:
+Every push to `origin/main` MUST use this sequence instead of a bare `git push`. The push target is always `HEAD:main` — never a named branch — because worktrees are typically checked out on a branch like `worktree-claude`, `worktree-backend`, etc., not on `main` itself.
 
 ```bash
 push_with_rebase() {
@@ -58,7 +58,7 @@ push_with_rebase() {
       echo "Rebase conflict detected — STOP and report to user"
       return 1
     fi
-    if git push origin main; then
+    if git push origin HEAD:main; then
       return 0
     fi
     attempt=$((attempt + 1))
@@ -69,6 +69,8 @@ push_with_rebase() {
   return 1
 }
 ```
+
+`HEAD:main` pushes the current commit onto the remote `main` ref regardless of what local branch name the worktree uses. This is the canonical form for worktree-based parallel work on a single shared remote branch.
 
 Why this always works under the role contract:
 - Path isolation + filename convention guarantee no overlapping changes.

@@ -63,7 +63,7 @@ for attempt in 1 2 3; do
     echo "Rebase conflict — role contract violated, STOP"
     exit 1
   fi
-  if git push origin main; then
+  if git push origin HEAD:main; then
     break
   fi
   echo "Push rejected (non-fast-forward), retry $attempt/3"
@@ -126,7 +126,7 @@ Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 for attempt in 1 2 3; do
   git fetch origin main
   git rebase origin/main || { git rebase --abort; echo "rebase conflict"; exit 1; }
-  git push origin main && break
+  git push origin HEAD:main && break
   sleep 1
 done
 ```
