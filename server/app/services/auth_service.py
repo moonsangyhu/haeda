@@ -66,24 +66,45 @@ def create_refresh_token(user_id: uuid.UUID) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
+ALLOWED_BACKGROUND_COLORS = {
+    "#FFCDD2",
+    "#F8BBD0",
+    "#E1BEE7",
+    "#C5CAE9",
+    "#BBDEFB",
+    "#B2DFDB",
+    "#C8E6C9",
+    "#FFE0B2",
+}
+
+
 async def update_profile(
     db: AsyncSession,
     user_id: uuid.UUID,
-    nickname: str,
+    nickname: str | None,
     profile_image_bytes: bytes | None,
     profile_image_filename: str | None,
+    background_color: str | None,
 ) -> User:
-    if len(nickname) < 2:
-        raise AppException(400, "NICKNAME_TOO_SHORT", "닉네임은 2자 이상이어야 합니다.")
-    if len(nickname) > 30:
-        raise AppException(400, "NICKNAME_TOO_LONG", "닉네임은 30자 이하여야 합니다.")
+    if nickname is not None:
+        if len(nickname) < 2:
+            raise AppException(400, "NICKNAME_TOO_SHORT", "닉네임은 2자 이상이어야 합니다.")
+        if len(nickname) > 30:
+            raise AppException(400, "NICKNAME_TOO_LONG", "닉네임은 30자 이하여야 합니다.")
+
+    if background_color is not None:
+        normalized = background_color.upper()
+        if normalized not in ALLOWED_BACKGROUND_COLORS:
+            raise AppException(400, "INVALID_BACKGROUND_COLOR", "허용되지 않은 배경 색상입니다.")
+        background_color = normalized
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if user is None:
         raise AppException(404, "USER_NOT_FOUND", "유저를 찾을 수 없습니다.")
 
-    user.nickname = nickname
+    if nickname is not None:
+        user.nickname = nickname
 
     if profile_image_bytes and profile_image_filename:
         ext = Path(profile_image_filename).suffix
@@ -91,6 +112,9 @@ async def update_profile(
         UPLOADS_DIR.mkdir(exist_ok=True)
         (UPLOADS_DIR / filename).write_bytes(profile_image_bytes)
         user.profile_image_url = f"/uploads/{filename}"
+
+    if background_color is not None:
+        user.background_color = background_color
 
     await db.commit()
     await db.refresh(user)

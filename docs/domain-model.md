@@ -48,6 +48,7 @@ User 1──N DeviceToken
 | kakao_id | BIGINT | UNIQUE, NOT NULL | 카카오 OAuth 고유 ID |
 | nickname | VARCHAR(30) | NOT NULL | 닉네임 |
 | profile_image_url | TEXT | NULLABLE | 프로필 사진 URL |
+| background_color | VARCHAR(9) | NULLABLE | 캐릭터 배경 원형 색상 (고정 팔레트 내 hex, 예 `#FFCDD2`) |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 가입일시 |
 
 ### 2.2 Challenge — P0 (핵심 객체)

@@ -67,6 +67,7 @@
       "id": "uuid",
       "nickname": "string | null",
       "profile_image_url": "string | null",
+      "background_color": "string | null",
       "is_new": true
     }
   }
@@ -84,6 +85,7 @@
 |------|------|------|------|
 | nickname | string | Y | 닉네임 (2~30자) |
 | profile_image | file | N | 프로필 사진 |
+| background_color | string | N | 캐릭터 배경 원형 색상 (고정 팔레트 내 hex, 예 `#FFCDD2`) |
 
 **Response (200):**
 ```json
@@ -91,7 +93,8 @@
   "data": {
     "id": "uuid",
     "nickname": "string",
-    "profile_image_url": "string | null"
+    "profile_image_url": "string | null",
+    "background_color": "string | null"
   }
 }
 ```
@@ -101,6 +104,7 @@
 |------|------|
 | NICKNAME_TOO_SHORT | 닉네임 2자 미만 |
 | NICKNAME_TOO_LONG | 닉네임 30자 초과 |
+| INVALID_BACKGROUND_COLOR | 팔레트 외 색상 값 |
 
 ---
 

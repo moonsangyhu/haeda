@@ -9,6 +9,7 @@ class UserBrief(BaseModel):
     id: uuid.UUID
     nickname: str
     profile_image_url: str | None
+    background_color: str | None = None
     character: MemberCharacter | None = None
 
     model_config = {"from_attributes": True}
@@ -22,6 +23,7 @@ class UserWithIsNew(BaseModel):
     id: uuid.UUID
     nickname: str | None
     profile_image_url: str | None
+    background_color: str | None = None
     is_new: bool
 
 
@@ -35,6 +37,7 @@ class ProfileUpdateResponse(BaseModel):
     id: uuid.UUID
     nickname: str
     profile_image_url: str | None
+    background_color: str | None = None
 
 
 class UserStatsResponse(BaseModel):

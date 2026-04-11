@@ -150,3 +150,54 @@ async def test_update_profile_no_auth(client: AsyncClient):
     )
     assert resp.status_code == 401
     assert resp.json()["error"]["code"] == "UNAUTHORIZED"
+
+
+@pytest.mark.asyncio
+async def test_update_profile_background_color_success(client: AsyncClient, user: User):
+    """팔레트 내 색상 → 200 + 저장"""
+    resp = await client.put(
+        "/api/v1/auth/profile",
+        data={"background_color": "#F8BBD0"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["background_color"] == "#F8BBD0"
+
+
+@pytest.mark.asyncio
+async def test_update_profile_background_color_invalid(client: AsyncClient, user: User):
+    """팔레트 외 색상 → 400 INVALID_BACKGROUND_COLOR"""
+    resp = await client.put(
+        "/api/v1/auth/profile",
+        data={"background_color": "#123456"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"]["code"] == "INVALID_BACKGROUND_COLOR"
+
+
+@pytest.mark.asyncio
+async def test_update_profile_background_color_case_insensitive(client: AsyncClient, user: User):
+    """소문자 hex → 대문자로 정규화 저장"""
+    resp = await client.put(
+        "/api/v1/auth/profile",
+        data={"background_color": "#f8bbd0"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["background_color"] == "#F8BBD0"
+
+
+@pytest.mark.asyncio
+async def test_update_profile_only_background_color(client: AsyncClient, user: User):
+    """nickname 없이 background_color만 업데이트 → 200 + 기존 닉네임 유지"""
+    original_nickname = user.nickname
+    resp = await client.put(
+        "/api/v1/auth/profile",
+        data={"background_color": "#BBDEFB"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["background_color"] == "#BBDEFB"
+    assert body["nickname"] == original_nickname

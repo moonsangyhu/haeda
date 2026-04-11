@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/character_avatar.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/character_data.dart';
 import '../providers/character_provider.dart';
 
@@ -20,6 +21,7 @@ class _CharacterCreationScreenState
   String _selectedSkinTone = 'fair';
   String _selectedEyeStyle = 'round';
   String _selectedHairStyle = 'short';
+  int _selectedBackgroundIndex = 0;
   bool _isSaving = false;
 
   late final AnimationController _bounceController;
@@ -65,9 +67,18 @@ class _CharacterCreationScreenState
     _bounceController.forward(from: 0.0);
   }
 
+  String _selectedBackgroundHex() {
+    final color = AppTheme.characterBackgroundPalette[_selectedBackgroundIndex];
+    final value = color.value & 0xFFFFFF;
+    return '#${value.toRadixString(16).toUpperCase().padLeft(6, '0')}';
+  }
+
   Future<void> _onDone() async {
     setState(() => _isSaving = true);
     try {
+      await ref.read(authStateProvider.notifier).updateProfile(
+            backgroundColor: _selectedBackgroundHex(),
+          );
       await ref.read(myCharacterProvider.notifier).saveAppearance(
             skinTone: _selectedSkinTone,
             eyeStyle: _selectedEyeStyle,
@@ -125,6 +136,8 @@ class _CharacterCreationScreenState
                       },
                       colorScheme: colorScheme,
                     ),
+                    const SizedBox(height: 24),
+                    _buildBackgroundSection(colorScheme),
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -162,7 +175,8 @@ class _CharacterCreationScreenState
               width: 200,
               height: 200,
               decoration: BoxDecoration(
-                color: AppTheme.background,
+                color: AppTheme
+                    .characterBackgroundPalette[_selectedBackgroundIndex],
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
@@ -339,6 +353,75 @@ class _CharacterCreationScreenState
               ),
             );
           }).toList(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBackgroundSection(ColorScheme colorScheme) {
+    final palette = AppTheme.characterBackgroundPalette;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionLabel('배경색'),
+        const SizedBox(height: 6),
+        const Text(
+          '내 방 탭에서 캐릭터 뒤에 표시돼요',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppTheme.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: List.generate(palette.length, (i) {
+            final color = palette[i];
+            final isSelected = _selectedBackgroundIndex == i;
+            return Semantics(
+              label: '배경색 ${i + 1}',
+              selected: isSelected,
+              button: true,
+              child: GestureDetector(
+                onTap: () {
+                  setState(() => _selectedBackgroundIndex = i);
+                  _onSelectionChanged();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? colorScheme.primary
+                          : colorScheme.outlineVariant,
+                      width: isSelected ? 3 : 1.5,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: colorScheme.primary.withAlpha(60),
+                              blurRadius: 8,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: isSelected
+                      ? const Icon(
+                          Icons.check,
+                          size: 22,
+                          color: AppTheme.textPrimary,
+                        )
+                      : null,
+                ),
+              ),
+            );
+          }),
         ),
       ],
     );

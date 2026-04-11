@@ -21,6 +21,28 @@ class AppTheme {
   static const Color darkTextSecondary = Color(0xFFB0B0C0);
   static const Color darkOutline = Color(0xFF3D3D5C);
 
+  // ── Character Background Palette ──
+  // 내 방 탭 캐릭터 원형 배경 고정 팔레트 (유저가 최초 1회 선택).
+  // 서버 화이트리스트(auth_service.ALLOWED_BACKGROUND_COLORS)와 동기화.
+  static const List<Color> characterBackgroundPalette = [
+    Color(0xFFFFCDD2),
+    Color(0xFFF8BBD0),
+    Color(0xFFE1BEE7),
+    Color(0xFFC5CAE9),
+    Color(0xFFBBDEFB),
+    Color(0xFFB2DFDB),
+    Color(0xFFC8E6C9),
+    Color(0xFFFFE0B2),
+  ];
+
+  static Color characterBackgroundFromHex(String? hex) {
+    if (hex == null || hex.isEmpty) return characterBackgroundPalette[0];
+    final clean = hex.startsWith('#') ? hex.substring(1) : hex;
+    final val = int.tryParse(clean, radix: 16);
+    if (val == null) return characterBackgroundPalette[0];
+    return Color(0xFF000000 | val);
+  }
+
   static ThemeData get theme => ThemeData(
         useMaterial3: true,
         fontFamily: 'Pretendard',

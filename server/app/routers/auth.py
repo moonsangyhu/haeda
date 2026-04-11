@@ -44,6 +44,7 @@ async def kakao_login(
                 id=user.id,
                 nickname=user.nickname,
                 profile_image_url=user.profile_image_url,
+                background_color=user.background_color,
                 is_new=is_new,
             ),
         )
@@ -83,6 +84,7 @@ async def dev_login(
                 id=user.id,
                 nickname=user.nickname,
                 profile_image_url=user.profile_image_url,
+                background_color=user.background_color,
                 is_new=is_new,
             ),
         )
@@ -91,8 +93,9 @@ async def dev_login(
 
 @router.put("/profile", response_model=DataResponse[ProfileUpdateResponse])
 async def update_profile(
-    nickname: Annotated[str, Form()],
+    nickname: Annotated[str | None, Form()] = None,
     profile_image: Annotated[UploadFile | None, File()] = None,
+    background_color: Annotated[str | None, Form()] = None,
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
@@ -102,12 +105,20 @@ async def update_profile(
         image_bytes = await profile_image.read()
         image_filename = profile_image.filename
 
-    user = await auth_service.update_profile(db, user_id, nickname, image_bytes, image_filename)
+    user = await auth_service.update_profile(
+        db,
+        user_id,
+        nickname,
+        image_bytes,
+        image_filename,
+        background_color,
+    )
 
     return DataResponse(
         data=ProfileUpdateResponse(
             id=user.id,
             nickname=user.nickname,
             profile_image_url=user.profile_image_url,
+            background_color=user.background_color,
         )
     )

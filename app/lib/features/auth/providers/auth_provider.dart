@@ -37,6 +37,7 @@ class AuthState extends _$AuthState {
         id: map['id'] as String,
         nickname: map['nickname'] as String?,
         profileImageUrl: map['profile_image_url'] as String?,
+        backgroundColor: map['background_color'] as String?,
         isNew: false,
       );
       state = AsyncData(user);
@@ -81,10 +82,11 @@ class AuthState extends _$AuthState {
     }
   }
 
-  /// 프로필 업데이트 (닉네임 + 선택적 이미지)
+  /// 프로필 업데이트 (닉네임 / 이미지 / 배경색 — 모두 선택적)
   Future<void> updateProfile({
-    required String nickname,
+    String? nickname,
     XFile? profileImage,
+    String? backgroundColor,
   }) async {
     try {
       final storage = ref.read(tokenStorageProvider);
@@ -92,12 +94,13 @@ class AuthState extends _$AuthState {
       final dio = ref.read(dioProvider);
 
       final formData = FormData.fromMap({
-        'nickname': nickname,
+        if (nickname != null) 'nickname': nickname,
         if (profileImage != null)
           'profile_image': await MultipartFile.fromFile(
             profileImage.path,
             filename: profileImage.name,
           ),
+        if (backgroundColor != null) 'background_color': backgroundColor,
       });
 
       final response = await dio.put(
@@ -122,6 +125,7 @@ class AuthState extends _$AuthState {
           currentUser.copyWith(
             nickname: updateData.nickname,
             profileImageUrl: updateData.profileImageUrl,
+            backgroundColor: updateData.backgroundColor,
           ),
         );
       }

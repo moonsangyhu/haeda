@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/loading_widget.dart';
 import '../../../core/widgets/tappable_character.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/character_data.dart';
 import '../models/item_data.dart';
 import '../providers/character_provider.dart';
@@ -36,6 +38,33 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
     super.dispose();
   }
 
+  void _showBackgroundPicker() {
+    final currentHex =
+        ref.read(authStateProvider).valueOrNull?.backgroundColor;
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => _BackgroundPickerSheet(
+        currentHex: currentHex,
+        onSelected: (hex) async {
+          Navigator.pop(ctx);
+          try {
+            await ref
+                .read(authStateProvider.notifier)
+                .updateProfile(backgroundColor: hex);
+          } catch (_) {
+            if (!mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('배경색을 바꾸지 못했어요.')),
+            );
+          }
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -61,15 +90,13 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
               height: 180,
               child: Row(
                 children: [
-                  // 캐릭터
+                  // 캐릭터 원형 배경
                   Expanded(
                     flex: 3,
                     child: Center(
-                      child: TappableCharacter(
-                        child: CharacterAvatar(
-                          character: character,
-                          size: 150,
-                        ),
+                      child: _CharacterOrb(
+                        character: character,
+                        onLongPress: _showBackgroundPicker,
                       ),
                     ),
                   ),
@@ -741,6 +768,152 @@ class _CoinTransactionSheet extends ConsumerWidget {
                 );
               },
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 캐릭터를 원형 배경에 얹는다. 배경색은 유저가 최초 선택한 고유색.
+/// 길게 누르면 색상 변경 바텀시트가 뜬다.
+class _CharacterOrb extends ConsumerWidget {
+  final CharacterData? character;
+  final VoidCallback onLongPress;
+
+  const _CharacterOrb({
+    required this.character,
+    required this.onLongPress,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hex = ref.watch(authStateProvider).valueOrNull?.backgroundColor;
+    final bgColor = AppTheme.characterBackgroundFromHex(hex);
+
+    return GestureDetector(
+      onLongPress: onLongPress,
+      child: Semantics(
+        label: '내 캐릭터 — 길게 눌러 배경색 변경',
+        button: true,
+        child: Container(
+          width: 170,
+          height: 170,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: bgColor,
+            boxShadow: [
+              BoxShadow(
+                color: bgColor.withAlpha(120),
+                blurRadius: 22,
+                spreadRadius: 2,
+              ),
+              BoxShadow(
+                color: Colors.black.withAlpha(18),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Center(
+            child: TappableCharacter(
+              child: CharacterAvatar(
+                character: character,
+                size: 130,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BackgroundPickerSheet extends StatelessWidget {
+  final String? currentHex;
+  final ValueChanged<String> onSelected;
+
+  const _BackgroundPickerSheet({
+    required this.currentHex,
+    required this.onSelected,
+  });
+
+  static String _hexOf(Color c) {
+    final v = c.value & 0xFFFFFF;
+    return '#${v.toRadixString(16).toUpperCase().padLeft(6, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final palette = AppTheme.characterBackgroundPalette;
+    final normalized = currentHex?.toUpperCase();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 36,
+            height: 4,
+            decoration: BoxDecoration(
+              color: theme.colorScheme.outlineVariant,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Text(
+            '배경색 바꾸기',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Wrap(
+            spacing: 16,
+            runSpacing: 16,
+            alignment: WrapAlignment.center,
+            children: palette.map((color) {
+              final hex = _hexOf(color);
+              final isSelected = hex == normalized;
+              return GestureDetector(
+                onTap: () => onSelected(hex),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: color,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected
+                          ? theme.colorScheme.primary
+                          : theme.colorScheme.outlineVariant,
+                      width: isSelected ? 3 : 1.5,
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: theme.colorScheme.primary.withAlpha(60),
+                              blurRadius: 10,
+                              spreadRadius: 2,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check,
+                          size: 24, color: Colors.white)
+                      : null,
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
           ),
         ],
       ),

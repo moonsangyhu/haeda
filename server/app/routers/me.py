@@ -26,7 +26,12 @@ async def get_me(
     user = result.scalar_one_or_none()
     if user is None:
         raise AppException(status_code=404, code="USER_NOT_FOUND", message="사용자를 찾을 수 없습니다.")
-    brief = UserBrief(id=user.id, nickname=user.nickname, profile_image_url=user.profile_image_url)
+    brief = UserBrief(
+        id=user.id,
+        nickname=user.nickname,
+        profile_image_url=user.profile_image_url,
+        background_color=user.background_color,
+    )
     return {"data": brief.model_dump()}
 
 

@@ -18,6 +18,7 @@ class User(Base):
     kakao_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     nickname: Mapped[str] = mapped_column(String(30), nullable=False)
     profile_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    background_color: Mapped[str | None] = mapped_column(String(9), nullable=True)
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True, unique=True)
     created_at: Mapped[datetime] = mapped_column(
         nullable=False, server_default=func.now()
