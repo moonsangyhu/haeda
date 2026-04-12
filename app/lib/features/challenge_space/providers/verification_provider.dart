@@ -1,7 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/utils/time.dart';
 import '../models/verification_data.dart';
+import '../../auth/providers/auth_provider.dart';
 
 /// GET /challenges/{id}/verifications/{date} 파라미터
 class DailyVerificationParams {
@@ -64,10 +66,17 @@ class VerificationSubmitState {
 class VerificationSubmitNotifier
     extends StateNotifier<VerificationSubmitState> {
   final Dio _dio;
+  final Ref _ref;
   final String challengeId;
 
-  VerificationSubmitNotifier(this._dio, this.challengeId)
+  VerificationSubmitNotifier(this._dio, this._ref, this.challengeId)
       : super(const VerificationSubmitState());
+
+  /// Formats a DateTime as YYYY-MM-DD.
+  String _formatDate(DateTime d) =>
+      '${d.year.toString().padLeft(4, '0')}-'
+      '${d.month.toString().padLeft(2, '0')}-'
+      '${d.day.toString().padLeft(2, '0')}';
 
   Future<VerificationCreateResult?> submit({
     required String diaryText,
@@ -77,9 +86,13 @@ class VerificationSubmitNotifier
     state = const VerificationSubmitState(isLoading: true);
 
     try {
+      // Compute effective date using user's day_cutoff_hour when no explicit
+      // date is provided by the caller (e.g. calendar tap supplies a date).
+      final effectiveDate = date ?? _computeEffectiveDate();
+
       final formData = FormData.fromMap({
         'diary_text': diaryText,
-        if (date != null) 'date': date,
+        'date': effectiveDate,
       });
       for (final photo in photos) {
         formData.files.add(MapEntry(
@@ -106,6 +119,13 @@ class VerificationSubmitNotifier
     }
   }
 
+  String _computeEffectiveDate() {
+    final cutoff =
+        _ref.read(authStateProvider).valueOrNull?.dayCutoffHour ?? 0;
+    final today = effectiveToday(DateTime.now(), cutoff);
+    return _formatDate(today);
+  }
+
   void reset() {
     state = const VerificationSubmitState();
   }
@@ -125,6 +145,8 @@ class VerificationSubmitNotifier
             return '이미 종료된 챌린지입니다.';
           case 'INVALID_DATE':
             return '인증 가능한 날짜가 아닙니다.';
+          case 'INVALID_DAY_CUTOFF_HOUR':
+            return '올바르지 않은 경계 시각입니다.';
           case 'NOT_A_MEMBER':
             return '챌린지 참여자가 아닙니다.';
           default:
@@ -140,6 +162,6 @@ final verificationSubmitProvider = StateNotifierProvider.family<
     VerificationSubmitNotifier, VerificationSubmitState, String>(
   (ref, challengeId) {
     final dio = ref.watch(dioProvider);
-    return VerificationSubmitNotifier(dio, challengeId);
+    return VerificationSubmitNotifier(dio, ref, challengeId);
   },
 );

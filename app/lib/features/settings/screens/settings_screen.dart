@@ -146,6 +146,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             activeTrackColor: theme.colorScheme.primary.withAlpha(128),
           ),
 
+          // Day cutoff hour setting
+          _DayCutoffHourTile(),
+
           const SizedBox(height: 8),
           const Divider(indent: 20, endIndent: 20),
           const SizedBox(height: 8),
@@ -216,6 +219,133 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// ListTile + BottomSheet for selecting the day cutoff hour.
+class _DayCutoffHourTile extends ConsumerStatefulWidget {
+  @override
+  ConsumerState<_DayCutoffHourTile> createState() =>
+      _DayCutoffHourTileState();
+}
+
+class _DayCutoffHourTileState extends ConsumerState<_DayCutoffHourTile> {
+  static const _labels = ['자정까지', '새벽 1시까지', '새벽 2시까지'];
+
+  Future<void> _showPicker(int currentValue) async {
+    int selected = currentValue;
+
+    final confirmed = await showModalBottomSheet<bool>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (ctx, setInner) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Text(
+                      '하루 경계 시각',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  for (int i = 0; i <= 2; i++)
+                    ListTile(
+                      leading: Radio<int>(
+                        value: i,
+                        groupValue: selected,
+                        onChanged: (v) {
+                          if (v != null) setInner(() => selected = v);
+                        },
+                      ),
+                      title: Text(_labels[i]),
+                      onTap: () => setInner(() => selected = i),
+                    ),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(48),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text('확인'),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    if (confirmed != true || !mounted) return;
+    if (selected == currentValue) return;
+
+    try {
+      await ref
+          .read(authStateProvider.notifier)
+          .updateDayCutoffHour(selected);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('하루 경계 시각이 "${_labels[selected]}"로 변경되었어요.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('설정 변경에 실패했습니다. 다시 시도해 주세요.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cutoff =
+        ref.watch(authStateProvider).valueOrNull?.dayCutoffHour ?? 0;
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+      leading: Icon(Icons.schedule, size: 26, color: theme.colorScheme.primary),
+      title: const Text('하루 경계 시각'),
+      subtitle: const Text('새벽 인증을 전날 미션으로 인정해요'),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            _labels[cutoff.clamp(0, 2)],
+            style: TextStyle(
+              fontSize: 13,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: 4),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+      onTap: () => _showPicker(cutoff),
     );
   }
 }

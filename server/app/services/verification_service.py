@@ -21,6 +21,7 @@ from app.schemas.verification import (
 from app.services import gem_service, streak_service
 from app.services.calendar_service import _determine_season
 from app.services.character_helpers import load_member_characters
+from app.utils.time import effective_today
 
 
 async def _get_challenge_or_404(db: AsyncSession, challenge_id: uuid.UUID) -> Challenge:
@@ -66,8 +67,12 @@ async def create_verification(
     # 2. 멤버십 확인
     await _check_membership(db, challenge_id, user_id)
 
-    # 3. 챌린지 종료 여부 확인 (status == 'completed')
-    today = date.today()
+    # 3. 호출 유저의 day_cutoff_hour 조회
+    user_result = await db.execute(
+        select(User.day_cutoff_hour).where(User.id == user_id)
+    )
+    cutoff_hour = user_result.scalar_one_or_none() or 0
+    today = effective_today(cutoff_hour)
     verification_date = target_date if target_date is not None else today
 
     if challenge.status == "completed":

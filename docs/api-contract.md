@@ -68,6 +68,7 @@
       "nickname": "string | null",
       "profile_image_url": "string | null",
       "background_color": "string | null",
+      "day_cutoff_hour": 0,
       "is_new": true
     }
   }
@@ -86,6 +87,7 @@
 | nickname | string | Y | 닉네임 (2~30자) |
 | profile_image | file | N | 프로필 사진 |
 | background_color | string | N | 캐릭터 배경 원형 색상 (고정 팔레트 내 hex, 예 `#FFCDD2`) |
+| day_cutoff_hour | int | N | 하루 경계 시각(시). 허용값 0, 1, 2. 미입력 시 기존 값 유지 |
 
 **Response (200):**
 ```json
@@ -94,7 +96,8 @@
     "id": "uuid",
     "nickname": "string",
     "profile_image_url": "string | null",
-    "background_color": "string | null"
+    "background_color": "string | null",
+    "day_cutoff_hour": 0
   }
 }
 ```
@@ -105,6 +108,7 @@
 | NICKNAME_TOO_SHORT | 닉네임 2자 미만 |
 | NICKNAME_TOO_LONG | 닉네임 30자 초과 |
 | INVALID_BACKGROUND_COLOR | 팔레트 외 색상 값 |
+| INVALID_DAY_CUTOFF_HOUR | day_cutoff_hour 가 0, 1, 2 범위 밖 |
 
 ---
 
@@ -411,7 +415,7 @@
 |------|------|------|------|
 | photos | file[] | 조건부 | 인증 사진 최대 3장 (photo_required 시 최소 1장 필수) |
 | diary_text | string | Y | 일기 텍스트 |
-| date | string (YYYY-MM-DD) | N | 인증 대상 날짜 (미입력 시 오늘). 챌린지 기간 내 & 오늘 이전 날짜만 허용 |
+| date | string (YYYY-MM-DD) | N | 인증 대상 날짜. 미입력 시 서버가 유저의 `day_cutoff_hour` 를 반영한 effective today 로 계산. 챌린지 기간 내 & effective today 이전 날짜만 허용 |
 
 **Response (201):**
 ```json

@@ -27,9 +27,8 @@ async def test_create_verification_success(
 ):
     """happy path: 인증 제출 성공"""
     today = date.today()
-    with patch("app.services.verification_service.date") as mock_date:
-        mock_date.today.return_value = date(2026, 4, 5)
-        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 5)
 
         resp = await client.post(
             f"/api/v1/challenges/{challenge.id}/verifications",
@@ -45,6 +44,60 @@ async def test_create_verification_success(
     assert "created_at" in data
     assert "day_completed" in data
     assert "season_icon_type" in data
+
+
+@pytest.mark.asyncio
+async def test_create_verification_cutoff2_before_boundary(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """cutoff=2 유저가 01:59 KST에 인증 → Verification.date = 전날 (Apr 4)"""
+    user.day_cutoff_hour = 2
+    db_session.add(user)
+    await db_session.commit()
+
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 4)
+
+        resp = await client.post(
+            f"/api/v1/challenges/{challenge.id}/verifications",
+            headers={"Authorization": f"Bearer {user.id}"},
+            data={"diary_text": "새벽 루틴 완료"},
+        )
+
+    assert resp.status_code == 201
+    assert resp.json()["data"]["date"] == "2026-04-04"
+    mock_ef.assert_called_with(2)
+
+
+@pytest.mark.asyncio
+async def test_create_verification_cutoff2_after_boundary(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """cutoff=2 유저가 02:00 KST 이후에 인증 → Verification.date = 당일 (Apr 5)"""
+    user.day_cutoff_hour = 2
+    db_session.add(user)
+    await db_session.commit()
+
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 5)
+
+        resp = await client.post(
+            f"/api/v1/challenges/{challenge.id}/verifications",
+            headers={"Authorization": f"Bearer {user.id}"},
+            data={"diary_text": "아침 루틴 완료"},
+        )
+
+    assert resp.status_code == 201
+    assert resp.json()["data"]["date"] == "2026-04-05"
+    mock_ef.assert_called_with(2)
 
 
 @pytest.mark.asyncio
@@ -70,9 +123,8 @@ async def test_create_verification_duplicate(
     db_session.add(v)
     await db_session.commit()
 
-    with patch("app.services.verification_service.date") as mock_date:
-        mock_date.today.return_value = today
-        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = today
 
         resp = await client.post(
             f"/api/v1/challenges/{challenge.id}/verifications",
@@ -98,9 +150,8 @@ async def test_create_verification_photo_required(
     db_session.add(challenge)
     await db_session.commit()
 
-    with patch("app.services.verification_service.date") as mock_date:
-        mock_date.today.return_value = date(2026, 4, 5)
-        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 5)
 
         resp = await client.post(
             f"/api/v1/challenges/{challenge.id}/verifications",
@@ -119,9 +170,8 @@ async def test_create_verification_not_member(
     challenge: Challenge,
 ):
     """챌린지 미참여자 인증 시도: NOT_A_MEMBER (403)"""
-    with patch("app.services.verification_service.date") as mock_date:
-        mock_date.today.return_value = date(2026, 4, 5)
-        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 5)
 
         resp = await client.post(
             f"/api/v1/challenges/{challenge.id}/verifications",
@@ -141,9 +191,8 @@ async def test_create_verification_challenge_not_found(
     """존재하지 않는 챌린지: CHALLENGE_NOT_FOUND (404)"""
     fake_id = uuid.uuid4()
 
-    with patch("app.services.verification_service.date") as mock_date:
-        mock_date.today.return_value = date(2026, 4, 5)
-        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 5)
 
         resp = await client.post(
             f"/api/v1/challenges/{fake_id}/verifications",
@@ -180,9 +229,8 @@ async def test_create_verification_day_completion(
     today = date(2026, 4, 5)
 
     # user가 먼저 인증 (전원 아직 아님)
-    with patch("app.services.verification_service.date") as mock_date:
-        mock_date.today.return_value = today
-        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = today
 
         resp1 = await client.post(
             f"/api/v1/challenges/{challenge.id}/verifications",
@@ -194,9 +242,8 @@ async def test_create_verification_day_completion(
     assert data1["day_completed"] is False
 
     # other_user가 인증 → 전원 인증 달성
-    with patch("app.services.verification_service.date") as mock_date:
-        mock_date.today.return_value = today
-        mock_date.side_effect = lambda *args, **kwargs: date(*args, **kwargs)
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = today
 
         resp2 = await client.post(
             f"/api/v1/challenges/{challenge.id}/verifications",

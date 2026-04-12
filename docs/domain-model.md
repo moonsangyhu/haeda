@@ -49,6 +49,7 @@ User 1──N DeviceToken
 | nickname | VARCHAR(30) | NOT NULL | 닉네임 |
 | profile_image_url | TEXT | NULLABLE | 프로필 사진 URL |
 | background_color | VARCHAR(9) | NULLABLE | 캐릭터 배경 원형 색상 (고정 팔레트 내 hex, 예 `#FFCDD2`) |
+| day_cutoff_hour | SMALLINT | NOT NULL, DEFAULT 0, CHECK 0~2 | 하루 경계 시각(시). 0=자정, 1=01시, 2=02시. 해당 시각 이전의 인증은 전날 미션으로 인정 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 가입일시 |
 
 ### 2.2 Challenge — P0 (핵심 객체)
@@ -299,10 +300,22 @@ User 1──N DeviceToken
   - weekly(N): ceil(일수 / 7) × N
 ```
 
+### 인증 대상 날짜 (effective date)
+```
+인증 제출 시, 대상 날짜(date)는 사용자별 day_cutoff_hour 를 반영한 "현재 유효 날짜"를 기본값으로 한다.
+
+effective_today(now_kst, cutoff_hour) = (now_kst - cutoff_hour hours).date()
+
+예) cutoff_hour = 2
+  - 2026-03-09 01:59 KST → 2026-03-08
+  - 2026-03-09 02:00 KST → 2026-03-09
+cutoff_hour = 0 (기본) 이면 기존 동작과 동일 (자정 기준).
+```
+
 ### 전원 인증 판정
 ```
 인증 제출 시:
-  1. 해당 날짜의 인증 수 카운트
+  1. 해당 날짜(effective date)의 인증 수 카운트
   2. 챌린지 현재 참여 멤버 수와 비교
   3. 인증 수 == 멤버 수 → DayCompletion 레코드 생성
   4. (P1) 전원에게 푸시 알림 발송
