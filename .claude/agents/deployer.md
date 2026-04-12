@@ -69,19 +69,33 @@ docker compose up --build -d backend
 ```
 Timeout: 600000 ms (10 min).
 
-**Frontend**:
+**Frontend** (반드시 이 순서를 지킬 것 — 캐시된 구버전 방지):
 ```bash
-cd app && flutter build ios --simulator
+# 1. 기존 앱 강제 종료 + 삭제
+DEVICE_ID=$(xcrun simctl list devices booted -j | python3 -c "import sys,json; ds=json.load(sys.stdin)['devices']; print(next(d['udid'] for r in ds.values() for d in r if d['state']=='Booted'))" 2>/dev/null)
+if [ -z "$DEVICE_ID" ]; then
+  DEVICE_ID=$(xcrun simctl list devices available -j | python3 -c "import sys,json; ds=json.load(sys.stdin)['devices']; print(next(d['udid'] for r in ds.values() for d in r if 'iPhone' in d['name'] and d['isAvailable']))" 2>/dev/null)
+  xcrun simctl boot "$DEVICE_ID"
+fi
+xcrun simctl terminate "$DEVICE_ID" com.example.haeda 2>/dev/null
+xcrun simctl uninstall "$DEVICE_ID" com.example.haeda 2>/dev/null
+
+# 2. 클린 빌드
+cd app && flutter clean && flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter build ios --simulator
+
+# 3. 새로 설치 + 실행
+xcrun simctl install "$DEVICE_ID" build/ios/iphonesimulator/Runner.app
+xcrun simctl launch "$DEVICE_ID" com.example.haeda
 ```
-Then list simulators with `xcrun simctl list devices booted` (or `available`) and run:
-```bash
-cd app && flutter run -d <simulator-device-id>
-```
-The simulator MUST actually boot the app. `flutter build` alone is NOT verification.
+The simulator MUST show the freshly installed app. `flutter build` alone is NOT verification. `flutter run` without prior uninstall is NOT sufficient — cached old app may persist.
 
 Forbidden:
 - `flutter build web` — not accepted as verification
 - Skipping simulator run — not accepted as verification
+- `flutter run` without prior `terminate + uninstall` — cached old app may persist
+- Skipping `flutter clean` — stale build artifacts cause false positives
 
 ### Phase 3: Health Check
 
