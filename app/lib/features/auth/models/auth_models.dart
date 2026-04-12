@@ -12,7 +12,6 @@ class AuthUser with _$AuthUser {
     String? nickname,
     @JsonKey(name: 'profile_image_url') String? profileImageUrl,
     @JsonKey(name: 'background_color') String? backgroundColor,
-    @JsonKey(name: 'day_cutoff_hour') @Default(0) int dayCutoffHour,
     @JsonKey(name: 'is_new') required bool isNew,
   }) = _AuthUser;
 
@@ -41,7 +40,6 @@ class ProfileUpdateData with _$ProfileUpdateData {
     required String nickname,
     @JsonKey(name: 'profile_image_url') String? profileImageUrl,
     @JsonKey(name: 'background_color') String? backgroundColor,
-    @JsonKey(name: 'day_cutoff_hour') @Default(0) int dayCutoffHour,
   }) = _ProfileUpdateData;
 
   factory ProfileUpdateData.fromJson(Map<String, dynamic> json) =>

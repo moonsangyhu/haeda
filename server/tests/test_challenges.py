@@ -157,3 +157,76 @@ async def test_get_calendar_empty_month(
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert data["days"] == []
+
+
+# ---------- Challenge settings ----------
+
+
+@pytest.mark.asyncio
+async def test_create_challenge_with_day_cutoff_hour(client: AsyncClient, user: User):
+    """챌린지 생성 시 day_cutoff_hour=2 설정 → 응답에 포함"""
+    resp = await client.post(
+        "/api/v1/challenges",
+        json={
+            "title": "새벽 루틴",
+            "category": "건강",
+            "start_date": "2026-04-05",
+            "end_date": "2026-05-04",
+            "verification_frequency": {"type": "daily"},
+            "photo_required": False,
+            "day_cutoff_hour": 2,
+        },
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["data"]["day_cutoff_hour"] == 2
+
+
+@pytest.mark.asyncio
+async def test_update_challenge_settings_creator(
+    client: AsyncClient,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """챌린지 생성자가 settings 변경 → 200"""
+    resp = await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"day_cutoff_hour": 1},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["day_cutoff_hour"] == 1
+
+
+@pytest.mark.asyncio
+async def test_update_challenge_settings_not_creator(
+    client: AsyncClient,
+    other_user: User,
+    challenge: Challenge,
+):
+    """비생성자가 settings 변경 시도 → 403 NOT_CHALLENGE_CREATOR"""
+    resp = await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"day_cutoff_hour": 2},
+        headers={"Authorization": f"Bearer {other_user.id}"},
+    )
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "NOT_CHALLENGE_CREATOR"
+
+
+@pytest.mark.asyncio
+async def test_update_challenge_settings_invalid_value(
+    client: AsyncClient,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """day_cutoff_hour=3 → 422 INVALID_DAY_CUTOFF_HOUR"""
+    resp = await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"day_cutoff_hour": 3},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "INVALID_DAY_CUTOFF_HOUR"

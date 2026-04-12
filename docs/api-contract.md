@@ -68,7 +68,6 @@
       "nickname": "string | null",
       "profile_image_url": "string | null",
       "background_color": "string | null",
-      "day_cutoff_hour": 0,
       "is_new": true
     }
   }
@@ -87,7 +86,6 @@
 | nickname | string | Y | 닉네임 (2~30자) |
 | profile_image | file | N | 프로필 사진 |
 | background_color | string | N | 캐릭터 배경 원형 색상 (고정 팔레트 내 hex, 예 `#FFCDD2`) |
-| day_cutoff_hour | int | N | 하루 경계 시각(시). 허용값 0, 1, 2. 미입력 시 기존 값 유지 |
 
 **Response (200):**
 ```json
@@ -97,7 +95,6 @@
     "nickname": "string",
     "profile_image_url": "string | null",
     "background_color": "string | null",
-    "day_cutoff_hour": 0
   }
 }
 ```
@@ -108,7 +105,6 @@
 | NICKNAME_TOO_SHORT | 닉네임 2자 미만 |
 | NICKNAME_TOO_LONG | 닉네임 30자 초과 |
 | INVALID_BACKGROUND_COLOR | 팔레트 외 색상 값 |
-| INVALID_DAY_CUTOFF_HOUR | day_cutoff_hour 가 0, 1, 2 범위 밖 |
 
 ---
 
@@ -127,7 +123,8 @@
   "verification_frequency": {
     "type": "daily"
   },
-  "photo_required": true
+    "photo_required": true,
+  "day_cutoff_hour": 0
 }
 ```
 
@@ -145,6 +142,7 @@
     "end_date": "2026-05-04",
     "verification_frequency": { "type": "daily" },
     "photo_required": true,
+    "day_cutoff_hour": 0,
     "is_public": false,
     "invite_code": "ABCD1234",
     "status": "active",
@@ -164,8 +162,42 @@
 |------|------|
 | INVALID_DATE_RANGE | end_date <= start_date |
 | INVALID_FREQUENCY | verification_frequency 형식 오류 |
+| INVALID_DAY_CUTOFF_HOUR | day_cutoff_hour 가 0, 1, 2 범위 밖 |
 
 ---
+
+---
+
+### PATCH `/challenges/{id}/settings` — 챌린지 설정 변경 (생성자 전용)
+
+챌린지 생성자(creator)만 호출 가능. 생성자가 아닌 경우 403.
+
+**Request:**
+```json
+{
+  "day_cutoff_hour": 2
+}
+```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| day_cutoff_hour | int | N | 하루 경계 시각. 허용값 0, 1, 2. 미입력 시 기존 값 유지 |
+
+**Response (200):**
+```json
+{
+  "data": {
+    "day_cutoff_hour": 2
+  }
+}
+```
+
+**에러:**
+| code | 조건 |
+|------|------|
+| CHALLENGE_NOT_FOUND | 존재하지 않는 챌린지 |
+| NOT_CHALLENGE_CREATOR | 챌린지 생성자가 아님 |
+| INVALID_DAY_CUTOFF_HOUR | day_cutoff_hour 가 0, 1, 2 범위 밖 |
 
 ### GET `/challenges` — 공개 챌린지 목록 — P1
 
@@ -219,6 +251,7 @@
     "end_date": "2026-05-04",
     "verification_frequency": { "type": "daily" },
     "photo_required": true,
+    "day_cutoff_hour": 0,
     "is_public": false,
     "invite_code": "ABCD1234",
     "status": "active",
@@ -415,7 +448,7 @@
 |------|------|------|------|
 | photos | file[] | 조건부 | 인증 사진 최대 3장 (photo_required 시 최소 1장 필수) |
 | diary_text | string | Y | 일기 텍스트 |
-| date | string (YYYY-MM-DD) | N | 인증 대상 날짜. 미입력 시 서버가 유저의 `day_cutoff_hour` 를 반영한 effective today 로 계산. 챌린지 기간 내 & effective today 이전 날짜만 허용 |
+| date | string (YYYY-MM-DD) | N | 인증 대상 날짜. 미입력 시 서버가 챌린지의 `day_cutoff_hour` 를 반영한 effective today 로 계산. 챌린지 기간 내 & effective today 이전 날짜만 허용 |
 
 **Response (201):**
 ```json

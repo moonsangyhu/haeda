@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, SmallInteger, String, Text
+from sqlalchemy import BigInteger, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -19,7 +19,6 @@ class User(Base):
     nickname: Mapped[str] = mapped_column(String(30), nullable=False)
     profile_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     background_color: Mapped[str | None] = mapped_column(String(9), nullable=True)
-    day_cutoff_hour: Mapped[int] = mapped_column(SmallInteger, nullable=False, server_default="0")
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True, unique=True)
     created_at: Mapped[datetime] = mapped_column(
         nullable=False, server_default=func.now()

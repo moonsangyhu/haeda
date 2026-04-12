@@ -10,7 +10,7 @@ from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.exceptions import AppException
 from app.models.challenge_member import ChallengeMember
-from app.schemas.challenge import ChallengeCreate
+from app.schemas.challenge import ChallengeCreate, ChallengeSettingsUpdate
 from app.schemas.challenge_member import MemberSettingsUpdate
 from app.schemas.nudge import NudgeSendRequest
 from app.services import calendar_service, challenge_service, nudge_service, verification_service
@@ -161,6 +161,22 @@ async def join_challenge(
         db=db,
         challenge_id=challenge_id,
         user_id=user_id,
+    )
+    return {"data": result.model_dump()}
+
+
+@router.patch("/{challenge_id}/settings")
+async def update_challenge_settings(
+    challenge_id: uuid.UUID,
+    body: ChallengeSettingsUpdate,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    result = await challenge_service.update_challenge_settings(
+        db=db,
+        challenge_id=challenge_id,
+        user_id=user_id,
+        day_cutoff_hour=body.day_cutoff_hour,
     )
     return {"data": result.model_dump()}
 

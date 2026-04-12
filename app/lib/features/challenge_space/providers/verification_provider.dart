@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/utils/time.dart';
 import '../models/verification_data.dart';
-import '../../auth/providers/auth_provider.dart';
+import '../providers/challenge_detail_provider.dart';
 
 /// GET /challenges/{id}/verifications/{date} 파라미터
 class DailyVerificationParams {
@@ -120,8 +120,9 @@ class VerificationSubmitNotifier
   }
 
   String _computeEffectiveDate() {
-    final cutoff =
-        _ref.read(authStateProvider).valueOrNull?.dayCutoffHour ?? 0;
+    final detail =
+        _ref.read(challengeDetailProvider(challengeId)).valueOrNull;
+    final cutoff = detail?.dayCutoffHour ?? 0;
     final today = effectiveToday(DateTime.now(), cutoff);
     return _formatDate(today);
   }

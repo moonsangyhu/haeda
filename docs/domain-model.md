@@ -49,7 +49,6 @@ User 1──N DeviceToken
 | nickname | VARCHAR(30) | NOT NULL | 닉네임 |
 | profile_image_url | TEXT | NULLABLE | 프로필 사진 URL |
 | background_color | VARCHAR(9) | NULLABLE | 캐릭터 배경 원형 색상 (고정 팔레트 내 hex, 예 `#FFCDD2`) |
-| day_cutoff_hour | SMALLINT | NOT NULL, DEFAULT 0, CHECK 0~2 | 하루 경계 시각(시). 0=자정, 1=01시, 2=02시. 해당 시각 이전의 인증은 전날 미션으로 인정 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 가입일시 |
 
 ### 2.2 Challenge — P0 (핵심 객체)
@@ -68,6 +67,7 @@ User 1──N DeviceToken
 | invite_code | VARCHAR(8) | UNIQUE, NOT NULL | 초대 코드 (자동 생성) |
 | is_public | BOOLEAN | NOT NULL, DEFAULT FALSE | 공개 여부 (P0에서는 항상 false) |
 | status | VARCHAR(20) | NOT NULL, DEFAULT 'active' | 상태 (active / completed) |
+| day_cutoff_hour | SMALLINT | NOT NULL, DEFAULT 0, CHECK 0~2 | 하루 경계 시각. 0=자정, 1=01시, 2=02시. 해당 시각 이전의 인증은 전날 미션으로 인정. 챌린지 생성자만 설정/변경 가능 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 생성일시 |
 
 **verification_frequency JSONB 구조:**
@@ -302,7 +302,7 @@ User 1──N DeviceToken
 
 ### 인증 대상 날짜 (effective date)
 ```
-인증 제출 시, 대상 날짜(date)는 사용자별 day_cutoff_hour 를 반영한 "현재 유효 날짜"를 기본값으로 한다.
+인증 제출 시, 대상 날짜(date)는 해당 챌린지의 day_cutoff_hour 를 반영한 "현재 유효 날짜"를 기본값으로 한다.
 
 effective_today(now_kst, cutoff_hour) = (now_kst - cutoff_hour hours).date()
 

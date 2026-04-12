@@ -18,6 +18,7 @@ from app.schemas.challenge import (
     ChallengeCreateResponse,
     ChallengeDetail,
     ChallengeListItem,
+    ChallengeSettingsResponse,
     CompletionCalendarSummary,
     CompletionMember,
     CompletionMyResult,
@@ -182,6 +183,7 @@ async def get_challenge_detail(
         end_date=challenge.end_date,
         verification_frequency=challenge.verification_frequency,
         photo_required=challenge.photo_required,
+        day_cutoff_hour=challenge.day_cutoff_hour,
         invite_code=challenge.invite_code,
         status=challenge.status,
         creator=UserBrief(
@@ -260,6 +262,7 @@ async def create_challenge(
         end_date=data.end_date,
         verification_frequency=data.verification_frequency,
         photo_required=data.photo_required,
+        day_cutoff_hour=data.day_cutoff_hour,
         invite_code=code,
         status="active",
     )
@@ -284,6 +287,7 @@ async def create_challenge(
         end_date=challenge.end_date,
         verification_frequency=challenge.verification_frequency,
         photo_required=challenge.photo_required,
+        day_cutoff_hour=challenge.day_cutoff_hour,
         invite_code=challenge.invite_code,
         status=challenge.status,
         creator=UserBrief(
@@ -504,3 +508,27 @@ async def get_completion(
             season_icon_types=season_icon_types,
         ),
     )
+
+
+async def update_challenge_settings(
+    db: AsyncSession,
+    challenge_id: uuid.UUID,
+    user_id: uuid.UUID,
+    day_cutoff_hour: int | None = None,
+) -> ChallengeSettingsResponse:
+    result = await db.execute(select(Challenge).where(Challenge.id == challenge_id))
+    challenge = result.scalar_one_or_none()
+    if challenge is None:
+        raise AppException(404, "CHALLENGE_NOT_FOUND", "챌린지를 찾을 수 없습니다.")
+
+    if challenge.creator_id != user_id:
+        raise AppException(403, "NOT_CHALLENGE_CREATOR", "챌린지 생성자만 설정을 변경할 수 있습니다.")
+
+    if day_cutoff_hour is not None:
+        if day_cutoff_hour not in (0, 1, 2):
+            raise AppException(422, "INVALID_DAY_CUTOFF_HOUR", "day_cutoff_hour은 0~2 사이여야 합니다.")
+        challenge.day_cutoff_hour = day_cutoff_hour
+
+    await db.commit()
+    await db.refresh(challenge)
+    return ChallengeSettingsResponse(day_cutoff_hour=challenge.day_cutoff_hour)

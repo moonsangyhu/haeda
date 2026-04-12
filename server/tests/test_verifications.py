@@ -55,8 +55,8 @@ async def test_create_verification_cutoff2_before_boundary(
     membership: ChallengeMember,
 ):
     """cutoff=2 유저가 01:59 KST에 인증 → Verification.date = 전날 (Apr 4)"""
-    user.day_cutoff_hour = 2
-    db_session.add(user)
+    challenge.day_cutoff_hour = 2
+    db_session.add(challenge)
     await db_session.commit()
 
     with patch("app.services.verification_service.effective_today") as mock_ef:
@@ -82,8 +82,8 @@ async def test_create_verification_cutoff2_after_boundary(
     membership: ChallengeMember,
 ):
     """cutoff=2 유저가 02:00 KST 이후에 인증 → Verification.date = 당일 (Apr 5)"""
-    user.day_cutoff_hour = 2
-    db_session.add(user)
+    challenge.day_cutoff_hour = 2
+    db_session.add(challenge)
     await db_session.commit()
 
     with patch("app.services.verification_service.effective_today") as mock_ef:

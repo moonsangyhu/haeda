@@ -28,6 +28,7 @@ class _ChallengeCreateStep2ScreenState
   _FrequencyType _frequencyType = _FrequencyType.daily;
   int _timesPerWeek = 3;
   bool _photoRequired = false;
+  int _dayCutoffHour = 0;
   final _dateFormatter = DateFormat('yyyy-MM-dd');
   final _displayFormatter = DateFormat('yyyy. M. d.');
 
@@ -89,6 +90,7 @@ class _ChallengeCreateStep2ScreenState
       endDate: _dateFormatter.format(_endDate!),
       verificationFrequency: _buildFrequency(),
       photoRequired: _photoRequired,
+      dayCutoffHour: _dayCutoffHour,
     );
 
     try {
@@ -178,6 +180,24 @@ class _ChallengeCreateStep2ScreenState
             value: _photoRequired,
             contentPadding: EdgeInsets.zero,
             onChanged: (v) => setState(() => _photoRequired = v),
+          ),
+          const SizedBox(height: 20),
+
+          // 하루 경계 시각
+          _FieldLabel('하루 경계 시각'),
+          const Text(
+            '새벽에 인증하면 전날 미션으로 인정해요',
+            style: TextStyle(fontSize: 13, color: Colors.grey),
+          ),
+          const SizedBox(height: 8),
+          SegmentedButton<int>(
+            segments: const [
+              ButtonSegment(value: 0, label: Text('자정')),
+              ButtonSegment(value: 1, label: Text('새벽 1시')),
+              ButtonSegment(value: 2, label: Text('새벽 2시')),
+            ],
+            selected: {_dayCutoffHour},
+            onSelectionChanged: (v) => setState(() => _dayCutoffHour = v.first),
           ),
           const SizedBox(height: 32),
 

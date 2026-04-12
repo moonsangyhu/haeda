@@ -85,7 +85,6 @@ async def update_profile(
     profile_image_bytes: bytes | None,
     profile_image_filename: str | None,
     background_color: str | None,
-    day_cutoff_hour: int | None = None,
 ) -> User:
     if nickname is not None:
         if len(nickname) < 2:
@@ -116,11 +115,6 @@ async def update_profile(
 
     if background_color is not None:
         user.background_color = background_color
-
-    if day_cutoff_hour is not None:
-        if day_cutoff_hour not in (0, 1, 2):
-            raise AppException(422, "INVALID_DAY_CUTOFF_HOUR", "day_cutoff_hour은 0~2 사이여야 합니다.")
-        user.day_cutoff_hour = day_cutoff_hour
 
     await db.commit()
     await db.refresh(user)

@@ -45,7 +45,6 @@ async def kakao_login(
                 nickname=user.nickname,
                 profile_image_url=user.profile_image_url,
                 background_color=user.background_color,
-                day_cutoff_hour=user.day_cutoff_hour,
                 is_new=is_new,
             ),
         )
@@ -86,7 +85,6 @@ async def dev_login(
                 nickname=user.nickname,
                 profile_image_url=user.profile_image_url,
                 background_color=user.background_color,
-                day_cutoff_hour=user.day_cutoff_hour,
                 is_new=is_new,
             ),
         )
@@ -98,13 +96,9 @@ async def update_profile(
     nickname: Annotated[str | None, Form()] = None,
     profile_image: Annotated[UploadFile | None, File()] = None,
     background_color: Annotated[str | None, Form()] = None,
-    day_cutoff_hour: Annotated[int | None, Form()] = None,
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    if day_cutoff_hour is not None and day_cutoff_hour not in (0, 1, 2):
-        raise AppException(422, "INVALID_DAY_CUTOFF_HOUR", "day_cutoff_hour은 0~2 사이여야 합니다.")
-
     image_bytes = None
     image_filename = None
     if profile_image:
@@ -118,7 +112,6 @@ async def update_profile(
         image_bytes,
         image_filename,
         background_color,
-        day_cutoff_hour,
     )
 
     return DataResponse(
@@ -127,6 +120,5 @@ async def update_profile(
             nickname=user.nickname,
             profile_image_url=user.profile_image_url,
             background_color=user.background_color,
-            day_cutoff_hour=user.day_cutoff_hour,
         )
     )

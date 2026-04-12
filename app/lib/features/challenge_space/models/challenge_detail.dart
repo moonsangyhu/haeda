@@ -29,6 +29,7 @@ class ChallengeDetail with _$ChallengeDetail {
     @JsonKey(name: 'verification_frequency')
     required Map<String, dynamic> verificationFrequency,
     @JsonKey(name: 'photo_required') required bool photoRequired,
+    @JsonKey(name: 'day_cutoff_hour') @Default(0) int dayCutoffHour,
     @JsonKey(name: 'invite_code') required String inviteCode,
     required String status,
     required MemberBrief creator,

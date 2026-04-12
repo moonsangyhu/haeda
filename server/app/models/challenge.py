@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, String, Text
+from sqlalchemy import Boolean, CheckConstraint, Date, ForeignKey, SmallInteger, String, Text
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -16,6 +16,9 @@ class Challenge(Base):
         CheckConstraint("end_date > start_date", name="ck_challenge_date_range"),
         CheckConstraint(
             "status IN ('active', 'completed')", name="ck_challenge_status"
+        ),
+        CheckConstraint(
+            "day_cutoff_hour BETWEEN 0 AND 2", name="ck_challenges_day_cutoff_hour"
         ),
     )
 
@@ -39,6 +42,9 @@ class Challenge(Base):
     invite_code: Mapped[str] = mapped_column(String(8), unique=True, nullable=False)
     status: Mapped[str] = mapped_column(
         String(20), nullable=False, default="active", server_default="active"
+    )
+    day_cutoff_hour: Mapped[int] = mapped_column(
+        SmallInteger, nullable=False, server_default="0"
     )
     created_at: Mapped[datetime] = mapped_column(
         nullable=False, server_default=func.now()

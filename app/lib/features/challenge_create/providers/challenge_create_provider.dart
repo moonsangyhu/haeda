@@ -13,6 +13,7 @@ class ChallengeCreateRequest {
   final String endDate;
   final Map<String, dynamic> verificationFrequency;
   final bool photoRequired;
+  final int dayCutoffHour;
 
   const ChallengeCreateRequest({
     required this.title,
@@ -22,6 +23,7 @@ class ChallengeCreateRequest {
     required this.endDate,
     required this.verificationFrequency,
     required this.photoRequired,
+    this.dayCutoffHour = 0,
   });
 
   Map<String, dynamic> toJson() => {
@@ -33,6 +35,7 @@ class ChallengeCreateRequest {
         'end_date': endDate,
         'verification_frequency': verificationFrequency,
         'photo_required': photoRequired,
+        'day_cutoff_hour': dayCutoffHour,
       };
 }
 

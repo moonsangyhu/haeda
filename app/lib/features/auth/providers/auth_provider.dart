@@ -38,7 +38,6 @@ class AuthState extends _$AuthState {
         nickname: map['nickname'] as String?,
         profileImageUrl: map['profile_image_url'] as String?,
         backgroundColor: map['background_color'] as String?,
-        dayCutoffHour: (map['day_cutoff_hour'] as int?) ?? 0,
         isNew: false,
       );
       state = AsyncData(user);
@@ -128,45 +127,6 @@ class AuthState extends _$AuthState {
             profileImageUrl: updateData.profileImageUrl,
             backgroundColor: updateData.backgroundColor,
           ),
-        );
-      }
-    } on DioException catch (e, st) {
-      state = AsyncError(e.error ?? e, st);
-      rethrow;
-    } catch (e, st) {
-      state = AsyncError(e, st);
-      rethrow;
-    }
-  }
-
-  /// 하루 경계 시각 업데이트 (0=자정, 1=새벽1시, 2=새벽2시)
-  Future<void> updateDayCutoffHour(int hour) async {
-    try {
-      final storage = ref.read(tokenStorageProvider);
-      final token = await storage.getAccessToken();
-      final dio = ref.read(dioProvider);
-
-      final formData = FormData.fromMap({'day_cutoff_hour': hour});
-
-      final response = await dio.put(
-        '/auth/profile',
-        data: formData,
-        options: Options(
-          headers: {
-            if (token != null) 'Authorization': 'Bearer $token',
-            'Content-Type': 'multipart/form-data',
-          },
-        ),
-      );
-
-      final updateData = ProfileUpdateData.fromJson(
-        response.data as Map<String, dynamic>,
-      );
-
-      final currentUser = state.valueOrNull;
-      if (currentUser != null) {
-        state = AsyncData(
-          currentUser.copyWith(dayCutoffHour: updateData.dayCutoffHour),
         );
       }
     } on DioException catch (e, st) {

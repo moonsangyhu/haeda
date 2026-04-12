@@ -1,7 +1,7 @@
 import uuid
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.character_schema import CharacterSlotBrief, MemberCharacter
 from app.schemas.user import UserBrief
@@ -22,6 +22,7 @@ class ChallengeCreate(BaseModel):
     end_date: date
     verification_frequency: dict
     photo_required: bool = False
+    day_cutoff_hour: int = 0
 
 
 class ChallengeCreateResponse(BaseModel):
@@ -33,6 +34,7 @@ class ChallengeCreateResponse(BaseModel):
     end_date: date
     verification_frequency: dict
     photo_required: bool
+    day_cutoff_hour: int
     invite_code: str
     status: str
     creator: UserBrief
@@ -71,6 +73,7 @@ class ChallengeDetail(BaseModel):
     end_date: date
     verification_frequency: dict
     photo_required: bool
+    day_cutoff_hour: int
     invite_code: str
     status: str
     creator: UserBrief
@@ -79,6 +82,14 @@ class ChallengeDetail(BaseModel):
     created_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class ChallengeSettingsUpdate(BaseModel):
+    day_cutoff_hour: int | None = None
+
+
+class ChallengeSettingsResponse(BaseModel):
+    day_cutoff_hour: int
 
 
 class DayEntry(BaseModel):
