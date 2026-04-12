@@ -32,3 +32,6 @@ automation/runs/
 
 # Deployer serialization lock (worktree parallel strategy)
 .deployer.lock
+
+# Planner worktree sentinel (worktree-local, per-worktree arming)
+.planner-worktree

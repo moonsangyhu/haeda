@@ -20,10 +20,11 @@ Every worktree declares exactly one role. The role is fixed for the lifetime of 
 | `front` | `front-*`, `slice-NN-front`, `fix-*-front` | `app/**` |
 | `qa` | `qa-*` | `app/test/**`, `server/tests/**` |
 | `claude` | `claude`, `claude-*` | `.claude/**`, `CLAUDE.md` |
+| `planner` | `planner`, `.claude/worktrees/planner`, marked by `.planner-worktree` sentinel at repo root | `docs/planning/**` |
 
-A worktree in role X MUST NOT modify files outside role X's allowed paths. This is enforced at commit time by `/role-scoped-commit-push`.
+A worktree in role X MUST NOT modify files outside role X's allowed paths. This is enforced at commit time by `/role-scoped-commit-push`. For the `planner` role it is additionally enforced at tool-call time by `.claude/hooks/planner-guard.sh`.
 
-**Detection**: agents can detect their role by the current worktree directory name (`git rev-parse --show-toplevel | xargs basename`). If the name doesn't match a pattern, agents MUST ask the user rather than guess.
+**Detection**: agents can detect their role by the current worktree directory name (`git rev-parse --show-toplevel | xargs basename`). If the name doesn't match a pattern, agents MUST ask the user rather than guess. The `planner` role is double-checked by the presence of `.planner-worktree` sentinel at the repo root — the sentinel is the authoritative signal, the name is a hint. See `.claude/rules/planner-worktree.md`.
 
 ## Shared Directories (filename-scoped, not path-scoped)
 

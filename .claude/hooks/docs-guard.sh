@@ -26,6 +26,11 @@ if [[ "$REL_PATH" == docs/reports/* ]]; then
   exit 0
 fi
 
+# Allow docs/planning/ (idea bank — shared between planner and feature worktrees)
+if [[ "$REL_PATH" == docs/planning/* ]]; then
+  exit 0
+fi
+
 # Block all other docs/ modifications
 if [[ "$REL_PATH" == docs/* ]]; then
   echo -e "${RED}BLOCKED: docs/ files are the Source of Truth and must not be modified.${NC}" >&2
