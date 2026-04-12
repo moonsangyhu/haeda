@@ -55,16 +55,42 @@ Do NOT edit any of these. They are source-of-truth.
 
 ### 4. Draft the spec
 
-Copy `docs/planning/TEMPLATE.md` to `docs/planning/specs/<slug>.md`. Fill every section based on the user's description and the docs you just read. Rules:
+Copy `docs/planning/TEMPLATE.md` to `docs/planning/specs/<slug>.md`. **20년차 앱 기획 전문가의 관점**으로 모든 섹션을 작성한다. 다음 품질 기준을 적용:
 
+**페르소나 & 톤**:
+- 사장님께 바로 보고할 수 있는 수준의 문서를 작성한다
+- 구체적이고 설득력 있는 근거 중심 서술. 추상적 표현 금지
+- 정량적 수치를 가능한 한 포함 (추정치라도 근거와 함께 제시)
+
+**유저 시나리오 (섹션 3)**:
+- 최소 2개의 페르소나 기반 시나리오. 각 시나리오에 이름, 나이, 직업, 동기 부여
+- 행동 흐름은 스크린 단위로 구체적으로 (탭, 스와이프, 표시되는 UI 요소 명시)
+- 감정 변화 포함 — 사용 전 frustration → 사용 후 satisfaction 같은 arc
+- Happy path + 최소 1개의 edge case 시나리오
+
+**기획 의도 (섹션 4)**:
+- "왜 이 기능이 지금 필요한가"에 대한 전략적 답변
+- 최소 2개의 대안을 검토하고 현재 안을 선택한 이유 설명
+- MVP 목표, 파일럿 성공 조건과의 연결
+
+**기대 효과 (섹션 5)**:
+- 정량적 KPI 최소 2개 (현재 추정치 → 기대 변화, 측정 방법 포함)
+- 정성적 효과 3가지 이상
+- 리스크 최소 1개와 완화 방안
+
+**품질 게이트**: 작성 후 자체 검토 — "이 문서를 경영진에게 바로 보여줄 수 있는가?" 기준 미달이면 다시 작성.
+
+기존 규칙 유지:
 - Front-matter `status: ready` only if every section is filled AND there are no blocking open questions. Otherwise use `status: idea` and save to `docs/planning/ideas/<slug>.md` instead.
-- Section 5 (API / domain deltas) must cite the specific `docs/api-contract.md` or `docs/domain-model.md` section that needs updating. Do not edit those files — flag the need.
-- Section 6 (acceptance criteria) must be testable. If you cannot write a test for a criterion, refine it or drop it.
-- Section 7 (open questions) must be empty or each question must be answerable by the user in a single sentence.
+- 섹션 8의 API/domain deltas는 구체적 docs 섹션 인용. 해당 파일 수정 금지 — 필요한 변경만 명시.
+- Acceptance criteria는 testable해야 한다.
+- Open questions는 비어있거나 한 문장으로 답변 가능해야 한다.
 
 ### 5. Show the draft
 
-Print a short summary (title, status, area, priority, top 3 acceptance criteria). Ask the user: "저장할까요? (save / edit / cancel)"
+**기획서 전문을 출력**한다 (요약이 아닌 전체 내용). 사용자가 품질을 직접 확인할 수 있어야 한다.
+
+출력 후 묻는다: "저장할까요? (save / edit / cancel)"
 
 - save → proceed to step 6
 - edit → apply the user's edits and reshow
