@@ -79,6 +79,7 @@ class ChallengeDetail(BaseModel):
     creator: UserBrief
     member_count: int
     is_member: bool
+    is_creator: bool
     created_at: datetime
 
     model_config = {"from_attributes": True}

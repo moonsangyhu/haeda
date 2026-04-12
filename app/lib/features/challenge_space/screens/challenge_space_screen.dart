@@ -63,13 +63,11 @@ class _ChallengeSpaceScreenState
 
   void _showChallengeSettings(BuildContext context) {
     final detail = ref.read(challengeDetailProvider(widget.challengeId)).valueOrNull;
-    final currentUserId = ref.read(authStateProvider).valueOrNull?.id;
     showModalBottomSheet(
       context: context,
       builder: (ctx) => _ChallengeSettingsSheet(
         challengeId: widget.challengeId,
-        creatorId: detail?.creator.id,
-        currentUserId: currentUserId,
+        isCreator: detail?.isCreator ?? false,
         currentCutoff: detail?.dayCutoffHour ?? 0,
       ),
     );
@@ -492,14 +490,12 @@ class _MemberSection extends ConsumerWidget {
 
 class _ChallengeSettingsSheet extends ConsumerStatefulWidget {
   final String challengeId;
-  final String? creatorId;
-  final String? currentUserId;
+  final bool isCreator;
   final int currentCutoff;
 
   const _ChallengeSettingsSheet({
     required this.challengeId,
-    this.creatorId,
-    this.currentUserId,
+    this.isCreator = false,
     this.currentCutoff = 0,
   });
 
@@ -543,8 +539,7 @@ class _ChallengeSettingsSheetState
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(memberSettingsProvider(widget.challengeId));
-    final isCreator = widget.currentUserId != null &&
-        widget.currentUserId == widget.creatorId;
+    final isCreator = widget.isCreator;
 
     return SafeArea(
       child: Padding(
