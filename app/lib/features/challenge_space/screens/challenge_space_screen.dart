@@ -62,9 +62,16 @@ class _ChallengeSpaceScreenState
   }
 
   void _showChallengeSettings(BuildContext context) {
+    final detail = ref.read(challengeDetailProvider(widget.challengeId)).valueOrNull;
+    final currentUserId = ref.read(authStateProvider).valueOrNull?.id;
     showModalBottomSheet(
       context: context,
-      builder: (ctx) => _ChallengeSettingsSheet(challengeId: widget.challengeId),
+      builder: (ctx) => _ChallengeSettingsSheet(
+        challengeId: widget.challengeId,
+        creatorId: detail?.creator.id,
+        currentUserId: currentUserId,
+        currentCutoff: detail?.dayCutoffHour ?? 0,
+      ),
     );
   }
 
@@ -485,8 +492,16 @@ class _MemberSection extends ConsumerWidget {
 
 class _ChallengeSettingsSheet extends ConsumerStatefulWidget {
   final String challengeId;
+  final String? creatorId;
+  final String? currentUserId;
+  final int currentCutoff;
 
-  const _ChallengeSettingsSheet({required this.challengeId});
+  const _ChallengeSettingsSheet({
+    required this.challengeId,
+    this.creatorId,
+    this.currentUserId,
+    this.currentCutoff = 0,
+  });
 
   @override
   ConsumerState<_ChallengeSettingsSheet> createState() =>
@@ -528,11 +543,8 @@ class _ChallengeSettingsSheetState
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(memberSettingsProvider(widget.challengeId));
-    final detail =
-        ref.watch(challengeDetailProvider(widget.challengeId)).valueOrNull;
-    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
-    final isCreator = detail != null && currentUserId == detail.creator.id;
-    final currentCutoff = detail?.dayCutoffHour ?? 0;
+    final isCreator = widget.currentUserId != null &&
+        widget.currentUserId == widget.creatorId;
 
     return SafeArea(
       child: Padding(
@@ -589,7 +601,7 @@ class _ChallengeSettingsSheetState
                     ButtonSegment(value: 1, label: Text('1시')),
                     ButtonSegment(value: 2, label: Text('2시')),
                   ],
-                  selected: {currentCutoff},
+                  selected: {widget.currentCutoff},
                   onSelectionChanged: (v) => _updateCutoff(v.first),
                 ),
               ),
