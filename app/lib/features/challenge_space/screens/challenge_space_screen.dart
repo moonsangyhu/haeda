@@ -92,7 +92,7 @@ class _ChallengeSpaceScreenState
                 overflow: TextOverflow.ellipsis,
               ),
               Text(
-                '참여자 ${detail.memberCount}명',
+                '참여자 ${detail.memberCount}명${detail.dayCutoffHour > 0 ? ' · 새벽 ${detail.dayCutoffHour}시까지 인정' : ''}',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -469,12 +469,14 @@ class _MemberSection extends ConsumerWidget {
       todayEntry = null;
     }
     final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
+    final creatorId = ref.watch(challengeDetailProvider(challengeId)).valueOrNull?.creator.id;
 
     return MemberNudgeList(
       challengeId: challengeId,
       members: calendarData.members,
       verifiedMemberIds: todayEntry?.verifiedMembers ?? [],
       currentUserId: currentUserId,
+      creatorId: creatorId,
     );
   }
 }

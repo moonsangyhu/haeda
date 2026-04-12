@@ -16,6 +16,7 @@ class MemberNudgeList extends ConsumerStatefulWidget {
   final List<CalendarMember> members;
   final List<String> verifiedMemberIds;
   final String? currentUserId;
+  final String? creatorId;
 
   const MemberNudgeList({
     super.key,
@@ -23,6 +24,7 @@ class MemberNudgeList extends ConsumerStatefulWidget {
     required this.members,
     required this.verifiedMemberIds,
     this.currentUserId,
+    this.creatorId,
   });
 
   @override
@@ -123,6 +125,7 @@ class _MemberNudgeListState extends ConsumerState<MemberNudgeList> {
           return _MemberRow(
             member: member,
             isSelf: isSelf,
+            isCreator: widget.creatorId != null && member.id == widget.creatorId,
             isVerified: isVerified,
             isNudged: isNudged,
             isLoading: isLoading,
@@ -137,6 +140,7 @@ class _MemberNudgeListState extends ConsumerState<MemberNudgeList> {
 class _MemberRow extends ConsumerWidget {
   final CalendarMember member;
   final bool isSelf;
+  final bool isCreator;
   final bool isVerified;
   final bool isNudged;
   final bool isLoading;
@@ -145,6 +149,7 @@ class _MemberRow extends ConsumerWidget {
   const _MemberRow({
     required this.member,
     required this.isSelf,
+    this.isCreator = false,
     required this.isVerified,
     required this.isNudged,
     required this.isLoading,
@@ -194,6 +199,23 @@ class _MemberRow extends ConsumerWidget {
                       '(나)',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                  if (isCreator) ...[
+                    const SizedBox(width: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.primaryContainer,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        '방장',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontSize: 10,
+                        ),
                       ),
                     ),
                   ],
