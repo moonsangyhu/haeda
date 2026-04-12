@@ -1,6 +1,8 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/widgets/emoji_icon.dart';
 import '../../../core/widgets/invite_share_buttons.dart';
 import '../../../core/widgets/loading_widget.dart';
@@ -481,14 +483,56 @@ class _MemberSection extends ConsumerWidget {
   }
 }
 
-class _ChallengeSettingsSheet extends ConsumerWidget {
+class _ChallengeSettingsSheet extends ConsumerStatefulWidget {
   final String challengeId;
 
   const _ChallengeSettingsSheet({required this.challengeId});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final settings = ref.watch(memberSettingsProvider(challengeId));
+  ConsumerState<_ChallengeSettingsSheet> createState() =>
+      _ChallengeSettingsSheetState();
+}
+
+class _ChallengeSettingsSheetState
+    extends ConsumerState<_ChallengeSettingsSheet> {
+  static const _cutoffLabels = ['자정 (기본)', '새벽 1시까지', '새벽 2시까지'];
+
+  Future<void> _updateCutoff(int newValue) async {
+    try {
+      final dio = ref.read(dioProvider);
+      await dio.patch(
+        '/challenges/${widget.challengeId}/settings',
+        data: {'day_cutoff_hour': newValue},
+      );
+      ref.invalidate(challengeDetailProvider(widget.challengeId));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('봐주는 시간이 "${_cutoffLabels[newValue]}"로 변경됐어요.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('설정 변경에 실패했습니다.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final settings = ref.watch(memberSettingsProvider(widget.challengeId));
+    final detail =
+        ref.watch(challengeDetailProvider(widget.challengeId)).valueOrNull;
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
+    final isCreator = detail != null && currentUserId == detail.creator.id;
+    final currentCutoff = detail?.dayCutoffHour ?? 0;
 
     return SafeArea(
       child: Padding(
@@ -500,7 +544,7 @@ class _ChallengeSettingsSheet extends ConsumerWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Text(
-                '알림 설정',
+                '챌린지 설정',
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
@@ -512,10 +556,44 @@ class _ChallengeSettingsSheet extends ConsumerWidget {
               value: settings.notifyStreak,
               onChanged: (value) {
                 ref
-                    .read(memberSettingsProvider(challengeId).notifier)
+                    .read(memberSettingsProvider(widget.challengeId).notifier)
                     .toggleStreakNotification(value);
               },
             ),
+            if (isCreator) ...[
+              const Divider(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  '봐주는 시간 (방장만 변경 가능)',
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Text(
+                  '새벽에 인증하면 전날 미션으로 인정해요',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: SegmentedButton<int>(
+                  segments: const [
+                    ButtonSegment(value: 0, label: Text('자정')),
+                    ButtonSegment(value: 1, label: Text('1시')),
+                    ButtonSegment(value: 2, label: Text('2시')),
+                  ],
+                  selected: {currentCutoff},
+                  onSelectionChanged: (v) => _updateCutoff(v.first),
+                ),
+              ),
+            ],
           ],
         ),
       ),
