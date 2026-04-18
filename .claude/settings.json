@@ -34,6 +34,7 @@
         "matcher": "Write|Edit|NotebookEdit",
         "hooks": [
           { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/planner-guard.sh" },
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/design-guard.sh" },
           { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/docs-guard.sh" }
         ]
       }

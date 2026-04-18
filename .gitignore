@@ -35,3 +35,6 @@ automation/runs/
 
 # Planner worktree sentinel (worktree-local, per-worktree arming)
 .planner-worktree
+
+# Design worktree sentinel
+.design-worktree
