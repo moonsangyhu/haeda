@@ -13,7 +13,7 @@ area: front
 
 ## Design Concept
 
-**3/4 탑뷰 픽셀아트 방** — 뒷벽이 화면 상단에 평면으로, 바닥이 아래쪽으로 깊이감을 주는 클래식 RPG/싸이월드 스타일.
+**3/4 탑뷰 픽셀아트 방** — 뒷벽이 화면 상단에 평면으로, 바닥이 아래쪽으로 깊이감을 주는 클래식 RPG/싸이월드 스타일. 방은 풀 너비로 짤림 없이 보여주고, 능력치는 방 바로 아래 별도 영역에 표시.
 
 ```
  ┌──────────────────────────────────┐
@@ -30,7 +30,9 @@ area: front
  │               │  러그   │       │
  │               ╰────────╯       │
  └──────────────────────────────────┘
-      [스탯 오버레이]  (우상단 플로팅)
+ ┌──────────────────────────────────┐
+ │ 💰 +5%    ⭐ +3    🛡️ 1회      │  ← 능력치 바 (방 아래, 한 줄 가로 배치)
+ └──────────────────────────────────┘
 ```
 
 ## Architecture
@@ -43,16 +45,17 @@ area: front
    - `_MiniroomForegroundPainter` — CustomPainter (캐릭터 앞 가구)
    - `MiniroomColors` — 색상 상수
 
-2. **`app/lib/features/character/widgets/miniroom_stat_overlay.dart`** (~120-150 lines)
-   - `MiniroomStatOverlay` — 반투명 블러 배경 플로팅 카드
+2. **`app/lib/features/character/widgets/equip_stat_bar.dart`** (~120-150 lines)
+   - `EquipStatBar` — 방 아래에 가로 한 줄로 표시되는 능력치 바
    - `EquipStats` — 공개 스탯 클래스
    - `calcEquipStats()`, `getEquippedItems()` — 공개 유틸
 
 ### Modified Files
 
 3. **`app/lib/features/character/screens/my_room_screen.dart`**
-   - 상단 `SizedBox(h:180) > Row` → `MiniroomScene(h:250)` 교체
-   - `_StatPanel` 등 제거 → overlay로 이동
+   - 상단 `SizedBox(h:180) > Row` → `MiniroomScene(h:250)` 교체 (풀 너비, statOverlay 없음)
+   - 방 바로 아래에 `EquipStatBar` 배치 (가로 한 줄)
+   - `_StatPanel` 등 제거 → EquipStatBar로 이동
    - TabBar: pill 인디케이터
    - `_ItemCard`: borderRadius 14→18, 그라디언트 배경
 
@@ -124,7 +127,10 @@ class MiniroomColors {
 
 ## Character Integration (Stack)
 
+MiniroomScene은 방 배경 + 캐릭터 + 전경 가구만 포함. 능력치는 방 밖(아래)에 별도 위젯으로 배치.
+
 ```dart
+// MiniroomScene — 방만 풀 너비로 렌더링, statOverlay 파라미터 없음
 Stack(
   children: [
     CustomPaint(painter: _MiniroomBackgroundPainter(wallTint: tint)),
@@ -136,16 +142,34 @@ Stack(
       ),
     ),
     CustomPaint(painter: _MiniroomForegroundPainter()),
-    Positioned(right: 8, top: 8, child: MiniroomStatOverlay(stats: stats)),
   ],
 )
 ```
 
-## Stat Overlay
+## Equip Stat Bar (방 아래 능력치)
 
-기존 `_StatPanel`을 추출하여 `BackdropFilter` 블러 배경의 compact 플로팅 카드로 리스타일.
-- 위치: 방 씬 우상단
-- 표시 항목: 💰 coinBoost, ⭐ verifyBonus, 🛡️ streakShield
+방 바로 아래에 가로 한 줄로 표시하는 능력치 바. 방과 시각적으로 연결되되, 방 내부를 가리지 않음.
+
+```dart
+// MyRoomScreen layout:
+Column(
+  children: [
+    MiniroomScene(character: character, wallTint: color, height: 250),
+    EquipStatBar(stats: stats),   // ← 방 바로 아래
+    TabBar(...),
+    Expanded(child: GridView(...)),
+  ],
+)
+```
+
+**EquipStatBar 디자인:**
+- 높이: 36dp
+- 마진: 방과 동일 좌우 12dp (방 프레임과 폭 맞춤)
+- 배경: surfaceContainerHighest.withOpacity(0.5), borderRadius 0 0 12 12 (방 프레임 아래 이어지는 느낌)
+- 3개 항목을 `Row(mainAxisAlignment: spaceEvenly)`로 균등 배치:
+  - `💰 코인부스트 +5%` | `⭐ 인증보너스 +3` | `🛡️ 연속실드 1회`
+- 효과 없는 항목은 흐리게 (opacity 0.4)
+- 전부 0이면 "효과 아이템을 착용해보세요!" 한 줄 텍스트
 
 ## UI Style Updates
 
