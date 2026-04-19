@@ -39,9 +39,16 @@ depends-on: challenge-room-social
  │         ╰────────────╯             │
  └──────────────────────────────────────┘
         [오늘 3/5명 인증 완료]
+ ┌──────────────────────────────────────┐
+ │ 💬 내가 한 말: "오늘도 화이팅" · 지우기  │ ← 내가 활성 발언 있을 때만
+ ├──────────────────────────────────────┤
+ │ [방에 한마디 보내기........]   [전송] │ ← 항상 보이는 한 줄 입력 바
+ └──────────────────────────────────────┘
 ```
 
 한 턴에 한 캐릭터 위에만 말풍선이 뜬다. 나머지 캐릭터는 평소 애니메이션(bounce / 졸기) 유지. 발언 중인 캐릭터는 **미세한 스케일 1.0 → 1.04 → 1.0** 으로 시청각 주의를 끌되, 전체 레이아웃은 흔들리지 않는다.
+
+방 scene 바로 아래에 **카톡식 인라인 입력 바**가 항상 한 줄로 노출된다. 별도 진입 동작(롱-프레스/모달) 없이 즉시 텍스트를 입력해 전송할 수 있다.
 
 ## Speech Bubble UI Spec
 
@@ -64,35 +71,57 @@ depends-on: challenge-room-social
 
 ## Input Flow (말 입력)
 
-### 진입 방식
+### 진입 방식 — 카톡식 인라인 입력 바
 
-- **내 캐릭터 롱-프레스 (600ms)** → `SpeechInputSheet` 바텀시트 오픈.
-- 기존 `TappableCharacter` 6종 탭 반응과 **충돌하지 않는다** (탭 = 반응, 롱-프레스 = 입력).
-- 다른 멤버 캐릭터에는 롱-프레스 없음 (탭 = 👋/콕찌르기, 기존 `challenge-room-social.md` 유지).
-- 미인증 상태의 내 캐릭터도 롱-프레스로 입력 가능 — 졸고 있는 캐릭터가 잠꼬대하는 표현.
+방 scene 바로 아래에 **항상 보이는 한 줄 입력 바**(`SpeechInputBar`)를 노출한다. 카카오톡 채팅방 하단의 입력 줄과 동일한 멘탈 모델.
 
-### SpeechInputSheet
+- **롱-프레스·모달·바텀시트 진입 없음.** 사용자는 입력 바를 탭 → 바로 타이핑 → 전송.
+- 캐릭터 탭/롱-프레스 인터랙션은 기존 `challenge-room-social.md` 의 정의(탭 = 반응 / 콕찌르기, 롱-프레스 = 미정)를 그대로 유지. 본 디자인은 캐릭터에 어떤 핸들러도 추가하지 않는다.
+- 미인증 상태(졸고 있는 본인)에서도 입력 가능 — 졸면서 잠꼬대하는 표현으로 의도된 동작.
+
+### SpeechInputBar 구조
 
 ```
-┌────────────────────────────────────┐
-│ 방에 한마디                         │
-│ ┌────────────────────────────────┐ │
-│ │ [텍스트 필드, 40자 제한]         │ │
-│ │                                │ │
-│ └────────────────────────────────┘ │
-│                          0 / 40    │
-│                                    │
-│ ⏱ 오늘 자정까지 보여요              │
-│                                    │
-│  [지우기]              [말하기]    │
-└────────────────────────────────────┘
+방 scene
+─────────────────────────────────────────
+[옵션] 💬 내가 한 말: "오늘도 화이팅" · 지우기   ← 내 활성 발언이 있을 때만 한 줄
+─────────────────────────────────────────
+[ 방에 한마디 보내기 .................. ] (▶)
+                                  0/40    전송
+─────────────────────────────────────────
+... 캘린더 / 멤버 리스트 등 기존 컨텐츠 계속 ...
 ```
 
-- 텍스트 필드: `maxLength: 40`, `inputFormatters: [...FilteringTextInputFormatter.deny(newline)]`.
-- "말하기" 버튼: `POST /challenges/{id}/room-speech` → 응답으로 local queue 즉시 갱신, 내 턴을 **다음 턴**으로 승격.
-- "지우기" 버튼: 내 기존 발언 삭제 (`DELETE`).
-- TTL 안내: "오늘 자정까지" — `expires_at` 은 서버가 `day_cutoff_hour` 기준으로 계산. 클라는 그 시간을 현지화해 표시만.
-- 제출 성공 시 토스트 "방에 한마디 전했어요 🗣️".
+- **위치**: `ChallengeRoomScene` 직하부, 같은 ScrollView 안. scene 과 함께 스크롤된다 (sticky bottom 아님). 사용자 표현 "캐릭터 방 밑에 한 줄" 충실.
+- **높이**: 본체 56dp + 활성 발언 인디케이터 28dp = 최대 84dp.
+- **활성 발언 인디케이터** (`MyActiveSpeechHint`): 내가 등록한 발언이 만료되지 않은 동안만 입력 바 위에 한 줄로 표시. 우측 끝에 `[지우기]` 텍스트 버튼.
+- **입력 바 본체**:
+  - 좌측: 단일 줄 `TextField` — placeholder `"방에 한마디 보내기"` (12dp, `Color(0xFF9E9E9E)`).
+  - `maxLength: 40`, `maxLines: 1`, `keyboardType: TextInputType.text`, `textInputAction: TextInputAction.send`.
+  - `inputFormatters`: 줄바꿈 차단 (`FilteringTextInputFormatter.deny(RegExp(r'[\r\n]'))`).
+  - 우측 하단: `n/40` 카운터 — 입력 중에만 표시(빈 상태 숨김). 30자 초과 시 색을 `Color(0xFFEF5350)`.
+  - 우측: 전송 버튼 (`IconButton` 아이콘 `Icons.send_rounded`).
+    - 비활성: 회색 (`Color(0xFFBDBDBD)`)
+    - 활성: 채워진 입력이 있을 때 primary color
+    - 탭 또는 키보드 `send` 액션 → `POST /challenges/{id}/room-speech` → 응답으로 local queue 갱신, 내 턴을 **다음 턴**으로 승격, 입력 필드 비움, 키보드 유지(연속 메시지 가능).
+- **시각 스타일**:
+  - 배경: `Theme.surface` (다크 모드 대응)
+  - 입력 영역: 모서리 18dp, 1px 소프트 테두리, 좌우 패딩 14dp
+  - scene 과 입력 바 사이 1px 헤어라인 separator
+- **빈 큐 / 첫 발화**: 입력 바는 항상 동일 — 큐 상태와 무관하게 비활성 placeholder 만 다르지 않게 동작.
+- **전송 직후**: 토스트 없음(카톡 패턴 — 메시지가 화면에 즉시 반영되는 것이 피드백). 내 캐릭터 위 말풍선이 "다음 턴"에 등장.
+- **TTL 안내**: 입력 바 본체에는 표시하지 않음(공간 절약). `MyActiveSpeechHint` 옆에 작은 시계 아이콘 + 툴팁(`오늘 자정까지 보여요`)을 부가 정보로 제공.
+
+### 키보드·스크롤 동작
+
+- 입력 바 탭 → 키보드 올라옴 → `Scrollable.ensureVisible` 로 입력 바가 키보드 바로 위에 보이도록 자동 스크롤.
+- 키보드 dismiss: 빈 영역 탭 또는 백 버튼 → `unfocus()`.
+- iOS 안전영역(home indicator) 패딩 자동 적용.
+
+### 지우기
+
+- `MyActiveSpeechHint` 의 `[지우기]` 버튼 탭 → 즉시 `DELETE /challenges/{id}/room-speech` → local queue 에서 내 항목 제거.
+- 컨펌 모달 없음(되돌리기 쉬움 — 다시 입력하면 됨).
 
 ## Round-Robin Queue 로직
 
@@ -270,26 +299,33 @@ final scale = TweenSequence<double>([
 
 | 상황 | 처리 |
 |------|------|
-| 방에 혼자 (멤버 1명) | 내가 POST 하기 전까지 말풍선 없음. POST 하면 내 버블만 순환. |
+| 방에 혼자 (멤버 1명) | 내가 입력 전까지 말풍선 없음. 입력 바는 평소처럼 사용 가능 — 전송하면 내 버블만 순환. |
 | 6명 초과(7~8명) | 큐 로직은 순차라 겹침 없음. 말풍선 위치는 발언자 위로만 렌더. |
 | 발언자가 스크롤로 화면 밖 | `VisibilityDetector` 로 `pauseForOffstage()`. 복귀 시 `resume()` (현재 턴 처음부터). |
 | 발언 중 앱 백그라운드 | `AppLifecycleState.paused` → pause. foreground 복귀 시 resume + 필요 시 `GET` 리프레시. |
-| 빈 content 제출 | 클라이언트 단 즉시 disable, 서버도 422(`SPEECH_EMPTY`). |
-| 40자 초과 | 클라이언트 단 `maxLength` 로 차단 + 카운터 표시. 서버 중복 검증. |
-| 긴 단어 한 개로 40자 | CSS-like `softWrap: true` + 말줄임으로 2줄까지 표시. |
+| 빈 content 제출 | 클라이언트 단 즉시 전송 버튼 비활성, 서버도 422(`SPEECH_EMPTY`). |
+| 40자 초과 | 클라이언트 단 `maxLength` 로 차단 + 카운터 강조색. 서버 중복 검증. |
+| 긴 단어 한 개로 40자 | 말풍선 측에서 `softWrap: true` + 말줄임으로 2줄까지 표시. |
 | 욕설·스팸 | MVP 범위 밖. 길이·rate limit 외 필터링 없음. 추후 `차단/신고` 스펙에서 처리. |
 | 내 발언 만료 경계 | 자정 직전 발언 시 서버가 **다음 cutoff** 로 계산 (즉시 만료 방지). |
 | 발언자 탈퇴·킥 | 멤버에서 빠지면 다음 polling 때 queue 에서 제거. 현재 턴은 마치고 제거. |
+| 키보드 올라왔을 때 입력 바 가림 | `Scrollable.ensureVisible` + `MediaQuery.viewInsets.bottom` 패딩으로 입력 바를 키보드 바로 위에 고정. |
+| 연속 전송 (rate limit) | 10초 내 재전송 시 서버 429(`SPEECH_RATE_LIMITED`). 입력 바 우측에 작은 인라인 hint "잠시 후 다시" 표시 후 자동 사라짐 (3초). |
+| 내 발언 활성 중 새로 전송 | upsert — 기존 발언 덮어쓰기. `MyActiveSpeechHint` 텍스트가 새 내용으로 갱신. |
+| 비멤버가 화면 진입 (예: 미래 공개 모드) | 입력 바 비활성 + placeholder "멤버만 한마디 남길 수 있어요". MVP 에서는 멤버만 진입 가능하므로 사실상 미발생. |
 
 ## Accessibility
 
 - 말풍선 widget: `Semantics(label: '${nickname}: ${content}', liveRegion: true)`.
+- 입력 바: `Semantics(label: '방에 한마디 입력', textField: true)` + 전송 버튼 `Semantics(button: true, label: '전송')`.
+- 활성 발언 인디케이터: `Semantics(label: '내 한마디: ${content}, 지우려면 두 번 탭')`.
 - `MediaQuery.of(context).disableAnimations == true` 인 경우:
   - fade-in / fade-out 즉시 전환 (opacity 0 ↔ 1).
   - hold 3초 유지.
   - scale 애니메이션 비활성.
 - 사운드 없음. 햅틱 없음 (발언 표시는 ambient 피드백이라 개입 최소화).
-- 다크 모드에서도 **흰 배경 유지** — 사용자 요구("하얀 색 말풍선"). 텍스트 대비 확보를 위해 본문은 `Color(0xFF212121)` 고정.
+- 다크 모드에서도 **말풍선은 흰 배경 유지** — 사용자 요구("하얀 색 말풍선"). 텍스트 대비 확보를 위해 본문은 `Color(0xFF212121)` 고정.
+- 입력 바는 다크 모드에서 `Theme.surface` 따라감 (말풍선과 다름 — 입력 영역은 시스템 테마 자연스러움 우선).
 
 ## Architecture
 
@@ -298,7 +334,7 @@ final scale = TweenSequence<double>([
 | Path | 역할 |
 |------|------|
 | `app/lib/features/challenge_space/widgets/speech_bubble.dart` | `SpeechBubble` widget + 꼬리 `CustomPaint` + 애니메이션 래퍼 (~110 lines) |
-| `app/lib/features/challenge_space/widgets/speech_input_sheet.dart` | 롱-프레스 진입 바텀시트 (~140 lines) |
+| `app/lib/features/challenge_space/widgets/speech_input_bar.dart` | 인라인 한 줄 입력 바 (TextField + 전송 버튼 + `MyActiveSpeechHint`) (~150 lines) |
 | `app/lib/features/challenge_space/providers/room_speech_provider.dart` | `RoomSpeechController` + Riverpod `roomSpeechProvider(challengeId)` (~160 lines) |
 | `app/lib/features/challenge_space/models/room_speech.dart` | freezed + json_serializable 모델 (~50 lines) |
 | `app/lib/features/challenge_space/api/room_speech_api.dart` | dio 기반 GET/POST/DELETE 래퍼 (~60 lines) |
@@ -307,9 +343,9 @@ final scale = TweenSequence<double>([
 
 | Path | 변경 |
 |------|------|
-| `app/lib/features/challenge_space/widgets/room_character.dart` | 기존 `_WaveBubble` 은 탭 반응용으로 유지. `speechText: String?`, `bubbleOpacity: double`, `bubbleScale: double` props 추가. 내 캐릭터에 `onLongPress` 연결. `_showBubble` 과 active speech 말풍선은 **동시 표시 금지** (active speech 우선). |
+| `app/lib/features/challenge_space/widgets/room_character.dart` | 기존 `_WaveBubble` 은 탭 반응용으로 유지. `speechText: String?`, `bubbleOpacity: double`, `bubbleScale: double` props 추가. **캐릭터 자체에는 입력 진입 핸들러를 추가하지 않는다** — 입력은 별도 위젯(`SpeechInputBar`). `_showBubble`(👋) 과 active speech 말풍선은 **동시 표시 금지** (active speech 우선). |
 | `app/lib/core/widgets/challenge_room_scene.dart` | `RoomSpeechController` 생성·dispose, `VisibilityDetector` 연결, 각 `RoomCharacter` 에 active state 분배. |
-| `app/lib/features/challenge_space/screens/challenge_space_screen.dart` | 라우트 진입 시 `ref.read(roomSpeechProvider(id).notifier).hydrate()` 호출. |
+| `app/lib/features/challenge_space/screens/challenge_space_screen.dart` | scene 직하부에 `SpeechInputBar` 추가. 라우트 진입 시 `ref.read(roomSpeechProvider(id).notifier).hydrate()` 호출. 키보드 inset 처리(`MediaQuery.viewInsets.bottom`). |
 
 ### Backend 워크트리 (신규 — 별도 승인)
 
@@ -324,25 +360,32 @@ final scale = TweenSequence<double>([
 
 | Path | 역할 |
 |------|------|
-| `app/test/features/challenge_space/widgets/speech_bubble_test.dart` | golden + interaction (롱-프레스 → 시트, 3회 반복 검증) |
+| `app/test/features/challenge_space/widgets/speech_bubble_test.dart` | golden + interaction (말풍선 3회 반복 + round-robin 큐 전환 검증) |
+| `app/test/features/challenge_space/widgets/speech_input_bar_test.dart` | 입력 바 동작 (placeholder, 카운터, 전송 버튼 활성/비활성, 키보드 send 액션, 활성 발언 hint, 지우기) |
 | `app/test/features/challenge_space/providers/room_speech_provider_test.dart` | queue 알고리즘·timer·edge case 단위 테스트 |
 | `server/tests/routers/test_room_speech.py` | POST/GET/DELETE + upsert + rate limit + 만료 |
 
 ## Data Flow
 
 ```
-ChallengeSpaceScreen
-  └─ ChallengeRoomScene (owns RoomSpeechController)
-       ├─ roomSpeechProvider(challengeId).hydrate()
-       │    └─ GET /challenges/{id}/room-speech → queue
-       ├─ Timer.periodic → advance queue, emit active speaker
-       ├─ RoomCharacter(member, speechText, bubbleOpacity, bubbleScale)
-       │    └─ SpeechBubble (white, tail-down)
-       └─ My character onLongPress
-            └─ SpeechInputSheet
-                 └─ POST /challenges/{id}/room-speech
-                      └─ controller.onNewSpeech(mine: true)
-                           └─ 내 턴을 다음 턴으로 승격
+ChallengeSpaceScreen (ScrollView)
+  ├─ ChallengeRoomScene (owns RoomSpeechController)
+  │    ├─ roomSpeechProvider(challengeId).hydrate()
+  │    │    └─ GET /challenges/{id}/room-speech → queue
+  │    ├─ Timer.periodic → advance queue, emit active speaker
+  │    └─ RoomCharacter(member, speechText, bubbleOpacity, bubbleScale)
+  │         └─ SpeechBubble (white, tail-down)
+  │
+  ├─ SpeechInputBar  ← scene 직하부 한 줄
+  │    ├─ MyActiveSpeechHint (내 활성 발언 있을 때만)
+  │    │    └─ [지우기] → DELETE → controller.onExpired(myId)
+  │    ├─ TextField
+  │    └─ SendButton
+  │         └─ POST /challenges/{id}/room-speech
+  │              └─ controller.onNewSpeech(mine: true)
+  │                   └─ 내 턴을 다음 턴으로 승격
+  │
+  └─ ... 기존 캘린더·멤버 리스트 ...
 ```
 
 ## Implementation Priority
@@ -350,16 +393,17 @@ ChallengeSpaceScreen
 1. **Phase 1 — front, 단독 실행 가능**
    - `SpeechBubble` 위젯 + 애니메이션.
    - `RoomSpeechController` + `Timer.periodic` 큐 로직.
-   - **Mock in-memory 데이터**로 3명이 돌아가면서 말하는 시뮬레이션.
-   - UI·타이밍·레이아웃을 먼저 확정.
+   - `SpeechInputBar` 인라인 입력 바 (전송은 mock — controller 에 직접 push).
+   - **Mock in-memory 데이터**로 3명이 돌아가면서 말하는 시뮬레이션 + 내 입력으로 큐에 합류.
+   - UI·타이밍·레이아웃·키보드 동작을 먼저 확정.
 2. **Phase 2 — backend**
    - `RoomSpeech` 모델 · 라우터 · Alembic · 테스트.
    - 이 시점에서 `api-contract.md`·`domain-model.md` 갱신 승인.
 3. **Phase 3 — front 연동**
-   - Mock → 실제 API 교체, 60초 polling, 오류·오프라인 처리.
-4. **Phase 4 — 입력 UX**
-   - `SpeechInputSheet` + 롱-프레스 진입점 + 토스트.
-   - 접근성·다크 모드 검증.
+   - Mock → 실제 API 교체, 60초 polling, 오류·오프라인 처리, rate limit 인라인 hint.
+4. **Phase 4 — 마무리**
+   - `MyActiveSpeechHint` + 지우기 동작.
+   - 접근성·다크 모드·키보드 inset 검증.
 
 ## Out of Scope
 
@@ -372,7 +416,7 @@ ChallengeSpaceScreen
 
 ## Related
 
-- `docs/design/challenge-room-social.md` — 상위 디자인(캐릭터 배치·색상·터치 인터랙션). 본 문서의 롱-프레스 진입은 해당 문서의 탭 인터랙션 테이블과 충돌하지 않는다.
+- `docs/design/challenge-room-social.md` — 상위 디자인(캐릭터 배치·색상·터치 인터랙션). 본 문서는 캐릭터에 새 핸들러를 추가하지 않으므로 해당 문서의 탭/롱-프레스 인터랙션 테이블과 충돌하지 않는다.
 - `docs/design/miniroom-cyworld.md` — 공유 색상/픽셀 그리드.
 - `app/lib/features/challenge_space/widgets/room_character.dart` — 기존 `_WaveBubble`(👋) 선행 사례. 본 디자인의 `SpeechBubble` 은 이를 일반화·대체.
 - `app/lib/core/widgets/challenge_room_scene.dart` — 컨트롤러 소유 위치.
