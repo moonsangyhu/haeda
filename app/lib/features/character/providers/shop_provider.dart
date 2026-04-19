@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../models/item_data.dart';
+import 'character_provider.dart';
 import 'coin_provider.dart';
 
 /// GET /shop/items?category={category} — 상점 아이템 목록 조회.
@@ -62,6 +63,7 @@ class ShopPurchaseNotifier extends StateNotifier<PurchaseState> {
       state = const PurchaseState(success: true);
       // 잔액 및 내 아이템 갱신
       _ref.invalidate(coinBalanceProvider);
+      _ref.invalidate(myItemsProvider);
       for (final cat in ['HAT', 'TOP', 'BOTTOM', 'SHOES', 'ACCESSORY']) {
         _ref.invalidate(shopItemsProvider(cat));
       }

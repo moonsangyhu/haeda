@@ -100,8 +100,11 @@ async def purchase_item(
         item_id=item.id,
         name=item.name,
         category=item.category,
+        price=item.price,
         rarity=item.rarity,
         asset_key=item.asset_key,
+        effect_type=item.effect_type,
+        effect_value=item.effect_value,
         purchased_at=user_item.purchased_at,
     )
 
@@ -125,8 +128,11 @@ async def get_user_items(
             item_id=row.Item.id,
             name=row.Item.name,
             category=row.Item.category,
+            price=row.Item.price,
             rarity=row.Item.rarity,
             asset_key=row.Item.asset_key,
+            effect_type=row.Item.effect_type,
+            effect_value=row.Item.effect_value,
             purchased_at=row.UserItem.purchased_at,
         )
         for row in rows

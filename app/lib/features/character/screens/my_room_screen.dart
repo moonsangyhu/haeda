@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/widgets/character_avatar.dart';
+import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/item_icon_painter.dart';
 import '../../../core/widgets/loading_widget.dart';
-import '../../../core/widgets/tappable_character.dart';
+import '../../../core/widgets/miniroom_scene.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/character_data.dart';
 import '../models/item_data.dart';
 import '../providers/character_provider.dart';
 import '../providers/coin_provider.dart';
+import '../widgets/equip_stat_bar.dart';
 
 /// 내 방 탭 — 캐릭터 + 카테고리별 아이템 그리드 + 탭→바텀시트.
 class MyRoomScreen extends ConsumerStatefulWidget {
@@ -47,8 +50,18 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
         allItems.where((ui) => ui.item.category.toUpperCase() == catKey).toList();
 
     // 착용 중인 아이템들의 효과 합산
-    final equippedItems = _getEquippedItems(allItems, character);
-    final stats = _calcStats(equippedItems);
+    final equippedItems = getEquippedItems(allItems, character);
+    final stats = calcEquipStats(equippedItems);
+
+    // Wall tint from user background color
+    final bgHex =
+        ref.watch(authStateProvider).valueOrNull?.backgroundColor;
+    final userBgColor = AppTheme.characterBackgroundFromHex(bgHex);
+
+    // Responsive sizing
+    final screenHeight = MediaQuery.of(context).size.height;
+    final roomHeight = screenHeight < 600 ? 200.0 : 250.0;
+    final charSize = screenHeight < 600 ? 90.0 : 110.0;
 
     return Scaffold(
       body: SafeArea(
@@ -56,31 +69,42 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
           children: [
             const SizedBox(height: 8),
 
-            // ── 캐릭터 + 스탯
-            SizedBox(
-              height: 180,
-              child: Row(
-                children: [
-                  // 캐릭터
-                  Expanded(
-                    flex: 3,
-                    child: Center(
-                      child: TappableCharacter(
-                        child: CharacterAvatar(
-                          character: character,
-                          size: 150,
-                        ),
-                      ),
-                    ),
-                  ),
-                  // 스탯창
-                  Expanded(
-                    flex: 2,
-                    child: _StatPanel(stats: stats),
+            // ── 미니룸 씬
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+                border: Border.all(
+                  color: theme.colorScheme.outlineVariant,
+                  width: 3,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.08),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
+              child: ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(13),
+                  topRight: Radius.circular(13),
+                ),
+                child: MiniroomScene(
+                  character: character,
+                  wallTintColor: userBgColor,
+                  height: roomHeight,
+                  characterSize: charSize,
+                ),
+              ),
             ),
+
+            // ── 능력치 바
+            EquipStatBar(stats: stats),
 
             const SizedBox(height: 4),
 
@@ -89,6 +113,11 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
               controller: _tabCtrl,
               isScrollable: false,
               labelPadding: EdgeInsets.zero,
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                borderRadius: BorderRadius.circular(20),
+                color: const Color(0xFFFFCDD2),
+              ),
               tabs: _tabs.map((t) => Tab(text: t, height: 36)).toList(),
             ),
 
@@ -177,162 +206,7 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
   }
 }
 
-// ─── 스탯 계산 ───
-
-/// 착용 중인 아이템들만 추출.
-List<ShopItem> _getEquippedItems(List<UserItem> allItems, CharacterData? c) {
-  if (c == null) return [];
-  final equippedIds = <String?>[
-    c.hat?.id, c.top?.id, c.bottom?.id, c.shoes?.id, c.accessory?.id,
-  ].whereType<String>().toSet();
-  return allItems
-      .where((ui) => equippedIds.contains(ui.item.id))
-      .map((ui) => ui.item)
-      .toList();
-}
-
-/// 효과 합산 결과.
-class _Stats {
-  final int coinBoost;      // 총 코인 부스트 %
-  final int verifyBonus;    // 총 인증 보너스 코인
-  final int streakShield;   // 총 연속 실드 횟수
-
-  const _Stats({
-    this.coinBoost = 0,
-    this.verifyBonus = 0,
-    this.streakShield = 0,
-  });
-
-  bool get isEmpty => coinBoost == 0 && verifyBonus == 0 && streakShield == 0;
-}
-
-_Stats _calcStats(List<ShopItem> items) {
-  int coin = 0, verify = 0, shield = 0;
-  for (final item in items) {
-    if (item.effectType == null) continue;
-    final v = item.effectValue ?? 0;
-    switch (item.effectType) {
-      case 'COIN_BOOST':
-        coin += v;
-      case 'VERIFY_BONUS':
-        verify += v;
-      case 'STREAK_SHIELD':
-        shield += v;
-    }
-  }
-  return _Stats(coinBoost: coin, verifyBonus: verify, streakShield: shield);
-}
-
-/// 스탯 패널 — 캐릭터 오른쪽에 표시.
-class _StatPanel extends StatelessWidget {
-  final _Stats stats;
-  const _StatPanel({required this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Container(
-      margin: const EdgeInsets.only(right: 16, top: 12, bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerHighest.withOpacity(0.5),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '장비 능력치',
-            style: theme.textTheme.labelSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: theme.colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _StatRow(
-            icon: '💰',
-            label: '코인 부스트',
-            value: '+${stats.coinBoost}%',
-            active: stats.coinBoost > 0,
-          ),
-          const SizedBox(height: 6),
-          _StatRow(
-            icon: '⭐',
-            label: '인증 보너스',
-            value: '+${stats.verifyBonus}',
-            active: stats.verifyBonus > 0,
-          ),
-          const SizedBox(height: 6),
-          _StatRow(
-            icon: '🛡️',
-            label: '연속 실드',
-            value: '${stats.streakShield}회',
-            active: stats.streakShield > 0,
-          ),
-          if (stats.isEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              '효과 아이템을\n착용해보세요!',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-                fontSize: 9,
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _StatRow extends StatelessWidget {
-  final String icon;
-  final String label;
-  final String value;
-  final bool active;
-
-  const _StatRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.active,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = active
-        ? theme.colorScheme.onSurface
-        : theme.colorScheme.onSurfaceVariant.withOpacity(0.5);
-
-    return Row(
-      children: [
-        Text(icon, style: TextStyle(fontSize: 12, color: active ? null : Colors.grey)),
-        const SizedBox(width: 4),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 10, color: color),
-            maxLines: 1,
-          ),
-        ),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: active ? FontWeight.w800 : FontWeight.w400,
-            color: active ? theme.colorScheme.primary : color,
-          ),
-        ),
-      ],
-    );
-  }
-}
+// ─── (stat logic moved to ../widgets/miniroom_stat_overlay.dart) ───
 
 // ─── 등급별 테두리 색상 ───
 
@@ -431,8 +305,15 @@ class _ItemCard extends StatelessWidget {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: isEquipped ? border.withOpacity(0.08) : theme.colorScheme.surface,
-          borderRadius: BorderRadius.circular(14),
+          gradient: isEquipped
+              ? LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [border.withOpacity(0.12), border.withOpacity(0.04)],
+                )
+              : null,
+          color: isEquipped ? null : theme.colorScheme.surface,
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(
             color: border,
             width: isEquipped ? 2.5 : 1.5,

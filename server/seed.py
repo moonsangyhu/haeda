@@ -206,6 +206,10 @@ async def seed():
             (uuid.UUID("10000000-0000-0000-0000-000000000044"), "ACCESSORY", "선글라스", 120, "RARE",   "accessory/sunglasses.png",  "COIN_BOOST",   10),
             (uuid.UUID("10000000-0000-0000-0000-000000000045"), "ACCESSORY", "이어폰",   150, "RARE",   "accessory/earphones.png",   "VERIFY_BONUS", 5),
             (uuid.UUID("10000000-0000-0000-0000-000000000046"), "ACCESSORY", "천사날개", 400, "EPIC",   "accessory/angel_wings.png", "COIN_BOOST",   25),
+            (uuid.UUID("10000000-0000-0000-0000-000000000047"), "ACCESSORY", "신문",         40,  "COMMON", "accessory/newspaper.png",      None,           None),
+            (uuid.UUID("10000000-0000-0000-0000-000000000048"), "ACCESSORY", "노란오리물총",  120, "RARE",   "accessory/duck_watergun.png",  "COIN_BOOST",   10),
+            (uuid.UUID("10000000-0000-0000-0000-000000000049"), "ACCESSORY", "노트북",       150, "RARE",   "accessory/laptop.png",         "VERIFY_BONUS", 5),
+            (uuid.UUID("10000000-0000-0000-0000-000000000050"), "ACCESSORY", "연필",         50,  "COMMON", "accessory/pencil.png",         None,           None),
         ]
 
         for item_id, category, name, price, rarity, asset_key, effect_type, effect_value in items_data:
@@ -332,7 +336,7 @@ async def seed():
         print(f"  Members: 3")
         print(f"  Verifications: 46 (16+14+16)")
         print(f"  DayCompletions: 14 (3/5~3/18)")
-        print(f"  Items: 30 (6 per category, with effect data)")
+        print(f"  Items: 34 (HAT/TOP/BOTTOM/SHOES 6 each + ACCESSORY 10)")
         print(f"  GemTransactions: 3 (김철수 500, 이영희 300, 박지민 100)")
         print(f"  UserItems: 8 (김철수 4, 이영희 3, 박지민 1)")
         print(f"  CharacterEquips: 3")

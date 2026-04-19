@@ -24,8 +24,11 @@ class UserItemResponse(BaseModel):
     item_id: uuid.UUID
     name: str
     category: str
+    price: int
     rarity: str
     asset_key: str
+    effect_type: str | None = None
+    effect_value: int | None = None
     purchased_at: datetime
 
     model_config = {"from_attributes": True}
