@@ -13,10 +13,11 @@ router = APIRouter(prefix="/shop", tags=["shop"])
 @router.get("/items")
 async def list_shop_items(
     category: str | None = Query(default=None),
+    is_limited: bool | None = Query(default=None),
     user_id: uuid.UUID = Depends(get_current_user_id),
     db: AsyncSession = Depends(get_db),
 ):
-    items = await shop_service.list_items(db, user_id, category)
+    items = await shop_service.list_items(db, user_id, category, is_limited)
     return {"data": [i.model_dump() for i in items]}
 
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'character_avatar.dart';
 import 'tappable_character.dart';
 import '../../features/character/models/character_data.dart';
+import '../../features/room_decoration/models/room_equip.dart';
 
 /// Cyworld-style miniroom color palette.
 class MiniroomColors {
@@ -52,11 +53,17 @@ class MiniroomColors {
 
 /// Cyworld-style miniroom scene — pixel-art room with character inside.
 /// Uses independent horizontal/vertical scaling to fill the full width.
+///
+/// [equip] 가 지정되면 해당 MiniroomEquip 의 wall/floor assetKey 로 painter 를 분기한다.
+/// Phase 2 에서 wall, floor 만 분기 구현. 나머지 슬롯은 기본 painter 유지.
 class MiniroomScene extends StatelessWidget {
   final CharacterData? character;
   final Color? wallTintColor;
   final double height;
   final double characterSize;
+
+  /// Phase 2: 미니룸 장착 아이템 override. wall/floor 색 분기에 사용.
+  final MiniroomEquip? equip;
 
   const MiniroomScene({
     super.key,
@@ -64,6 +71,7 @@ class MiniroomScene extends StatelessWidget {
     this.wallTintColor,
     this.height = 250,
     this.characterSize = 110,
+    this.equip,
   });
 
   @override
@@ -78,9 +86,17 @@ class MiniroomScene extends StatelessWidget {
           final pxW = w / 32;
           final pxH = h / 24;
 
-          final wallTint = wallTintColor != null
-              ? Color.lerp(MiniroomColors.wallBase, wallTintColor, 0.3)!
-              : MiniroomColors.wallBase;
+          // equip.wall.assetKey → 벽지 색 분기 (Phase 2)
+          final equipWallColor =
+              _wallColorFor(equip?.wall?.assetKey);
+          final equipFloorColors =
+              _floorColorsFor(equip?.floor?.assetKey);
+
+          final wallTint = equipWallColor != null
+              ? Color.lerp(MiniroomColors.wallBase, equipWallColor, 0.45)!
+              : wallTintColor != null
+                  ? Color.lerp(MiniroomColors.wallBase, wallTintColor, 0.3)!
+                  : MiniroomColors.wallBase;
 
           final charSize = characterSize;
           final charLeft = (w - charSize) / 2;
@@ -94,6 +110,7 @@ class MiniroomScene extends StatelessWidget {
                   pxW: pxW,
                   pxH: pxH,
                   wallTint: wallTint,
+                  floorOverride: equipFloorColors,
                 ),
               ),
               Positioned(
@@ -118,17 +135,46 @@ class MiniroomScene extends StatelessWidget {
   }
 }
 
+// ─── assetKey → color helpers (top-level) ───
+
+Color? _wallColorFor(String? assetKey) {
+  if (assetKey == null) return null;
+  if (assetKey.startsWith('wall/pink')) return const Color(0xFFFFB3C1);
+  if (assetKey.startsWith('wall/blue')) return const Color(0xFFB3D9FF);
+  if (assetKey.startsWith('wall/green')) return const Color(0xFFA5D6A7);
+  if (assetKey.startsWith('wall/yellow')) return const Color(0xFFFFF9C4);
+  if (assetKey.startsWith('wall/purple')) return const Color(0xFFCE93D8);
+  if (assetKey.startsWith('wall/white')) return const Color(0xFFFAFAFA);
+  return const Color(0xFFFFB3C1);
+}
+
+List<Color>? _floorColorsFor(String? assetKey) {
+  if (assetKey == null) return null;
+  if (assetKey.startsWith('floor/wood')) {
+    return [const Color(0xFFD4A574), const Color(0xFFB07848)];
+  }
+  if (assetKey.startsWith('floor/tile')) {
+    return [const Color(0xFFE0E0E0), const Color(0xFFBDBDBD)];
+  }
+  if (assetKey.startsWith('floor/marble')) {
+    return [const Color(0xFFF5F5F5), const Color(0xFFE8E8E8)];
+  }
+  return null;
+}
+
 // ─── Background Painter (wall, floor, furniture behind character) ───
 
 class _MiniroomBackgroundPainter extends CustomPainter {
   final double pxW;
   final double pxH;
   final Color wallTint;
+  final List<Color>? floorOverride;
 
   _MiniroomBackgroundPainter({
     required this.pxW,
     required this.pxH,
     required this.wallTint,
+    this.floorOverride,
   });
 
   @override
@@ -175,15 +221,16 @@ class _MiniroomBackgroundPainter extends CustomPainter {
   }
 
   void _drawFloor(Canvas canvas) {
+    final lightColor = floorOverride != null
+        ? floorOverride![0]
+        : MiniroomColors.floorLight;
+    final darkColor = floorOverride != null
+        ? floorOverride![1]
+        : MiniroomColors.floorDark;
     for (int y = 13; y < 24; y++) {
       for (int x = 0; x < 32; x++) {
         final isLight = (x + y) % 2 == 0;
-        _drawPx(
-          canvas,
-          isLight ? MiniroomColors.floorLight : MiniroomColors.floorDark,
-          x,
-          y,
-        );
+        _drawPx(canvas, isLight ? lightColor : darkColor, x, y);
       }
     }
   }

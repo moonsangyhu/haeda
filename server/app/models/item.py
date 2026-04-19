@@ -23,6 +23,8 @@ class Item(Base):
     effect_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     effect_value: Mapped[int | None] = mapped_column(Integer, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_limited: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")
+    reward_trigger: Mapped[str | None] = mapped_column(String(64), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     created_at: Mapped[datetime] = mapped_column(
         nullable=False, server_default=func.now()

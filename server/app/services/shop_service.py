@@ -14,10 +14,13 @@ async def list_items(
     db: AsyncSession,
     user_id: uuid.UUID,
     category: str | None = None,
+    is_limited: bool | None = None,
 ) -> list[ShopItemResponse]:
     stmt = select(Item).where(Item.is_active.is_(True))
     if category:
         stmt = stmt.where(Item.category == category)
+    if is_limited is not None:
+        stmt = stmt.where(Item.is_limited.is_(is_limited))
     stmt = stmt.order_by(Item.sort_order, Item.price)
 
     result = await db.execute(stmt)
