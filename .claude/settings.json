@@ -39,6 +39,14 @@
         ]
       }
     ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          { "type": "command", "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/slack-notify.sh", "timeout": 5 }
+        ]
+      }
+    ],
     "Stop": [
       {
         "matcher": "",
