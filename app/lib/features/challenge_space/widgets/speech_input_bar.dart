@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
+import '../../auth/providers/auth_provider.dart';
 import '../models/room_speech.dart';
 import '../providers/room_speech_provider.dart';
 
@@ -66,18 +67,29 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
     super.dispose();
   }
 
+  /// widget prop 보다 auth provider 의 fresh 값을 우선 사용. parent rebuild
+  /// 누락이나 race condition 으로 widget.currentUserId 가 stale null 인
+  /// 케이스를 우회한다.
+  String? _resolveUserId() {
+    final fromAuth = ref.read(authStateProvider).valueOrNull?.id;
+    return fromAuth ?? widget.currentUserId;
+  }
+
+  String _resolveNickname() {
+    final fromAuth = ref.read(authStateProvider).valueOrNull?.nickname;
+    return fromAuth ?? widget.myNickname;
+  }
+
   bool get _canSubmit =>
-      !_submitting &&
-      widget.currentUserId != null &&
-      _textCtrl.text.trim().isNotEmpty;
+      !_submitting && _textCtrl.text.trim().isNotEmpty;
 
   ({String challengeId, String myUserId, String myNickname})? get _params {
-    final id = widget.currentUserId;
+    final id = _resolveUserId();
     if (id == null) return null;
     return (
       challengeId: widget.challengeId,
       myUserId: id,
-      myNickname: widget.myNickname,
+      myNickname: _resolveNickname(),
     );
   }
 
@@ -91,21 +103,32 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
 
   void _onSendPressed() {
     if (_submitting) return;
-    if (widget.currentUserId == null) {
-      _showHint('잠시 후 다시');
-      return;
-    }
     if (_textCtrl.text.trim().isEmpty) {
       _showHint('내용을 입력해주세요');
       _focus.requestFocus();
       return;
     }
-    _submit();
+    final params = _params;
+    if (params == null) {
+      // 진단 정보를 hint 에 노출 — currentUserId 가 정확히 어디서 막히는지 보임
+      final asyncState = ref.read(authStateProvider);
+      String reason;
+      if (asyncState.isLoading) {
+        reason = '로그인 정보 로딩 중';
+      } else if (asyncState.hasError) {
+        reason = '로그인 정보 오류';
+      } else {
+        reason = '로그인이 필요해요';
+      }
+      _showHint(reason);
+      return;
+    }
+    _submit(params);
   }
 
-  Future<void> _submit() async {
-    final params = _params;
-    if (params == null) return;
+  Future<void> _submit(
+    ({String challengeId, String myUserId, String myNickname}) params,
+  ) async {
     final text = _textCtrl.text.trim();
     if (text.isEmpty) return;
     setState(() => _submitting = true);
