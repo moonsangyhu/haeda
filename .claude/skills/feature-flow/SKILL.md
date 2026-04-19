@@ -33,9 +33,26 @@ Argument: `<requirement description>`
 
 ---
 
-## Step 0: Parse Requirement (Main)
+## Step 0: Parse Requirement & Gather Design Context (Main)
 
-Main reads the user's requirement, normalizes it to a single sentence, and identifies any obvious red flags (P1 scope, spec conflict, missing info). If info is missing, ask the user BEFORE spawning any agent. Otherwise auto-proceed to Step 1.
+Main reads the user's requirement, normalizes it to a single sentence, and identifies any obvious red flags (P1 scope, spec conflict, missing info). If info is missing, ask the user BEFORE spawning any agent.
+
+**Design spec discovery**: Scan `docs/design/*.md` for files with `status: ready` whose content is relevant to the requirement. If a matching design spec exists, read it and include its full content in the Step 1 prompt to product-planner. This ensures design intent (layout, interaction, visual specs) flows into the feature plan without builders needing to discover it independently.
+
+```
+# Example: passing design context to product-planner
+Agent(product-planner, "
+  Requirement: {requirement}
+
+  Design spec (docs/design/{slug}.md):
+  {full design spec content}
+
+  Plan this feature. The design spec above contains UI layout, interaction,
+  and visual details — incorporate them into the Frontend Plan section.
+")
+```
+
+If no relevant design spec exists, proceed without it. Otherwise auto-proceed to Step 1.
 
 ---
 

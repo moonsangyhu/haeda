@@ -50,6 +50,7 @@ If the sync rebase fails, do NOT run `git rebase --abort`. Follow `.claude/skill
 3. Check `lib/core/widgets/` for reusable widgets already available
 4. Identify state management patterns used in similar features (provider structure)
 5. Note the routing pattern from `lib/app.dart`
+6. **Check `docs/design/` for design specs** related to this feature (look for `status: ready` files matching the feature name). If a design spec exists, use its layout, spacing, color, interaction details as the UI implementation guide. The product-planner may have already included design spec content in the feature plan — if so, follow that.
 
 This avoids reinventing existing utilities and ensures consistency.
 

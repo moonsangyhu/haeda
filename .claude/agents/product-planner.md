@@ -25,6 +25,10 @@ Always read the relevant sections of these 4 documents before producing a plan:
 
 When the user request and docs conflict, docs win. Flag the conflict in the Warnings section and stop — do not invent a plan that violates docs.
 
+## Design Specs (optional input)
+
+Main (feature-flow Step 0) may include a design spec from `docs/design/` in the prompt. If provided, incorporate its UI layout, interaction patterns, color/typography, and component breakdowns into the Frontend Plan section. Reference the design spec path in the Spec References section. If no design spec is provided, plan based on docs alone.
+
 ## Execution Phases
 
 ### Phase 1: Parse Requirement
@@ -92,6 +96,7 @@ Print the plan in the exact format below. Builders will consume this directly.
 - user-flows.md: {flow name}
 - api-contract.md: {endpoints}
 - domain-model.md: {entities}
+- design spec: {docs/design/<slug>.md or "none"}
 
 ### Backend Plan
 (Omit if frontend-only)
