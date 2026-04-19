@@ -7,7 +7,6 @@ import '../../features/challenge_space/models/calendar_data.dart';
 import '../../features/challenge_space/providers/room_speech_provider.dart';
 import '../../features/challenge_space/widgets/celebration_overlay.dart';
 import '../../features/challenge_space/widgets/room_character.dart';
-import '../../features/challenge_space/widgets/speech_input_sheet.dart';
 import '../../features/character/models/character_data.dart';
 import '../../features/character/providers/character_provider.dart';
 import '../../features/challenge_space/providers/nudge_provider.dart';
@@ -179,22 +178,9 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
     } catch (e) {
       if (!mounted) return;
       setState(() => _nudgedSet.remove(member.id));
-      final errStr = e.toString();
-      // 서버가 "본인 캐릭터" 라고 알려주는 권위 있는 신호. 프런트 isSelf
-      // 계산이 잘못됐어도 이 경로로 입력창을 띄운다.
-      if (errStr.contains('CANNOT_NUDGE_SELF') &&
-          widget.currentUserId != null) {
-        showSpeechInputSheet(
-          context,
-          challengeId: widget.challengeId,
-          myUserId: widget.currentUserId!,
-          myNickname: member.nickname,
-        );
-        return;
-      }
-      final msg = errStr.contains('ALREADY_NUDGED')
+      final msg = e.toString().contains('ALREADY_NUDGED')
           ? '오늘 이미 콕 찔렀어요'
-          : errStr.contains('ALREADY_VERIFIED')
+          : e.toString().contains('ALREADY_VERIFIED')
               ? '이미 인증을 완료했어요'
               : '콕 찌르기에 실패했어요';
       ScaffoldMessenger.of(context).showSnackBar(
@@ -383,8 +369,6 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
     );
   }
 
-  bool _diagLogged = false;
-
   Widget _buildCharacterWidget(
     BuildContext context,
     CalendarMember member,
@@ -394,12 +378,6 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
     CharacterData? myCharacter,
     RoomSpeechController? speechController,
   ) {
-    if (!_diagLogged) {
-      _diagLogged = true;
-      // TODO debug: remove after isSelf wiring confirmed
-      debugPrint('[room-scene] currentUserId=${widget.currentUserId}, '
-          'members=${widget.members.map((m) => "${m.nickname}:${m.id}").join(",")}');
-    }
     final isSelf = widget.currentUserId != null &&
         member.id.trim().toLowerCase() ==
             widget.currentUserId!.trim().toLowerCase();
@@ -432,28 +410,13 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
         nickname: member.nickname,
         celebrationJump: widget.allCompletedToday,
         onTap: isSelf
-            ? (widget.currentUserId != null
-                ? () => showSpeechInputSheet(
-                      context,
-                      challengeId: widget.challengeId,
-                      myUserId: widget.currentUserId!,
-                      myNickname: member.nickname,
-                    )
-                : null)
+            ? null
             : isVerified
                 ? null // wave handled internally
                 : () => _onNudge(member),
         speechText: speechText,
         bubbleOpacity: bubbleOpacity,
         bubbleScale: bubbleScale,
-        onLongPress: isSelf && widget.currentUserId != null
-            ? () => showSpeechInputSheet(
-                  context,
-                  challengeId: widget.challengeId,
-                  myUserId: widget.currentUserId!,
-                  myNickname: member.nickname,
-                )
-            : null,
       ),
     );
   }
