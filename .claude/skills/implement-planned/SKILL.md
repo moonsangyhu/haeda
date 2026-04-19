@@ -63,7 +63,13 @@ Edit the selected spec's front-matter: `status: ready` → `status: in-progress`
 ```bash
 git add docs/planning/specs/<slug>.md
 git commit -m "plan(<slug>): mark in-progress"
-git push origin HEAD:main   # rebase-retry if needed
+# PR merge (see .claude/rules/worktree-parallel.md §PR-Based Push)
+BRANCH=$(git branch --show-current)
+git push origin "$BRANCH" --force-with-lease
+gh pr create --base main --head "$BRANCH" --title "plan(<slug>): status update" --body "auto" 2>/dev/null || true
+PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
+gh pr merge "$PR_NUM" --merge --delete-branch=false || { echo "Merge failed — STOP"; exit 1; }
+git fetch origin main && git rebase origin/main
 ```
 
 This claim is a lightweight lock — other worktrees won't pick up the same spec mid-flight.
@@ -87,7 +93,13 @@ After `feature-flow` reports completion (deploy success + commit pushed):
 python3 -c "..."   # or sed -E 's/^status: in-progress/status: done/'
 git mv docs/planning/specs/<slug>.md docs/planning/archive/<slug>.md
 git commit -m "plan(<slug>): mark done and archive"
-git push origin HEAD:main   # rebase-retry if needed
+# PR merge (see .claude/rules/worktree-parallel.md §PR-Based Push)
+BRANCH=$(git branch --show-current)
+git push origin "$BRANCH" --force-with-lease
+gh pr create --base main --head "$BRANCH" --title "plan(<slug>): status update" --body "auto" 2>/dev/null || true
+PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
+gh pr merge "$PR_NUM" --merge --delete-branch=false || { echo "Merge failed — STOP"; exit 1; }
+git fetch origin main && git rebase origin/main
 ```
 
 Write a pointer line in `impl-log/feat-<slug>-<role>.md` referencing `docs/planning/archive/<slug>.md` as the originating spec.

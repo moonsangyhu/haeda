@@ -31,7 +31,7 @@ In a design worktree, Write / Edit / NotebookEdit is **blocked** for any path ou
 1. Researches design references (web search, image analysis, competitor review).
 2. Creates design documents at `docs/design/<slug>.md` — screen layouts, color palettes, pixel art specs, interaction patterns, component breakdowns.
 3. Produces detailed enough specs that `ui-designer` and `flutter-builder` agents in a front worktree can implement without ambiguity.
-4. Commits and pushes design docs (standard rebase-retry push; design only ever touches `docs/design/**`, so rebase is trivial).
+4. Commits and pushes design docs (standard PR-based push; design only ever touches `docs/design/**`, so rebase is trivial).
 
 It does NOT:
 

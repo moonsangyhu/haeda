@@ -4,9 +4,9 @@ description: Stage, commit, and push current changes with auto-generated message
 user_invocable: true
 ---
 
-# Commit — Stage, Commit & Push to Main
+# Commit — Stage, Commit & PR Merge to Main
 
-Lightweight skill to commit current work and push directly to main. No branches, no PRs.
+Lightweight skill to commit current work and merge to main via PR.
 
 Argument: `<optional commit message>` — if omitted, auto-generate from diff.
 
@@ -32,7 +32,7 @@ Run tests ONLY for the affected area (skip if no source files changed):
 
 If tests or build fail, print failures and STOP. Do not commit broken code.
 
-## Step 3: Commit & Push to Main
+## Step 3: Commit & PR Merge to Main
 
 ### 3-1. Generate commit message
 
@@ -44,7 +44,7 @@ If tests or build fail, print failures and STOP. Do not commit broken code.
   - `refactor:` for restructuring
   - Keep under 72 chars, Korean or English matching the diff context
 
-### 3-2. Stage, commit, push via rebase-retry
+### 3-2. Stage, commit, push via PR
 
 ```bash
 git add <changed files>   # specific files, not -A
@@ -53,30 +53,48 @@ git commit -m "<message>
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ```
 
-Then push via the rebase-retry loop (NEVER bare `git push`):
+Then push via PR (see `.claude/rules/worktree-parallel.md` §PR-Based Push):
 
 ```bash
-for attempt in 1 2 3; do
-  git fetch origin main
-  if ! git rebase origin/main; then
-    # DO NOT auto-abort. Hand off to /resolve-conflict.
-    break
-  fi
-  if git push origin HEAD:main; then
-    exit 0
-  fi
-  echo "Push rejected (non-fast-forward), retry $attempt/3"
-  sleep 1
-done
+BRANCH=$(git branch --show-current)
+
+# 1. Rebase on main
+git fetch origin main
+if ! git rebase origin/main; then
+  # DO NOT auto-abort. Hand off to /resolve-conflict.
+  echo "Rebase conflict — invoke /resolve-conflict"
+  exit 1
+fi
+
+# 2. Push worktree branch
+git push origin "$BRANCH" --force-with-lease
+
+# 3. Create PR (ignore if already exists)
+gh pr create --base main --head "$BRANCH" \
+  --title "<commit message>" \
+  --body "Auto-created from worktree \`$BRANCH\`" 2>/dev/null || true
+
+# 4. Merge PR — STOP if fails
+PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
+if ! gh pr merge "$PR_NUM" --merge --delete-branch=false; then
+  echo "Auto-merge failed — STOP. PR #$PR_NUM left open."
+  exit 1
+fi
+
+# 5. Sync local
+git fetch origin main
+git rebase origin/main
 ```
 
-**On rebase conflict**: the loop breaks without aborting so the repo stays in rebase-in-progress state. Next, invoke the `resolve-conflict` skill:
+**On rebase conflict**: do not abort. Invoke the `resolve-conflict` skill:
 
 1. Read `.claude/skills/resolve-conflict/SKILL.md` and follow its 7 phases.
-2. If the skill reports **success**, re-run the push step: `git fetch origin main && git push origin HEAD:main`. Retry the push up to 3 times with rebase if needed.
-3. If the skill reports **STOP**, do NOT continue. Emit the skill's STOP report to the user. The repo is left in rebase-in-progress state per the skill's contract.
+2. If the skill reports **success**, resume from step 2 (push branch + PR).
+3. If the skill reports **STOP**, emit the STOP report to the user.
 
-**IMPORTANT**: No branches. No PRs. No bare `git push`. No `--force`. See `.claude/rules/worktree-parallel.md`.
+**On merge failure**: STOP. Do not force merge. PR is left open for manual review.
+
+**IMPORTANT**: No `git push origin HEAD:main`. No `--force`. See `.claude/rules/worktree-parallel.md`.
 
 ## Step 4: Write Implementation Log
 
@@ -119,7 +137,7 @@ Enough detail that another agent can understand what was done and undo it if nee
 
 The impl-log filename MUST embed the worktree role (`backend` / `front` / `qa` / `claude`) to prevent parallel-worktree collisions — e.g. `impl-log/feat-slice-07-backend.md`. See `.claude/rules/worktree-parallel.md` §Shared Directories.
 
-Commit and push the impl-log using the same rebase-retry loop from Step 3-2:
+Commit and push the impl-log using the same PR flow from Step 3-2:
 
 ```bash
 git add impl-log/<name>-<role>.md
@@ -127,16 +145,14 @@ git commit -m "docs: add impl-log for <name>
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
-# rebase-retry push — on conflict, invoke /resolve-conflict instead of aborting
-for attempt in 1 2 3; do
-  git fetch origin main
-  if ! git rebase origin/main; then
-    echo "Rebase conflict — invoke .claude/skills/resolve-conflict/SKILL.md, then retry push"
-    break
-  fi
-  git push origin HEAD:main && break
-  sleep 1
-done
+# PR merge — same as Step 3-2
+BRANCH=$(git branch --show-current)
+git fetch origin main && git rebase origin/main
+git push origin "$BRANCH" --force-with-lease
+gh pr create --base main --head "$BRANCH" --title "docs: add impl-log for <name>" --body "impl-log" 2>/dev/null || true
+PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
+gh pr merge "$PR_NUM" --merge --delete-branch=false || { echo "Merge failed — STOP"; exit 1; }
+git fetch origin main && git rebase origin/main
 ```
 
 ## Step 5: Rebuild & Verify (if source changed)

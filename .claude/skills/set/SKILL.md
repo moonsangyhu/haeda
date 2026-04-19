@@ -67,22 +67,20 @@ After user approval, apply the changes using Edit or Write tools.
 
 Invoke the `/commit` skill to stage, commit, and push the changes.
 
-If `/commit` is unavailable, manually — ALWAYS via rebase-retry (see `.claude/rules/worktree-parallel.md`):
+If `/commit` is unavailable, manually — ALWAYS via PR merge (see `.claude/rules/worktree-parallel.md` §PR-Based Push):
 ```bash
 git add <changed files>
 git commit -m "chore(claude): <description>
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
-for attempt in 1 2 3; do
-  git fetch origin main
-  if ! git rebase origin/main; then
-    echo "Rebase conflict — invoke .claude/skills/resolve-conflict/SKILL.md, then retry push"
-    break
-  fi
-  git push origin HEAD:main && break
-  sleep 1
-done
+BRANCH=$(git branch --show-current)
+git fetch origin main && git rebase origin/main
+git push origin "$BRANCH" --force-with-lease
+gh pr create --base main --head "$BRANCH" --title "chore(claude): <description>" --body "config change" 2>/dev/null || true
+PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
+gh pr merge "$PR_NUM" --merge --delete-branch=false || { echo "Merge failed — STOP"; exit 1; }
+git fetch origin main && git rebase origin/main
 ```
 
 ## Step 5: Summary

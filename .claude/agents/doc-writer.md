@@ -85,7 +85,7 @@ Map the result to a role (`backend`, `front`, `qa`, `claude`). If the worktree n
 
 Example: `impl-log/feat-challenge-detail-front.md`, `docs/reports/2026-04-11-backend-auth-token-refresh.md`.
 
-**Never write a filename without the `-{role}` suffix.** Two worktrees writing `impl-log/feat-foo.md` simultaneously would collide during rebase-retry push.
+**Never write a filename without the `-{role}` suffix.** Two worktrees writing `impl-log/feat-foo.md` simultaneously would collide during PR merge.
 
 ### Phase 3: Write impl-log
 

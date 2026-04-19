@@ -435,7 +435,7 @@ Follow `.claude/agents/doc-writer.md` §Shared Directories and §Filename rules 
 
 ### 7-3. Stage but do not commit
 
-Leave the report files staged but uncommitted. The main thread runs `/commit` after the debugger returns, using the rebase-retry push loop. If the rebase hits a conflict, the main thread invokes `/resolve-conflict` per the worktree-parallel rule.
+Leave the report files staged but uncommitted. The main thread runs `/commit` after the debugger returns, using the PR-based push flow. If the rebase hits a conflict, the main thread invokes `/resolve-conflict` per the worktree-parallel rule.
 
 ## Output Format
 
@@ -478,7 +478,7 @@ Leave the report files staged but uncommitted. The main thread runs `/commit` af
    Fix spec: see impl-log §Handoff specs
 
 ### Next
-- Main thread runs `/commit` to stage + rebase-retry push the fix and report files.
+- Main thread runs `/commit` to stage + PR merge the fix and report files.
 - If handoff specs exist, main thread spawns the matching builder agents in their worktrees.
 ```
 

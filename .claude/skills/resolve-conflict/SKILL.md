@@ -161,7 +161,7 @@ git reset --hard ORIG_HEAD
 
 Then emit a STOP report with the failing test output. The user must resolve manually.
 
-If tests pass, conflict resolution is complete. Return control to the caller — the caller should resume its rebase-retry push loop (re-run `git fetch origin main` and `git push origin HEAD:main`).
+If tests pass, conflict resolution is complete. Return control to the caller — the caller should resume its PR push flow (push branch + create PR + merge).
 
 ## Output Format
 
@@ -188,7 +188,7 @@ If tests pass, conflict resolution is complete. Return control to the caller —
 
 ### Next
 Rebase complete. Caller should re-run the push step:
-  git fetch origin main && git push origin HEAD:main
+  git push origin $BRANCH --force-with-lease && gh pr merge ... (see worktree-parallel.md §PR-Based Push)
 ```
 
 ### On STOP
