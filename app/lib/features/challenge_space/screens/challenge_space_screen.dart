@@ -262,7 +262,9 @@ class _ChallengeSpaceBodyState extends ConsumerState<_ChallengeSpaceBody> {
       }
     }
 
-    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
+    final authUser = ref.watch(authStateProvider).valueOrNull;
+    final currentUserId = authUser?.id;
+    final myNickname = authUser?.nickname ?? '나';
     final creatorId = ref
         .watch(challengeDetailProvider(widget.challengeId))
         .valueOrNull
@@ -279,6 +281,7 @@ class _ChallengeSpaceBodyState extends ConsumerState<_ChallengeSpaceBody> {
               members: calendarData.members,
               verifiedMemberIds: todayEntry?.verifiedMembers ?? [],
               currentUserId: currentUserId,
+              myNickname: myNickname,
               creatorId: creatorId,
               allCompletedToday: todayEntry?.allCompleted ?? false,
               onCalendarTap: () {
@@ -297,11 +300,7 @@ class _ChallengeSpaceBodyState extends ConsumerState<_ChallengeSpaceBody> {
             SpeechInputBar(
               challengeId: widget.challengeId,
               currentUserId: currentUserId,
-              myNickname: calendarData.members
-                  .where((m) => m.id == currentUserId)
-                  .map((m) => m.nickname)
-                  .cast<String?>()
-                  .firstWhere((_) => true, orElse: () => null),
+              myNickname: myNickname,
             ),
             const SizedBox(height: 8),
           ],

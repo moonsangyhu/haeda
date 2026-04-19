@@ -73,6 +73,7 @@ class ChallengeRoomScene extends ConsumerStatefulWidget {
   final List<CalendarMember> members;
   final List<String> verifiedMemberIds;
   final String? currentUserId;
+  final String myNickname;
   final String? creatorId;
   final String challengeId;
   final bool allCompletedToday;
@@ -86,6 +87,7 @@ class ChallengeRoomScene extends ConsumerStatefulWidget {
     required this.verifiedMemberIds,
     required this.challengeId,
     this.currentUserId,
+    this.myNickname = '나',
     this.creatorId,
     this.allCompletedToday = false,
     this.onCalendarTap,
@@ -123,15 +125,10 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
   void _initSpeech() {
     final userId = widget.currentUserId;
     if (userId == null) return;
-    final nickname = widget.members
-            .where((m) => m.id == userId)
-            .map((m) => m.nickname)
-            .firstOrNull ??
-        '나';
     _speechParams = (
       challengeId: widget.challengeId,
       myUserId: userId,
-      myNickname: nickname,
+      myNickname: widget.myNickname,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
