@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/character_avatar.dart';
@@ -139,8 +138,9 @@ class _RoomCharacterState extends State<RoomCharacter>
 
   @override
   Widget build(BuildContext context) {
-    final tapDetector = GestureDetector(
+    return GestureDetector(
       onTap: widget.isSelf ? null : _handleTap,
+      onLongPress: widget.isSelf ? widget.onLongPress : null,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -214,26 +214,6 @@ class _RoomCharacterState extends State<RoomCharacter>
           _buildNicknameLabel(context),
         ],
       ),
-    );
-
-    if (!widget.isSelf || widget.onLongPress == null) {
-      return tapDetector;
-    }
-
-    return RawGestureDetector(
-      behavior: HitTestBehavior.opaque,
-      gestures: <Type, GestureRecognizerFactory>{
-        LongPressGestureRecognizer:
-            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
-          () => LongPressGestureRecognizer(
-            duration: const Duration(milliseconds: 600),
-          ),
-          (recognizer) {
-            recognizer.onLongPress = widget.onLongPress;
-          },
-        ),
-      },
-      child: tapDetector,
     );
   }
 
