@@ -38,7 +38,24 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
   void initState() {
     super.initState();
     _textCtrl.addListener(() => setState(() {}));
-    _focus.addListener(() => setState(() {}));
+    _focus.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    setState(() {});
+    if (!_focus.hasFocus) return;
+    // 키보드가 올라온 뒤 입력 바를 viewport 바닥에 정렬해 가리지 않게 한다.
+    Future.delayed(const Duration(milliseconds: 280), () {
+      if (!mounted || !_focus.hasFocus) return;
+      final ctx = context;
+      if (!ctx.mounted) return;
+      Scrollable.ensureVisible(
+        ctx,
+        duration: const Duration(milliseconds: 200),
+        alignment: 1.0,
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   @override
@@ -72,11 +89,25 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
     });
   }
 
+  void _onSendPressed() {
+    if (_submitting) return;
+    if (widget.currentUserId == null) {
+      _showHint('잠시 후 다시');
+      return;
+    }
+    if (_textCtrl.text.trim().isEmpty) {
+      _showHint('내용을 입력해주세요');
+      _focus.requestFocus();
+      return;
+    }
+    _submit();
+  }
+
   Future<void> _submit() async {
-    if (!_canSubmit) return;
     final params = _params;
     if (params == null) return;
     final text = _textCtrl.text.trim();
+    if (text.isEmpty) return;
     setState(() => _submitting = true);
     try {
       await ref.read(roomSpeechProvider(params).notifier).submit(text);
@@ -173,7 +204,7 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
                               maxLines: 1,
                               keyboardType: TextInputType.text,
                               textInputAction: TextInputAction.send,
-                              onSubmitted: (_) => _submit(),
+                              onSubmitted: (_) => _onSendPressed(),
                               inputFormatters: [
                                 FilteringTextInputFormatter.deny(RegExp(r'[\r\n]')),
                               ],
@@ -227,8 +258,8 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
                           ? theme.colorScheme.primary
                           : const Color(0xFFBDBDBD),
                     ),
-                    onPressed: _canSubmit ? _submit : null,
-                    splashRadius: 22,
+                    onPressed: _onSendPressed,
+                    tooltip: '전송',
                   ),
                 ),
               ],
