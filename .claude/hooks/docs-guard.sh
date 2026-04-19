@@ -1,8 +1,8 @@
 #!/bin/bash
 #
 # PreToolUse Hook: Docs Guard
-# Blocks Write/Edit to docs/ files (except docs/reports/)
-# Exit codes: 0 = allowed, 2 = blocked
+# Warns on Write/Edit to docs/ source-of-truth files (non-blocking)
+# Exit codes: 0 = allowed (always)
 #
 
 RED='\033[0;31m'
@@ -36,12 +36,11 @@ if [[ "$REL_PATH" == docs/design/* ]]; then
   exit 0
 fi
 
-# Block all other docs/ modifications
+# Warn (non-blocking) for source-of-truth docs modifications
 if [[ "$REL_PATH" == docs/* ]]; then
-  echo -e "${RED}BLOCKED: docs/ files are the Source of Truth and must not be modified.${NC}" >&2
-  echo -e "${RED}File: $REL_PATH${NC}" >&2
-  echo -e "${RED}If modification is necessary, get explicit user approval first.${NC}" >&2
-  exit 2
+  YELLOW='\033[0;33m'
+  echo -e "${YELLOW}NOTE: Modifying source-of-truth doc: $REL_PATH${NC}" >&2
+  exit 0
 fi
 
 exit 0
