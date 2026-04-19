@@ -68,6 +68,21 @@ Apply the following rules:
 8. **Accessibility**: Semantic labels on interactive widgets, sufficient color contrast
 9. **Responsive**: Use `MediaQuery` or `LayoutBuilder` for layout-sensitive widgets
 
+### Phase 2.5: Cross-Role File Check (MANDATORY)
+
+구현 완료 후, 수정한 파일 중 `server/` 경로가 포함되어 있으면 STOP:
+
+```bash
+if git diff --name-only | grep -q "^server/"; then
+  echo "ERROR: server/ 파일이 수정되었습니다. backend 워크트리에서 처리 필요."
+  echo "수정된 server/ 파일:"
+  git diff --name-only | grep "^server/"
+  exit 1
+fi
+```
+
+backend API 변경이 필요한 경우, 코드를 직접 수정하지 말고 completion output의 `### Backend Handoff` 섹션에 필요한 변경을 명시한다. Main이 backend-builder를 별도 워크트리에서 실행한다.
+
 ### Phase 3: Quality Checks
 
 Before declaring completion:

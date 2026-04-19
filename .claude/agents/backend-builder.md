@@ -66,6 +66,21 @@ Apply the following rules:
 8. **Security**: Input sanitization, parameterized queries (SQLAlchemy handles this), no raw SQL
 9. **Directory structure**: Under `server/app/` — models/, schemas/, routers/, services/, dependencies.py, exceptions.py
 
+### Phase 2.5: Cross-Role File Check (MANDATORY)
+
+구현 완료 후, 수정한 파일 중 `app/` 경로가 포함되어 있으면 STOP:
+
+```bash
+if git diff --name-only | grep -q "^app/"; then
+  echo "ERROR: app/ 파일이 수정되었습니다. front 워크트리에서 처리 필요."
+  echo "수정된 app/ 파일:"
+  git diff --name-only | grep "^app/"
+  exit 1
+fi
+```
+
+frontend 변경이 필요한 경우, 코드를 직접 수정하지 말고 completion output의 `### Frontend Handoff` 섹션에 필요한 변경을 명시한다. Main이 flutter-builder를 별도 워크트리에서 실행한다.
+
 ### Phase 3: Quality Checks
 
 Before declaring completion:
