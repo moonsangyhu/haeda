@@ -1,13 +1,14 @@
 #!/bin/bash
 #
 # Slack Notification Hook
-# Events: Stop (작업 완료), Notification (결정 필요)
+# Events:
+#   UserPromptSubmit — 사용자 명령을 임시파일에 저장
+#   Stop             — 작업 완료 알림 (명령 + 처리 요약)
+#   Notification     — 결정 필요 알림
 #
 # 환경변수 SLACK_WEBHOOK_URL 필수.
-# 설정: ~/.zshrc 또는 ~/.zprofile 에 export SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..."
 #
 
-# Webhook URL 미설정 시 조용히 종료
 if [[ -z "$SLACK_WEBHOOK_URL" ]]; then
   exit 0
 fi
@@ -18,12 +19,19 @@ HOOK_EVENT=$(echo "$INPUT" | python3 -c \
   "import sys,json; print(json.load(sys.stdin).get('hook_event_name',''))" \
   2>/dev/null || echo "")
 
-# 워크트리 이름 추출
 WORKTREE=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")
+PROMPT_FILE="/tmp/claude-slack-prompt-${WORKTREE}.txt"
 
-# ── Stop: 작업 완료 ──
+# ── UserPromptSubmit: 사용자 명령 저장 ──
+if [[ "$HOOK_EVENT" == "UserPromptSubmit" ]]; then
+  echo "$INPUT" | python3 -c \
+    "import sys,json; print(json.load(sys.stdin).get('prompt',''))" \
+    2>/dev/null > "$PROMPT_FILE"
+  exit 0
+fi
+
+# ── Stop: 작업 완료 (명령 + 요약) ──
 if [[ "$HOOK_EVENT" == "Stop" ]]; then
-  # 무한루프 방지: stop_hook_active 체크
   STOP_ACTIVE=$(echo "$INPUT" | python3 -c \
     "import sys,json; print(json.load(sys.stdin).get('stop_hook_active', False))" \
     2>/dev/null || echo "False")
@@ -31,25 +39,50 @@ if [[ "$HOOK_EVENT" == "Stop" ]]; then
     exit 0
   fi
 
-  PAYLOAD=$(python3 -c "
-import json, sys
-payload = {
-    'blocks': [
-        {
-            'type': 'section',
-            'text': {
-                'type': 'mrkdwn',
-                'text': ':white_check_mark: *작업 완료*\n워크트리: \`$WORKTREE\`'
-            }
-        }
-    ]
-}
-print(json.dumps(payload))
-")
+  # 사용자 명령 읽기
+  USER_PROMPT=""
+  if [[ -f "$PROMPT_FILE" ]]; then
+    USER_PROMPT=$(head -c 200 "$PROMPT_FILE" 2>/dev/null)
+  fi
 
-  curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  # 처리 요약: 최근 5분 내 커밋 메시지
+  SUMMARY=$(git log --oneline --since='5 minutes ago' --format='%s' 2>/dev/null | head -3 | paste -sd ', ' -)
+  if [[ -z "$SUMMARY" ]]; then
+    # 커밋 없으면 변경된 파일 수
+    CHANGED=$(git diff --stat HEAD 2>/dev/null | tail -1)
+    if [[ -n "$CHANGED" ]]; then
+      SUMMARY="uncommitted: $CHANGED"
+    else
+      SUMMARY="변경 없음"
+    fi
+  fi
+
+  # 메시지 조립
+  python3 -c "
+import json, sys
+
+prompt = '''${USER_PROMPT}'''.replace('\"', '\\\\\"')[:200]
+summary = '''${SUMMARY}'''.replace('\"', '\\\\\"')[:200]
+worktree = '${WORKTREE}'
+
+lines = [':white_check_mark: *작업 완료* — \`' + worktree + '\`']
+if prompt:
+    lines.append(':speech_balloon: ' + prompt)
+lines.append(':memo: ' + summary)
+
+payload = {
+    'blocks': [{
+        'type': 'section',
+        'text': {
+            'type': 'mrkdwn',
+            'text': '\n'.join(lines)
+        }
+    }]
+}
+print(json.dumps(payload, ensure_ascii=False))
+" | curl -s -X POST "$SLACK_WEBHOOK_URL" \
     -H 'Content-type: application/json' \
-    -d "$PAYLOAD" > /dev/null 2>&1 &
+    -d @- > /dev/null 2>&1 &
 
   exit 0
 fi
@@ -63,26 +96,38 @@ if [[ "$HOOK_EVENT" == "Notification" ]]; then
     "import sys,json; print(json.load(sys.stdin).get('message','attention needed'))" \
     2>/dev/null || echo "attention needed")
 
-  PAYLOAD=$(python3 -c "
-import json, sys
-msg = '''$MESSAGE'''.replace(\"'\", \"\\\\'\")
-payload = {
-    'blocks': [
-        {
-            'type': 'section',
-            'text': {
-                'type': 'mrkdwn',
-                'text': ':bell: *결정 필요*\n워크트리: \`$WORKTREE\`\n유형: \`$NTYPE\`\n> ' + msg
-            }
-        }
-    ]
-}
-print(json.dumps(payload))
-")
+  # 사용자 명령 읽기
+  USER_PROMPT=""
+  if [[ -f "$PROMPT_FILE" ]]; then
+    USER_PROMPT=$(head -c 200 "$PROMPT_FILE" 2>/dev/null)
+  fi
 
-  curl -s -X POST "$SLACK_WEBHOOK_URL" \
+  python3 -c "
+import json, sys
+
+prompt = '''${USER_PROMPT}'''.replace('\"', '\\\\\"')[:200]
+msg = '''${MESSAGE}'''.replace('\"', '\\\\\"')[:300]
+worktree = '${WORKTREE}'
+ntype = '${NTYPE}'
+
+lines = [':bell: *결정 필요* — \`' + worktree + '\`']
+if prompt:
+    lines.append(':speech_balloon: ' + prompt)
+lines.append(':point_right: ' + msg)
+
+payload = {
+    'blocks': [{
+        'type': 'section',
+        'text': {
+            'type': 'mrkdwn',
+            'text': '\n'.join(lines)
+        }
+    }]
+}
+print(json.dumps(payload, ensure_ascii=False))
+" | curl -s -X POST "$SLACK_WEBHOOK_URL" \
     -H 'Content-type: application/json' \
-    -d "$PAYLOAD" > /dev/null 2>&1 &
+    -d @- > /dev/null 2>&1 &
 
   exit 0
 fi
