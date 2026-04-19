@@ -111,6 +111,16 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
     _initSpeech();
   }
 
+  @override
+  void didUpdateWidget(covariant ChallengeRoomScene oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_speechParams == null &&
+        widget.currentUserId != null &&
+        widget.currentUserId != oldWidget.currentUserId) {
+      _initSpeech();
+    }
+  }
+
   void _initSpeech() {
     final userId = widget.currentUserId;
     if (userId == null) return;
@@ -406,12 +416,12 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
         speechText: speechText,
         bubbleOpacity: bubbleOpacity,
         bubbleScale: bubbleScale,
-        onLongPress: isSelf && _speechParams != null
+        onLongPress: isSelf && widget.currentUserId != null
             ? () => showSpeechInputSheet(
                   context,
                   challengeId: widget.challengeId,
                   myUserId: widget.currentUserId!,
-                  myNickname: _speechParams!.myNickname,
+                  myNickname: member.nickname,
                 )
             : null,
       ),
