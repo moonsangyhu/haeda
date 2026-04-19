@@ -33,7 +33,7 @@
 | 카테고리 | 예시 |
 |---------|------|
 | 제품 결정 | 기능 범위 / P0 vs P1 / Open Questions 해결 |
-| 문서 | `docs/prd.md`, `user-flows.md`, `domain-model.md`, `api-contract.md` 수정 필요 여부 |
+| 문서 | `docs/` 소스오브트루스 문서의 대규모 구조 변경 (섹션 삭제, 스키마 재설계 등) |
 | 파괴적 DB | 스키마 drop, alembic downgrade, 프로덕션 데이터 변경 |
 | 외부 action | GitHub PR/이슈 생성(이 레포는 PR 금지지만 일반 원칙), 외부 서비스 메시지 송신, 실제 배포 |
 | trade-off 큰 선택 | 설계 방향이 갈릴 때 사용자 취향이 결정적인 경우 |
