@@ -226,10 +226,22 @@ fi
 # 2. Push worktree branch
 git push origin "$BRANCH" --force-with-lease
 
-# 3. Create PR
+# 3. Create PR — 한글 제목+본문 (see worktree-parallel.md §PR 작성 규칙)
 gh pr create --base main --head "$BRANCH" \
-  --title "{commit message}" \
-  --body "Auto-created from worktree \`$BRANCH\`" 2>/dev/null || true
+  --title "<type>(<scope>): <한글 설명>" \
+  --body "$(cat <<'PREOF'
+## 요약
+- <무엇을 왜 변경했는지 1-3줄>
+
+## 변경 사항
+- `path/file.ext` — 변경 내용
+
+## 테스트
+- [ ] <검증 항목>
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+PREOF
+)" 2>/dev/null || true
 
 # 4. Merge PR — STOP if fails
 PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
