@@ -50,16 +50,52 @@ if [[ "$HOOK_EVENT" == "Stop" ]]; then
     USER_PROMPT=$(head -c 200 "$PROMPT_FILE" 2>/dev/null)
   fi
 
-  # 처리 요약: 최근 5분 내 커밋 메시지
-  SUMMARY=$(git log --oneline --since='5 minutes ago' --format='%s' 2>/dev/null | head -3 | paste -sd ', ' -)
+  # 처리 요약: transcript 에서 이번 턴 어시스턴트 응답 추출
+  TRANSCRIPT=$(echo "$INPUT" | python3 -c \
+    "import sys,json; print(json.load(sys.stdin).get('transcript_path',''))" \
+    2>/dev/null || echo "")
+  SUMMARY=""
+  if [[ -n "$TRANSCRIPT" && -f "$TRANSCRIPT" ]]; then
+    SUMMARY=$(TRANSCRIPT_PATH="$TRANSCRIPT" python3 <<'PYEOF' 2>/dev/null
+import json, os
+path = os.environ['TRANSCRIPT_PATH']
+entries = []
+with open(path, 'r', encoding='utf-8', errors='replace') as f:
+    for line in f:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            entries.append(json.loads(line))
+        except Exception:
+            pass
+last_user_idx = -1
+for i, e in enumerate(entries):
+    if e.get('type') == 'user':
+        last_user_idx = i
+texts = []
+for e in entries[last_user_idx + 1:]:
+    if e.get('type') != 'assistant':
+        continue
+    msg = e.get('message') or {}
+    content = msg.get('content') or []
+    if isinstance(content, str):
+        texts.append(content)
+        continue
+    for block in content:
+        if isinstance(block, dict) and block.get('type') == 'text':
+            t = (block.get('text') or '').strip()
+            if t:
+                texts.append(t)
+substantial = [t for t in texts if len(t) > 20]
+chosen = substantial[-1] if substantial else (texts[-1] if texts else '')
+chosen = ' '.join(chosen.split())
+print(chosen[:300])
+PYEOF
+)
+  fi
   if [[ -z "$SUMMARY" ]]; then
-    # 커밋 없으면 변경된 파일 수
-    CHANGED=$(git diff --stat HEAD 2>/dev/null | tail -1)
-    if [[ -n "$CHANGED" ]]; then
-      SUMMARY="uncommitted: $CHANGED"
-    else
-      SUMMARY="변경 없음"
-    fi
+    SUMMARY="(요약 없음)"
   fi
 
   # 메시지 조립
