@@ -46,51 +46,67 @@ Because every filename embeds the role, two worktrees never write the same file 
 
 Existing files without role suffix are grandfathered (do not rename). New files MUST follow the convention.
 
-## Rebase-Retry Push Loop
+## PR-Based Push (PR → Auto-Merge)
 
-Every push to `origin/main` MUST use this sequence instead of a bare `git push`. The push target is always `HEAD:main` — never a named branch — because worktrees are typically checked out on a branch like `worktree-claude`, `worktree-backend`, etc., not on `main` itself.
+모든 코드 반영은 PR 생성 → 자동 머지로 수행한다. `git push origin HEAD:main` 직접 푸시는 금지.
+
+워크트리는 각자의 브랜치(`worktree-claude`, `worktree-backend` 등)에서 작업하고, 해당 브랜치를 remote에 push한 뒤 main으로의 PR을 생성·머지한다.
 
 ```bash
-push_with_rebase() {
-  local max_retries=3
-  local attempt=0
-  while [ $attempt -lt $max_retries ]; do
-    git fetch origin main
-    if ! git rebase origin/main; then
-      git rebase --abort 2>/dev/null
-      echo "Rebase conflict detected — STOP and report to user"
-      return 1
-    fi
-    if git push origin HEAD:main; then
-      return 0
-    fi
-    attempt=$((attempt + 1))
-    echo "Push rejected (non-fast-forward), retry $attempt/$max_retries"
-    sleep 1
-  done
-  echo "Push failed after $max_retries retries"
-  return 1
+push_via_pr() {
+  local branch
+  branch=$(git branch --show-current)
+  local title="${1:-Auto PR from $branch}"
+
+  # 1. Rebase on main (ensure clean merge)
+  git fetch origin main
+  if ! git rebase origin/main; then
+    echo "Rebase conflict — invoke /resolve-conflict"
+    return 1
+  fi
+
+  # 2. Push worktree branch (--force-with-lease OK for own branch after rebase)
+  git push origin "$branch" --force-with-lease || { echo "Push to branch failed"; return 1; }
+
+  # 3. Create PR (ignore error if PR already exists)
+  gh pr create --base main --head "$branch" \
+    --title "$title" \
+    --body "Auto-created from worktree \`$branch\`" 2>/dev/null || true
+
+  # 4. Merge PR — if fails, STOP (do not force)
+  local pr_number
+  pr_number=$(gh pr view "$branch" --json number -q .number 2>/dev/null)
+  if [ -z "$pr_number" ]; then
+    echo "Failed to find PR for branch $branch — STOP"
+    return 1
+  fi
+
+  if ! gh pr merge "$pr_number" --merge --delete-branch=false; then
+    echo "Auto-merge failed — STOP. PR #$pr_number left open."
+    return 1
+  fi
+
+  # 5. Sync local with merged main
+  git fetch origin main
+  git rebase origin/main
+  echo "PR #$pr_number merged successfully"
 }
 ```
 
-`HEAD:main` pushes the current commit onto the remote `main` ref regardless of what local branch name the worktree uses. This is the canonical form for worktree-based parallel work on a single shared remote branch.
-
-Why this usually works under the role contract:
-- Path isolation + filename convention guarantee no overlapping changes in the common case.
-- Rebase applies cleanly because the commits touch disjoint files.
-- The only failure mode for disjoint changes is a race where a third worktree pushes between our fetch and push — the retry loop catches that.
+**핵심 규칙:**
+- 자동 머지 실패 시 PR을 열어둔 채 STOP. 강제 머지하지 않는다.
+- `--force-with-lease`는 워크트리 자기 브랜치에만 허용 (rebase 후 push에 필요).
+- `--force`는 여전히 절대 금지.
+- `--delete-branch=false`: 워크트리 브랜치는 삭제하지 않는다.
 
 **Rebase conflict → invoke `resolve-conflict` skill.** When rebase fails (contract violation, cross-worktree overlap, or shared-file edit), do NOT auto-abort. Instead:
 
-1. Stop the bash loop at the rebase failure (do not immediately `git rebase --abort`).
+1. Stop at the rebase failure (do not immediately `git rebase --abort`).
 2. Read and follow `.claude/skills/resolve-conflict/SKILL.md` phase by phase.
-3. The skill attempts lossless merge, running per-language syntax checks and post-rebase tests.
-4. If the skill completes successfully, resume the push step (`git push origin HEAD:main`).
-5. If the skill STOPs (ambiguity, syntax failure, test regression), it leaves the repo in rebase-in-progress state and emits a handoff report — hand that to the user.
+3. If the skill completes successfully, resume from step 2 (push branch + create PR + merge).
+4. If the skill STOPs, emit its handoff report to the user.
 
-The skill is invariant-safe: it never drops functionality from either side. Its worst-case output is a STOP report, which is still strictly better than a hard abort because auto-resolvable files are already staged.
-
-Forbidden flags under all circumstances: `--force`, `--force-with-lease`, `--no-verify`, `-X theirs`, `-X ours`. Never.
+**Forbidden flags**: `--force` (on any ref), `--no-verify`, `-X theirs`, `-X ours`. Never.
 
 ## Deployer Lockfile
 

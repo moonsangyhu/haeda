@@ -1,6 +1,6 @@
 # Autonomous Execution Rule
 
-모든 워크트리에서 파일 수정, 명령 실행, 커밋, rebase-retry push 는 **사전 허락 없이 즉시 수행**한다. 사용자의 의사결정이 필요한 경우에 한해서만 질문한다. 본 규칙은 `.claude/settings.json` 의 `defaultMode: acceptEdits` + Bash allow-list 설정을 행동 차원에서 보강한다.
+모든 워크트리에서 파일 수정, 명령 실행, 커밋, PR merge push 는 **사전 허락 없이 즉시 수행**한다. 사용자의 의사결정이 필요한 경우에 한해서만 질문한다. 본 규칙은 `.claude/settings.json` 의 `defaultMode: acceptEdits` + Bash allow-list 설정을 행동 차원에서 보강한다.
 
 ## 금지되는 커뮤니케이션 패턴
 
@@ -19,7 +19,7 @@
 
 - 코드 파일 수정 / 생성 / 삭제 (role contract 안에서)
 - `Bash` 를 통한 빌드, 테스트, lint, 스크립트 실행
-- `git add` / `git commit` / rebase-retry push to `origin/main`
+- `git add` / `git commit` / PR merge push to `origin/main`
 - `.claude/` / `CLAUDE.md` 의 rule/agent/skill/hook 수정 (claude role 일 때)
 - 워크트리의 rebase / stash / stash pop
 - `docs/reports/`, `impl-log/`, `test-reports/` 에 보고서 작성
@@ -46,7 +46,7 @@
 - `.claude/rules/security.md` — secrets, 입력 검증, output encoding
 - `.claude/rules/docs-protection.md` — `docs/` 루트 수정 금지 (reports 제외)
 - `.claude/rules/git-workflow.md` — force push 금지, bypass hook 금지, 직접 main push 규칙
-- `.claude/rules/worktree-parallel.md` — role contract, rebase-retry loop, deployer lockfile
+- `.claude/rules/worktree-parallel.md` — role contract, PR-based push, deployer lockfile
 - `.claude/rules/workflow.md` — 9-step flow, gate 정의
 - `.claude/rules/worktree-task-report.md` — 작업 보고서 의무
 - `.claude/rules/claude-config-sync.md` — claude config 즉시 push

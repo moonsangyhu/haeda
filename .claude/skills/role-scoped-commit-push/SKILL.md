@@ -207,37 +207,50 @@ EOF
 
 If commit fails (pre-commit hook, etc.) -> output error and abort. No auto-retry.
 
-### Step 6: Push via Rebase-Retry
+### Step 6: Push via PR
 
-Parallel worktrees share `origin/main`. Never use a bare `git push` — it will race with other worktrees and get `non-fast-forward`. Use the rebase-retry loop:
+Parallel worktrees share `origin/main`. Use PR-based merge (see `.claude/rules/worktree-parallel.md` §PR-Based Push):
 
 ```bash
-for attempt in 1 2 3; do
-  git fetch origin main
-  if ! git rebase origin/main; then
-    # DO NOT auto-abort. Hand off to /resolve-conflict.
-    echo "Rebase conflict — invoke .claude/skills/resolve-conflict/SKILL.md"
-    echo "Conflicting files:"
-    git diff --name-only --diff-filter=U
-    break
-  fi
-  if git push origin HEAD:main; then
-    exit 0
-  fi
-  echo "Push rejected (non-fast-forward), retry $attempt/3"
-  sleep 1
-done
+BRANCH=$(git branch --show-current)
+
+# 1. Rebase on main
+git fetch origin main
+if ! git rebase origin/main; then
+  echo "Rebase conflict — invoke /resolve-conflict"
+  echo "Conflicting files:"
+  git diff --name-only --diff-filter=U
+  exit 1
+fi
+
+# 2. Push worktree branch
+git push origin "$BRANCH" --force-with-lease
+
+# 3. Create PR
+gh pr create --base main --head "$BRANCH" \
+  --title "{commit message}" \
+  --body "Auto-created from worktree \`$BRANCH\`" 2>/dev/null || true
+
+# 4. Merge PR — STOP if fails
+PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
+if ! gh pr merge "$PR_NUM" --merge --delete-branch=false; then
+  echo "Auto-merge failed — STOP. PR #$PR_NUM left open."
+  exit 1
+fi
+
+# 5. Sync local
+git fetch origin main
+git rebase origin/main
 ```
 
-`HEAD:main` is used because worktrees are checked out on branches like `worktree-backend`, `worktree-front`, `worktree-claude` — not on `main` itself. The ref specifier pushes the current commit onto the remote `main` ref regardless of the local branch name.
-
 **On rebase conflict**:
-1. The loop breaks without aborting, leaving the repo in rebase-in-progress state.
-2. Read and follow `.claude/skills/resolve-conflict/SKILL.md` to attempt lossless merge.
-3. If the skill succeeds, resume the push step (`git fetch origin main && git push origin HEAD:main`).
-4. If the skill STOPs, emit its report and hand to user. Do not force, do not abort — the skill manages repo state.
+1. Do not auto-abort. Invoke `/resolve-conflict` skill.
+2. If the skill succeeds, resume from step 2 (push branch + PR).
+3. If the skill STOPs, emit its report and hand to user.
 
-**Never** use `--force`, `--force-with-lease`, `-X theirs`, `-X ours`, or `git rebase --abort` without first trying `resolve-conflict`.
+**On merge failure**: STOP. PR is left open for manual review. Do not force merge.
+
+**`--force-with-lease`** is allowed only for pushing to the worktree's own branch (after rebase). `--force` is never allowed.
 
 ### Step 7: Output Result
 

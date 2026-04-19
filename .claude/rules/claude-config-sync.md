@@ -7,7 +7,7 @@
 ## 원칙
 
 1. `.claude/**` 와 `CLAUDE.md` 는 **claude role** 워크트리에서만 편집 가능. (role contract: `worktree-parallel.md`)
-2. claude role 에서 해당 경로를 수정하면 **즉시** rebase-retry push 로 `origin/main` 에 반영한다. 다른 작업과 배치(batch)로 묶어 지연시키지 않는다.
+2. claude role 에서 해당 경로를 수정하면 **즉시** PR 생성 + 자동 머지로 `origin/main` 에 반영한다. 다른 작업과 배치(batch)로 묶어 지연시키지 않는다.
 3. 다른 모든 role (`backend`, `front`, `qa`) 은 새 작업 단위를 시작할 때마다 **반드시** `git fetch origin main && git rebase origin/main` 을 먼저 실행한다.
 4. 장기 세션(여러 작업을 연속 수행하는 claude 세션)은 각 작업 시작 전에 상기 sync 체크를 다시 실행한다. 세션 시작 시 한 번 실행했다는 이유로 생략 불가.
 
@@ -23,7 +23,7 @@ claude 워크트리가 아래 경로 중 하나라도 건드리면 그 자체만
 - `.claude/commands/**`
 - `CLAUDE.md`
 
-푸시 절차는 `worktree-parallel.md` 의 rebase-retry loop 를 그대로 따른다. 바레 push 금지, force 금지.
+푸시 절차는 `worktree-parallel.md` 의 PR-Based Push 를 그대로 따른다. 직접 main push 금지, force 금지.
 
 claude role 이 본 규칙 위반(= 변경을 로컬에 둔 채 다른 작업으로 이동)한 경우, Main 은 즉시 멈추고 사용자에게 보고한다.
 
@@ -75,7 +75,7 @@ sync 결과 새 커밋이 pull 된 경우, 현재 진행 중이던 계획이 영
 
 ## 관련 규칙
 
-- `.claude/rules/worktree-parallel.md` — role contract, rebase-retry loop, startup ritual 원문
+- `.claude/rules/worktree-parallel.md` — role contract, PR-based push, startup ritual 원문
 - `.claude/rules/worktree-task-report.md` — 모든 작업의 보고서 의무
 - `.claude/rules/workflow.md` — 9-step slice flow 의 게이트 정의
 - `.claude/rules/agents.md` — 에이전트별 역할 및 dispatch 규칙

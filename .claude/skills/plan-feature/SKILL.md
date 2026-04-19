@@ -103,10 +103,14 @@ Only if the user said "save":
 ```bash
 git add docs/planning/specs/<slug>.md   # or docs/planning/ideas/<slug>.md
 git commit -m "plan(<slug>): add feature spec"
-# rebase-retry push (see .claude/rules/worktree-parallel.md)
-git fetch origin main
-git rebase origin/main || { git rebase --abort; echo "rebase conflict — STOP"; exit 1; }
-git push origin HEAD:main
+# PR merge (see .claude/rules/worktree-parallel.md §PR-Based Push)
+BRANCH=$(git branch --show-current)
+git fetch origin main && git rebase origin/main
+git push origin "$BRANCH" --force-with-lease
+gh pr create --base main --head "$BRANCH" --title "plan(<slug>): add feature spec" --body "spec" 2>/dev/null || true
+PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
+gh pr merge "$PR_NUM" --merge --delete-branch=false || { echo "Merge failed — STOP"; exit 1; }
+git fetch origin main && git rebase origin/main
 ```
 
 Report the commit SHA and the path to the new spec.

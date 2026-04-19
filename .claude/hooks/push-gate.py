@@ -24,17 +24,19 @@ def main() -> None:
     tool_input = data.get("tool_input", {})
     command = tool_input.get("command", "")
 
-    # Only gate actual git push commands (not commit messages that mention "git push")
-    # Strip the command to its core: must start with "git push" or "git push" after && / ;
+    # Gate PR merge commands (the new push flow) and direct git push to main
     stripped = command.strip()
-    is_push = False
+    is_gated = False
     for part in stripped.replace("&&", ";").split(";"):
         part = part.strip()
-        if part.startswith("git push"):
-            is_push = True
+        if part.startswith("gh pr merge"):
+            is_gated = True
+            break
+        if part.startswith("git push") and "HEAD:main" in part:
+            is_gated = True  # Block legacy direct push to main
             break
 
-    if not is_push:
+    if not is_gated:
         sys.exit(0)
 
     repo_root = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())

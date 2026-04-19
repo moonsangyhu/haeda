@@ -91,16 +91,14 @@ git commit -m "docs: mark {branch-name} as rolled back
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 
-# rebase-retry push — on conflict, invoke /resolve-conflict
-for attempt in 1 2 3; do
-  git fetch origin main
-  if ! git rebase origin/main; then
-    echo "Rebase conflict — invoke .claude/skills/resolve-conflict/SKILL.md, then retry push"
-    break
-  fi
-  git push origin HEAD:main && break
-  sleep 1
-done
+# PR merge (see .claude/rules/worktree-parallel.md §PR-Based Push)
+BRANCH=$(git branch --show-current)
+git fetch origin main && git rebase origin/main
+git push origin "$BRANCH" --force-with-lease
+gh pr create --base main --head "$BRANCH" --title "docs: mark rollback" --body "rollback log" 2>/dev/null || true
+PR_NUM=$(gh pr view "$BRANCH" --json number -q .number)
+gh pr merge "$PR_NUM" --merge --delete-branch=false || { echo "Merge failed — STOP"; exit 1; }
+git fetch origin main && git rebase origin/main
 ```
 
 ## Step 7: Summary

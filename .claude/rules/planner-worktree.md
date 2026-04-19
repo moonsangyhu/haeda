@@ -31,7 +31,7 @@ If you need to change rules, hooks, skills, or code, switch to the appropriate r
 
 1. Captures ideas in `docs/planning/ideas/<slug>.md` (rough, unshaped).
 2. Promotes ready ideas to `docs/planning/specs/<slug>.md` using `docs/planning/TEMPLATE.md`, with front-matter `status: ready`.
-3. Commits and pushes those plan docs (standard rebase-retry push; planner only ever touches `docs/planning/**`, so rebase is always trivial).
+3. Commits and pushes those plan docs (standard PR-based push; planner only ever touches `docs/planning/**`, so rebase is always trivial).
 
 It does NOT:
 

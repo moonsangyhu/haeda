@@ -24,31 +24,29 @@ Rules:
 - Parallel worktree: `claude --worktree slice-{NN} -n slice-{NN}`
 - See `docs/worktree-runbook.md` for detailed rules
 
-## Direct Push to Main (No PR, Rebase-Retry)
+## PR-Based Merge to Main
 
-This is a solo project. All commits go directly to `main`. Do NOT create branches or PRs.
-
-Because work runs in parallel worktrees, **bare `git push` is forbidden** — two worktrees may race for `origin/main`. Always use the rebase-retry loop defined in `.claude/rules/worktree-parallel.md`:
+모든 코드 반영은 **PR 생성 → 자동 머지**로 수행한다. `git push origin HEAD:main` 직접 푸시는 금지.
 
 ```bash
 git add <specific files>
 git commit -m "<message>"
 
-# rebase-retry push — never bare push
-git fetch origin main
-git rebase origin/main || { git rebase --abort; echo "rebase conflict — STOP"; exit 1; }
-git push origin HEAD:main   # HEAD:main because worktrees are on branches like worktree-claude, not main
-                            # on non-fast-forward, retry fetch+rebase+push up to 3 times
+# PR via push_via_pr (see .claude/rules/worktree-parallel.md)
+# 1. rebase on main
+# 2. push worktree branch
+# 3. gh pr create → gh pr merge
+# 4. if merge fails → STOP
 ```
 
-**This rule is absolute** — no feature branches, no PRs, no `gh pr create`. Ever.
+**자동 머지 실패 = STOP.** PR을 열어둔 채 사용자에게 보고한다. 강제 머지하지 않는다.
 
-**Rebase conflict = STOP.** It means the worktree role contract was violated. Report the conflicting files and hand to the user. Never auto-resolve, never `--force`.
+**Rebase conflict = STOP.** `/resolve-conflict` 스킬로 해결 시도 후, 성공하면 PR 플로우 재개.
 
 ## Forbidden
 
-- Creating branches or PRs
-- Force push to main
+- `git push origin HEAD:main` (직접 main 푸시)
+- Force push (`--force`)
 - Bypass hooks with `--no-verify`
 - Commit secrets, keys, or `.env` with real values
 - Meaningless commit messages
