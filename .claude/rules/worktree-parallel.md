@@ -56,7 +56,8 @@ Existing files without role suffix are grandfathered (do not rename). New files 
 push_via_pr() {
   local branch
   branch=$(git branch --show-current)
-  local title="${1:-Auto PR from $branch}"
+  local title="${1:-$branch 자동 PR}"
+  local body="${2:-자동 생성}"
 
   # 1. Rebase on main (ensure clean merge)
   git fetch origin main
@@ -71,7 +72,7 @@ push_via_pr() {
   # 3. Create PR (ignore error if PR already exists)
   gh pr create --base main --head "$branch" \
     --title "$title" \
-    --body "Auto-created from worktree \`$branch\`" 2>/dev/null || true
+    --body "$body" 2>/dev/null || true
 
   # 4. Merge PR — if fails, STOP (do not force)
   local pr_number
@@ -92,6 +93,43 @@ push_via_pr() {
   echo "PR #$pr_number merged successfully"
 }
 ```
+
+### PR 작성 규칙
+
+**제목**: 한글, conventional commit 형식. 70자 이내.
+```
+feat(front): 챌린지 상세 화면 구현
+fix(backend): 토큰 검증 로직 수정
+chore(claude): 배포 스크린샷 캡처 기능 추가
+```
+
+**본문**: 한글, HEREDOC 사용. 아래 템플릿을 따른다.
+
+```bash
+gh pr create --base main --head "$BRANCH" \
+  --title "<type>(<scope>): <한글 설명>" \
+  --body "$(cat <<'EOF'
+## 요약
+- <무엇을 왜 변경했는지 1-3줄>
+
+## 변경 사항
+- `path/file.ext` — 변경 내용
+- `path/file2.ext` — 변경 내용
+
+## 테스트
+- [ ] <검증 항목 1>
+- [ ] <검증 항목 2>
+
+🤖 Generated with [Claude Code](https://claude.ai/code)
+EOF
+)"
+```
+
+**섹션별 가이드:**
+- **요약**: "무엇을 왜" — 리뷰어가 3초 안에 맥락을 파악할 수 있도록
+- **변경 사항**: 파일 경로 + 한 줄 설명. 구조화된 변경 목록이 리뷰 속도를 높인다
+- **테스트**: 체크리스트 형태. 수동/자동 검증 항목 구분
+- **Attribution**: 마지막 줄에 Claude Code 표시
 
 **핵심 규칙:**
 - 자동 머지 실패 시 PR을 열어둔 채 STOP. 강제 머지하지 않는다.
