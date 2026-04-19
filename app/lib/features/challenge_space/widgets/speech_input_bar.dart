@@ -6,7 +6,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
-import '../../auth/providers/auth_provider.dart';
 import '../models/room_speech.dart';
 import '../providers/room_speech_provider.dart';
 
@@ -68,29 +67,16 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
     super.dispose();
   }
 
-  /// widget prop 보다 auth provider 의 fresh 값을 우선 사용. parent rebuild
-  /// 누락이나 race condition 으로 widget.currentUserId 가 stale null 인
-  /// 케이스를 우회한다.
-  String? _resolveUserId() {
-    final fromAuth = ref.read(authStateProvider).valueOrNull?.id;
-    return fromAuth ?? widget.currentUserId;
-  }
-
-  String _resolveNickname() {
-    final fromAuth = ref.read(authStateProvider).valueOrNull?.nickname;
-    return fromAuth ?? widget.myNickname;
-  }
-
   bool get _canSubmit =>
       !_submitting && _textCtrl.text.trim().isNotEmpty;
 
   ({String challengeId, String myUserId, String myNickname})? get _params {
-    final id = _resolveUserId();
+    final id = widget.currentUserId;
     if (id == null) return null;
     return (
       challengeId: widget.challengeId,
       myUserId: id,
-      myNickname: _resolveNickname(),
+      myNickname: widget.myNickname,
     );
   }
 
@@ -111,17 +97,7 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
     }
     final params = _params;
     if (params == null) {
-      // 진단 정보를 hint 에 노출 — currentUserId 가 정확히 어디서 막히는지 보임
-      final asyncState = ref.read(authStateProvider);
-      String reason;
-      if (asyncState.isLoading) {
-        reason = '로그인 정보 로딩 중';
-      } else if (asyncState.hasError) {
-        reason = '로그인 정보 오류';
-      } else {
-        reason = '로그인이 필요해요';
-      }
-      _showHint(reason);
+      _showHint('로그인이 필요해요');
       return;
     }
     _submit(params);
@@ -139,35 +115,31 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
       _textCtrl.clear();
     } on DioException catch (e) {
       if (!mounted) return;
-      _handleApiError(e.error, e.response?.statusCode, e.message);
+      _handleApiError(e.error);
     } on ApiException catch (e) {
       if (!mounted) return;
-      _handleApiError(e, e.statusCode, null);
-    } catch (e) {
+      _handleApiError(e);
+    } catch (_) {
       if (!mounted) return;
-      _showHint('전송 실패: ${e.runtimeType}');
+      _showHint('전송에 실패했어요');
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
   }
 
-  void _handleApiError(Object? raw, int? status, String? fallbackMsg) {
-    final apiEx = raw is ApiException ? raw : null;
-    final code = apiEx?.code;
-    if (code == 'SPEECH_RATE_LIMITED') {
-      _showHint('잠시 후 다시');
-    } else if (code == 'SPEECH_NOT_MEMBER') {
-      _showHint('멤버만 한마디 남길 수 있어요');
-    } else if (code == 'SPEECH_TOO_LONG') {
-      _showHint('40자 이내로');
-    } else if (code == 'SPEECH_EMPTY') {
-      _showHint('내용을 입력해주세요');
-    } else if (code != null) {
-      _showHint('전송 실패: $code');
-    } else if (status != null) {
-      _showHint('전송 실패 (HTTP $status)');
-    } else {
-      _showHint('전송 실패: ${fallbackMsg ?? '알 수 없음'}');
+  void _handleApiError(Object? raw) {
+    final code = raw is ApiException ? raw.code : null;
+    switch (code) {
+      case 'SPEECH_RATE_LIMITED':
+        _showHint('잠시 후 다시');
+      case 'SPEECH_NOT_MEMBER':
+        _showHint('멤버만 한마디 남길 수 있어요');
+      case 'SPEECH_TOO_LONG':
+        _showHint('40자 이내로');
+      case 'SPEECH_EMPTY':
+        _showHint('내용을 입력해주세요');
+      default:
+        _showHint('전송에 실패했어요');
     }
   }
 
@@ -176,14 +148,12 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
     if (params == null) return;
     try {
       await ref.read(roomSpeechProvider(params).notifier).deleteMine();
-    } on DioException catch (e) {
+    } on DioException {
       if (!mounted) return;
-      final apiEx = e.error;
-      final code = apiEx is ApiException ? apiEx.code : null;
-      _showHint('지우기 실패${code != null ? ': $code' : ''}');
-    } catch (e) {
+      _showHint('지우기에 실패했어요');
+    } catch (_) {
       if (!mounted) return;
-      _showHint('지우기 실패: ${e.runtimeType}');
+      _showHint('지우기에 실패했어요');
     }
   }
 
