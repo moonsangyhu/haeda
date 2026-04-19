@@ -14,13 +14,13 @@ const _warnLen = 30;
 class SpeechInputBar extends ConsumerStatefulWidget {
   final String challengeId;
   final String? currentUserId;
-  final String? myNickname;
+  final String myNickname;
 
   const SpeechInputBar({
     super.key,
     required this.challengeId,
     required this.currentUserId,
-    required this.myNickname,
+    this.myNickname = '나',
   });
 
   @override
@@ -52,14 +52,16 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
   bool get _canSubmit =>
       !_submitting &&
       widget.currentUserId != null &&
-      widget.myNickname != null &&
       _textCtrl.text.trim().isNotEmpty;
 
   ({String challengeId, String myUserId, String myNickname})? get _params {
     final id = widget.currentUserId;
-    final name = widget.myNickname;
-    if (id == null || name == null) return null;
-    return (challengeId: widget.challengeId, myUserId: id, myNickname: name);
+    if (id == null) return null;
+    return (
+      challengeId: widget.challengeId,
+      myUserId: id,
+      myNickname: widget.myNickname,
+    );
   }
 
   void _showHint(String msg) {
@@ -167,7 +169,6 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
                             child: TextField(
                               controller: _textCtrl,
                               focusNode: _focus,
-                              enabled: params != null,
                               maxLength: _maxLen,
                               maxLines: 1,
                               keyboardType: TextInputType.text,
