@@ -25,7 +25,6 @@ class RoomCharacter extends StatefulWidget {
   final String? speechText;
   final double bubbleOpacity;
   final double bubbleScale;
-  final VoidCallback? onLongPress;
 
   const RoomCharacter({
     super.key,
@@ -40,7 +39,6 @@ class RoomCharacter extends StatefulWidget {
     this.speechText,
     this.bubbleOpacity = 0.0,
     this.bubbleScale = 1.0,
-    this.onLongPress,
   });
 
   @override
@@ -140,7 +138,6 @@ class _RoomCharacterState extends State<RoomCharacter>
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: widget.isSelf ? null : _handleTap,
-      onLongPress: widget.isSelf ? widget.onLongPress : null,
       behavior: HitTestBehavior.opaque,
       child: Column(
         mainAxisSize: MainAxisSize.min,
