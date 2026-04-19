@@ -13,7 +13,7 @@ TokenStorage tokenStorage(TokenStorageRef ref) {
   return const TokenStorage(FlutterSecureStorage());
 }
 
-@riverpod
+@Riverpod(keepAlive: true)
 class AuthState extends _$AuthState {
   @override
   AsyncValue<AuthUser?> build() {
