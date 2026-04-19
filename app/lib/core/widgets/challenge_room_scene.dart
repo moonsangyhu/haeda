@@ -179,9 +179,22 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
     } catch (e) {
       if (!mounted) return;
       setState(() => _nudgedSet.remove(member.id));
-      final msg = e.toString().contains('ALREADY_NUDGED')
+      final errStr = e.toString();
+      // 서버가 "본인 캐릭터" 라고 알려주는 권위 있는 신호. 프런트 isSelf
+      // 계산이 잘못됐어도 이 경로로 입력창을 띄운다.
+      if (errStr.contains('CANNOT_NUDGE_SELF') &&
+          widget.currentUserId != null) {
+        showSpeechInputSheet(
+          context,
+          challengeId: widget.challengeId,
+          myUserId: widget.currentUserId!,
+          myNickname: member.nickname,
+        );
+        return;
+      }
+      final msg = errStr.contains('ALREADY_NUDGED')
           ? '오늘 이미 콕 찔렀어요'
-          : e.toString().contains('ALREADY_VERIFIED')
+          : errStr.contains('ALREADY_VERIFIED')
               ? '이미 인증을 완료했어요'
               : '콕 찌르기에 실패했어요';
       ScaffoldMessenger.of(context).showSnackBar(
@@ -370,6 +383,8 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
     );
   }
 
+  bool _diagLogged = false;
+
   Widget _buildCharacterWidget(
     BuildContext context,
     CalendarMember member,
@@ -379,7 +394,15 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
     CharacterData? myCharacter,
     RoomSpeechController? speechController,
   ) {
-    final isSelf = member.id == widget.currentUserId;
+    if (!_diagLogged) {
+      _diagLogged = true;
+      // TODO debug: remove after isSelf wiring confirmed
+      debugPrint('[room-scene] currentUserId=${widget.currentUserId}, '
+          'members=${widget.members.map((m) => "${m.nickname}:${m.id}").join(",")}');
+    }
+    final isSelf = widget.currentUserId != null &&
+        member.id.trim().toLowerCase() ==
+            widget.currentUserId!.trim().toLowerCase();
     final isCreator = member.id == widget.creatorId;
     final isVerified = widget.verifiedMemberIds.contains(member.id);
     final baseSize = math.min(w, h) * 0.18;
@@ -409,7 +432,14 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
         nickname: member.nickname,
         celebrationJump: widget.allCompletedToday,
         onTap: isSelf
-            ? null
+            ? (widget.currentUserId != null
+                ? () => showSpeechInputSheet(
+                      context,
+                      challengeId: widget.challengeId,
+                      myUserId: widget.currentUserId!,
+                      myNickname: member.nickname,
+                    )
+                : null)
             : isVerified
                 ? null // wave handled internally
                 : () => _onNudge(member),
