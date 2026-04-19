@@ -26,6 +26,11 @@ if [[ -z "$REPO" ]]; then
   REPO=$(basename "$(dirname "$(git rev-parse --git-common-dir 2>/dev/null)")" 2>/dev/null || echo "unknown")
 fi
 PROMPT_FILE="/tmp/claude-slack-prompt-${WORKTREE}.txt"
+LOG_FILE="/tmp/claude-slack-notify-${WORKTREE}.log"
+
+log_err() {
+  printf '%s [event=%s] %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$HOOK_EVENT" "$1" >> "$LOG_FILE" 2>/dev/null
+}
 
 # ── UserPromptSubmit: 사용자 명령 저장 ──
 if [[ "$HOOK_EVENT" == "UserPromptSubmit" ]]; then
@@ -98,34 +103,32 @@ PYEOF
     SUMMARY="(요약 없음)"
   fi
 
-  # 메시지 조립
-  python3 -c "
-import json, sys
-
-prompt = '''${USER_PROMPT}'''.replace('\"', '\\\\\"')[:200]
-summary = '''${SUMMARY}'''.replace('\"', '\\\\\"')[:200]
-worktree = '${WORKTREE}'
-repo = '${REPO}'
+  # 메시지 조립 — env 로 전달해 셸 보간 인젝션 방지
+  PAYLOAD=$(USER_PROMPT="$USER_PROMPT" SUMMARY="$SUMMARY" WORKTREE="$WORKTREE" REPO="$REPO" \
+    python3 <<'PYEOF' 2>>"$LOG_FILE"
+import os, json
+prompt = os.environ.get('USER_PROMPT', '')[:200]
+summary = os.environ.get('SUMMARY', '')[:300]
+worktree = os.environ.get('WORKTREE', 'unknown')
+repo = os.environ.get('REPO', '')
 header_id = repo + '/' + worktree if repo and repo != worktree else worktree
-
-lines = [':white_check_mark: *작업 완료* — \`' + header_id + '\`']
+lines = [':white_check_mark: *작업 완료* — `' + header_id + '`']
 if prompt:
     lines.append(':speech_balloon: ' + prompt)
 lines.append(':memo: ' + summary)
-
-payload = {
-    'blocks': [{
-        'type': 'section',
-        'text': {
-            'type': 'mrkdwn',
-            'text': '\n'.join(lines)
-        }
-    }]
-}
+payload = {'blocks': [{'type': 'section', 'text': {'type': 'mrkdwn', 'text': '\n'.join(lines)}}]}
 print(json.dumps(payload, ensure_ascii=False))
-" | curl -s -X POST "$SLACK_WEBHOOK_URL" \
-    -H 'Content-type: application/json' \
-    -d @- > /dev/null 2>&1 &
+PYEOF
+)
+  if [[ -z "$PAYLOAD" ]]; then
+    log_err "payload assembly failed"
+    exit 0
+  fi
+  HTTP_CODE=$(printf '%s' "$PAYLOAD" | curl -s -o /dev/null -w '%{http_code}' \
+    -X POST "$SLACK_WEBHOOK_URL" -H 'Content-type: application/json' -d @-)
+  if [[ "$HTTP_CODE" != "200" ]]; then
+    log_err "slack post failed http=$HTTP_CODE"
+  fi
 
   exit 0
 fi
@@ -145,34 +148,31 @@ if [[ "$HOOK_EVENT" == "Notification" ]]; then
     USER_PROMPT=$(head -c 200 "$PROMPT_FILE" 2>/dev/null)
   fi
 
-  python3 -c "
-import json, sys
-
-prompt = '''${USER_PROMPT}'''.replace('\"', '\\\\\"')[:200]
-msg = '''${MESSAGE}'''.replace('\"', '\\\\\"')[:300]
-worktree = '${WORKTREE}'
-ntype = '${NTYPE}'
-repo = '${REPO}'
+  PAYLOAD=$(USER_PROMPT="$USER_PROMPT" MESSAGE="$MESSAGE" WORKTREE="$WORKTREE" REPO="$REPO" NTYPE="$NTYPE" \
+    python3 <<'PYEOF' 2>>"$LOG_FILE"
+import os, json
+prompt = os.environ.get('USER_PROMPT', '')[:200]
+msg = os.environ.get('MESSAGE', 'attention needed')[:300]
+worktree = os.environ.get('WORKTREE', 'unknown')
+repo = os.environ.get('REPO', '')
 header_id = repo + '/' + worktree if repo and repo != worktree else worktree
-
-lines = [':bell: *결정 필요* — \`' + header_id + '\`']
+lines = [':bell: *결정 필요* — `' + header_id + '`']
 if prompt:
     lines.append(':speech_balloon: ' + prompt)
 lines.append(':point_right: ' + msg)
-
-payload = {
-    'blocks': [{
-        'type': 'section',
-        'text': {
-            'type': 'mrkdwn',
-            'text': '\n'.join(lines)
-        }
-    }]
-}
+payload = {'blocks': [{'type': 'section', 'text': {'type': 'mrkdwn', 'text': '\n'.join(lines)}}]}
 print(json.dumps(payload, ensure_ascii=False))
-" | curl -s -X POST "$SLACK_WEBHOOK_URL" \
-    -H 'Content-type: application/json' \
-    -d @- > /dev/null 2>&1 &
+PYEOF
+)
+  if [[ -z "$PAYLOAD" ]]; then
+    log_err "notification payload assembly failed"
+    exit 0
+  fi
+  HTTP_CODE=$(printf '%s' "$PAYLOAD" | curl -s -o /dev/null -w '%{http_code}' \
+    -X POST "$SLACK_WEBHOOK_URL" -H 'Content-type: application/json' -d @-)
+  if [[ "$HTTP_CODE" != "200" ]]; then
+    log_err "notification slack post failed http=$HTTP_CODE"
+  fi
 
   exit 0
 fi
