@@ -20,6 +20,11 @@ HOOK_EVENT=$(echo "$INPUT" | python3 -c \
   2>/dev/null || echo "")
 
 WORKTREE=$(basename "$(git rev-parse --show-toplevel 2>/dev/null)" 2>/dev/null || echo "unknown")
+REPO=$(git remote get-url origin 2>/dev/null \
+  | sed -E 's|\.git$||; s|.*[/:]([^/]+)$|\1|')
+if [[ -z "$REPO" ]]; then
+  REPO=$(basename "$(dirname "$(git rev-parse --git-common-dir 2>/dev/null)")" 2>/dev/null || echo "unknown")
+fi
 PROMPT_FILE="/tmp/claude-slack-prompt-${WORKTREE}.txt"
 
 # ── UserPromptSubmit: 사용자 명령 저장 ──
@@ -64,8 +69,10 @@ import json, sys
 prompt = '''${USER_PROMPT}'''.replace('\"', '\\\\\"')[:200]
 summary = '''${SUMMARY}'''.replace('\"', '\\\\\"')[:200]
 worktree = '${WORKTREE}'
+repo = '${REPO}'
+header_id = repo + '/' + worktree if repo and repo != worktree else worktree
 
-lines = [':white_check_mark: *작업 완료* — \`' + worktree + '\`']
+lines = [':white_check_mark: *작업 완료* — \`' + header_id + '\`']
 if prompt:
     lines.append(':speech_balloon: ' + prompt)
 lines.append(':memo: ' + summary)
@@ -109,8 +116,10 @@ prompt = '''${USER_PROMPT}'''.replace('\"', '\\\\\"')[:200]
 msg = '''${MESSAGE}'''.replace('\"', '\\\\\"')[:300]
 worktree = '${WORKTREE}'
 ntype = '${NTYPE}'
+repo = '${REPO}'
+header_id = repo + '/' + worktree if repo and repo != worktree else worktree
 
-lines = [':bell: *결정 필요* — \`' + worktree + '\`']
+lines = [':bell: *결정 필요* — \`' + header_id + '\`']
 if prompt:
     lines.append(':speech_balloon: ' + prompt)
 lines.append(':point_right: ' + msg)
