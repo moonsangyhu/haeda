@@ -77,3 +77,14 @@ Achievement rate calculation, all-verified check, and challenge completion sched
 - Table names: snake_case plural (users, challenges, challenge_members, verifications, day_completions, comments)
 - UUID PK, TIMESTAMPTZ for timestamps
 - Migrations: Alembic
+
+## Test Requirements (MANDATORY)
+
+기능을 구현하는 모든 PR 은 대응 테스트 없이 완료로 간주하지 않는다.
+
+- **엔드포인트**: 신규 또는 시그니처가 바뀐 엔드포인트마다 `server/tests/` 아래에 pytest + `httpx.AsyncClient` 기반 테스트 **최소 2건** — happy path 1건, 대표 error path 1건 (검증 실패, 권한, 404 등 중 하나).
+- **서비스 로직**: 주요 비즈니스 로직 (성취율 계산, all-verified 체크, 챌린지 완료 스케줄러 등) 은 라우터 테스트와 별개로 unit 테스트.
+- **픽스처 재사용**: 기존 `server/tests/conftest.py` 의 `async_client`, `test_user`, `test_challenge` 등 픽스처를 최대한 재사용한다. 테스트 DB 셋업은 기존 컨벤션을 따른다.
+- **검증 기준**: `cd server && uv run pytest -v --tb=short` 전원 통과. 신규 코드 경로가 한 번도 실행되지 않으면 통과로 인정하지 않는다.
+
+테스트를 생략한 구현은 `code-reviewer` 가 blocking issue 로 막고, `qa-reviewer` 체크리스트에서도 실패 처리된다.

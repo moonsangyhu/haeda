@@ -68,3 +68,14 @@ feature/
 - Challenge creation is a 2-step form
 - Calendar view is monthly, swipe left/right to change month
 - Verification submission: photo (camera/gallery) + diary text
+
+## Test Requirements (MANDATORY)
+
+기능을 구현하는 모든 PR 은 대응 테스트 없이 완료로 간주하지 않는다.
+
+- **스크린**: 신규 스크린마다 `app/test/features/{feature}/screens/` 아래에 widget 테스트 **최소 1건** — 기본 렌더링 + 주요 상호작용 (버튼 탭, 폼 제출, 텍스트 입력 등) 검증.
+- **Provider**: API 호출 / 비즈니스 로직 providers 는 `ProviderContainer` 기반 unit 테스트. 외부 `dio` 는 `mocktail` 로 대체한다.
+- **Widget helpers**: `lib/core/widgets/` 에 추가하는 공용 위젯은 render 테스트 최소 1건.
+- **검증 기준**: `cd app && flutter analyze` 에러 0 + `cd app && flutter test` 전원 통과. 신규 위젯 경로가 한 번도 실행되지 않으면 통과로 인정하지 않는다.
+
+테스트를 생략한 구현은 `code-reviewer` 가 blocking issue 로 막고, `qa-reviewer` 체크리스트에서도 실패 처리된다.

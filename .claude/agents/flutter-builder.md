@@ -83,13 +83,16 @@ fi
 
 backend API 변경이 필요한 경우, 코드를 직접 수정하지 말고 completion output의 `### Backend Handoff` 섹션에 필요한 변경을 명시한다. Main이 backend-builder를 별도 워크트리에서 실행한다.
 
-### Phase 3: Quality Checks
+### Phase 3: Quality Checks (Tests First)
 
-Before declaring completion:
-1. Run `flutter analyze` — zero errors required
-2. Run `flutter test` — all tests must pass
-3. Write widget tests for new screens (at least 1 test per screen)
-4. Verify no hardcoded strings that should be in theme/constants
+테스트 없는 화면은 완료로 간주하지 않는다. 아래 순서를 지킨다.
+
+1. **Write widget tests first (MANDATORY)** — 신규 스크린마다 `app/test/features/{feature}/screens/` 에 widget 테스트 **최소 1건**: 기본 렌더링 + 주요 상호작용 (버튼 탭, 폼 제출, 텍스트 입력 등). 새 provider 나 공용 위젯은 `ProviderContainer` / `pumpWidget` 기반 unit 테스트. 외부 `dio` 는 `mocktail` 로 대체.
+2. **`flutter analyze`** — 에러 0 필수.
+3. **`flutter test`** — 전원 통과. 신규 테스트가 실행되었음을 확인.
+4. **No hardcoded strings** — 테마/상수로 이동할 수 있는 문자열 남아있는지 확인.
+
+테스트를 작성하지 않고 Phase 3 를 통과시키면 `code-reviewer` 가 blocking 으로 되돌린다.
 
 ### Cross-Agent Collaboration
 
@@ -122,12 +125,16 @@ Before declaring completion:
 ### API Integration
 - (Endpoints used: METHOD /path)
 
-### Tests
-- (Test files written, pass/fail counts)
+### Tests Added (MANDATORY)
+- `app/test/features/{feature}/screens/{screen}_test.dart`
+  - `renders {screen} with initial state` — 기본 렌더링 확인
+  - `taps {button} triggers {behavior}` — 주요 상호작용 확인
+- (추가 provider / 공용 위젯 테스트 파일 / 케이스 목록)
+- 신규 스크린 N개 → 대응 widget 테스트 함수 M개 (각 최소 1건)
 
 ### Quality
 - flutter analyze: {N errors, M warnings}
-- flutter test: {N passed, M failed}
+- flutter test: {N passed, M failed} — 신규 테스트 전원 포함
 
 ### Cross-Agent Notes
 - (Items needing backend confirmation)

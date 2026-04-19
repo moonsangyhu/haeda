@@ -81,13 +81,16 @@ fi
 
 frontend 변경이 필요한 경우, 코드를 직접 수정하지 말고 completion output의 `### Frontend Handoff` 섹션에 필요한 변경을 명시한다. Main이 flutter-builder를 별도 워크트리에서 실행한다.
 
-### Phase 3: Quality Checks
+### Phase 3: Quality Checks (Tests First)
 
-Before declaring completion:
-1. Run `cd server && uv run pytest -v --tb=short` — all tests must pass
-2. Write endpoint tests with pytest + httpx AsyncClient for every new endpoint
-3. Verify Alembic migration applies cleanly: `alembic upgrade head`
-4. Check for N+1 query risks in relationship loading
+테스트 없는 기능은 완료로 간주하지 않는다. 아래 순서를 지킨다.
+
+1. **Write tests first (MANDATORY)** — 신규 또는 시그니처가 바뀐 엔드포인트마다 `server/tests/` 에 pytest + `httpx.AsyncClient` 기반 테스트 **최소 2건**: happy path 1건 + 대표 error path 1건 (검증 실패/권한/404 중 하나). 주요 서비스 로직 (성취율 계산, all-verified 체크, 완료 스케줄러 등) 은 라우터 테스트와 별개의 unit 테스트. 기존 `conftest.py` 픽스처 재사용.
+2. **Run full suite** — `cd server && uv run pytest -v --tb=short` 전원 통과. 신규 테스트가 포함되어 실행되었음을 확인.
+3. **Migration sanity** — `alembic upgrade head` 가 클린하게 적용되는지 확인 (스키마 변경 시).
+4. **N+1 check** — relationship loading 에 N+1 쿼리 위험이 없는지 확인.
+
+테스트를 작성하지 않고 Phase 3 를 통과시키면 `code-reviewer` 가 blocking 으로 되돌린다.
 
 ### Cross-Agent Collaboration
 
@@ -120,11 +123,15 @@ Before declaring completion:
 ### DB Changes
 - (New tables/columns, migration file name)
 
-### Tests
-- (Test files written, pass/fail counts)
+### Tests Added (MANDATORY)
+- `server/tests/test_{slug}.py`
+  - `test_{endpoint}_happy_path` — {어떤 시나리오}
+  - `test_{endpoint}_{error_case}` — {권한/검증/404 등}
+- (추가 서비스 로직 unit 테스트 파일 / 함수 목록)
+- 신규 엔드포인트 N개 → 대응 테스트 함수 M개 (happy + error 각 최소 1건)
 
 ### Quality
-- pytest: {N passed, M failed}
+- pytest: {N passed, M failed} — 신규 테스트 전원 포함
 - Migration: {clean / issues}
 
 ### Cross-Agent Notes
