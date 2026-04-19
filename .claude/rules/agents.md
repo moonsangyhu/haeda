@@ -34,7 +34,7 @@ debugger → (backend-builder | flutter-builder) → code-reviewer → qa-review
 Detailed rules:
 
 - **Planning**: All feature requests start with `product-planner`. The main thread never plans directly. Use `spec-keeper` immediately after to validate.
-- **Implementation**: Delegate to `backend-builder` and/or `flutter-builder`. Cross-layer = run both in parallel.
+- **Implementation**: Delegate to `backend-builder` and/or `flutter-builder`. `feature` role 워크트리에서는 둘 다 순차 실행 가능 (같은 워크트리, 레이어 분리 불필요).
 - **Design**: UI/UX improvements go to `ui-designer` first, then `flutter-builder` integrates.
 - **Code Review**: After every builder completion, spawn `code-reviewer` before `qa-reviewer`. If verdict is `Changes Requested`, re-invoke the owning builder with the fix list (max 1 retry), then re-review.
 - **QA**: After `code-reviewer` passes, spawn `qa-reviewer` to run tests + checklist.

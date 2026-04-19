@@ -16,12 +16,15 @@ Every worktree declares exactly one role. The role is fixed for the lifetime of 
 
 | Role | Worktree name pattern | Allowed paths (hard boundary) |
 |------|----------------------|------------------------------|
+| `feature` | `feature`, `feature-*`, `slice-NN` | `app/**`, `server/**` |
 | `backend` | `backend-*`, `slice-NN-backend`, `fix-*-backend` | `server/**` |
 | `front` | `front-*`, `slice-NN-front`, `fix-*-front` | `app/**` |
 | `qa` | `qa-*` | `app/test/**`, `server/tests/**` |
 | `claude` | `claude`, `claude-*` | `.claude/**`, `CLAUDE.md` |
 | `planner` | `planner`, `.claude/worktrees/planner`, marked by `.planner-worktree` sentinel at repo root | `docs/planning/**` |
 | `design` | `design`, `.claude/worktrees/design`, marked by `.design-worktree` sentinel at repo root | `docs/design/**` |
+
+**`feature` role은 full-stack 작업용.** 솔로 개발에서 같은 기능의 front/back을 분리하면 API 계약 동기화, 머지 순서 의존, 리뷰 2배 등 오버헤드만 증가한다. 기능 단위로 워크트리를 나누되, 레이어는 하나의 워크트리에서 함께 작업한다.
 
 A worktree in role X MUST NOT modify files outside role X's allowed paths. This is enforced at commit time by `/role-scoped-commit-push`. For the `planner` role it is additionally enforced at tool-call time by `.claude/hooks/planner-guard.sh`. For the `design` role it is enforced by `.claude/hooks/design-guard.sh`.
 
@@ -39,7 +42,7 @@ Four directories are writable from any role because they hold cross-cutting reco
 | `docs/reports/screenshots/` | `{YYYY-MM-DD}-{role}-{slug}-{NN}.png` | deployer |
 | `docs/` (top) | — never writable — | — |
 
-`{role}` MUST be one of `backend`, `front`, `qa`, `claude`.
+`{role}` MUST be one of `feature`, `backend`, `front`, `qa`, `claude`.
 `{slug}` is lowercase hyphenated, max 40 chars.
 
 Because every filename embeds the role, two worktrees never write the same file — rebase will always fast-forward.
@@ -192,16 +195,16 @@ Consequence: parallel worktrees share a single docker compose stack. Last-deploy
 |-------|---------------------------|
 | `product-planner` | Read-only; no worktree concern |
 | `spec-keeper` | Read-only; no worktree concern |
-| `backend-builder` | Must run inside a `backend`-role worktree; writes only `server/**` |
-| `flutter-builder` | Must run inside a `front`-role worktree; writes only `app/**` |
-| `ui-designer` | Must run inside a `front`-role worktree; writes only `app/**` |
+| `backend-builder` | Must run inside a `backend` or `feature`-role worktree; writes only `server/**` |
+| `flutter-builder` | Must run inside a `front` or `feature`-role worktree; writes only `app/**` |
+| `ui-designer` | Must run inside a `front` or `feature`-role worktree; writes only `app/**` |
 | `code-reviewer` | Read-only; no worktree concern |
 | `qa-reviewer` | Read-only; may write under `test-reports/` with role suffix |
 | `debugger` | Read-only; no worktree concern |
 | `deployer` | Acquire `.deployer.lock` before any build, release after. Detect and report stale locks. |
 | `doc-writer` | Embed worktree role in every filename (`impl-log/`, `test-reports/`, `docs/reports/`) |
 
-If a builder detects it is NOT inside a worktree matching its role, it MUST STOP and report. No cross-worktree patching.
+If a builder detects it is NOT inside a worktree matching its role (including `feature`), it MUST STOP and report. No cross-worktree patching.
 
 ## Per-Worktree Startup Ritual
 
