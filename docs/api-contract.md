@@ -969,3 +969,76 @@
 | day_completed | 전원 인증 달성 시 | 전체 멤버 | `{ challenge_id, date, season_icon_type }` |
 | challenge_completed | 챌린지 기간 종료 시 | 전체 멤버 | `{ challenge_id, achievement_rate, badge }` |
 | streak_milestone | 연속 인증 마일스톤 달성 시 (3, 7, 14, 30일) | 같은 챌린지 다른 멤버 (notify_streak=true) | `{ challenge_id, user_id, streak_days }` |
+
+---
+
+## 10. Room Speech (챌린지 방 한마디) — P2
+
+챌린지 방 캐릭터 위에 흰 말풍선으로 round-robin 표시되는 한마디. 유저별 챌린지당 활성 1건, day-cutoff TTL.
+
+자세한 동작 사양은 `docs/design/challenge-room-speech.md` 참고.
+
+### GET `/challenges/{challenge_id}/room-speech` — 활성 한마디 목록
+
+**응답 200**:
+```json
+{
+  "data": [
+    {
+      "user_id": "u_123",
+      "nickname": "철수",
+      "content": "오늘 화이팅!",
+      "created_at": "2026-04-19T09:00:00Z",
+      "expires_at": "2026-04-20T15:00:00Z"
+    }
+  ]
+}
+```
+
+만료된 항목은 응답에서 제외. `created_at` 오름차순.
+
+**에러:**
+| code | 조건 |
+|------|------|
+| SPEECH_NOT_MEMBER | 해당 챌린지의 멤버가 아님 (403) |
+
+### POST `/challenges/{challenge_id}/room-speech` — 한마디 등록 / 갱신 (Upsert)
+
+**요청 바디**:
+```json
+{ "content": "오늘 화이팅!" }
+```
+
+**검증**: 줄바꿈 제거 + trim 후 1 ≤ 길이 ≤ 40.
+
+**응답 200**:
+```json
+{
+  "data": {
+    "content": "오늘 화이팅!",
+    "created_at": "2026-04-19T09:00:00Z",
+    "expires_at": "2026-04-20T15:00:00Z"
+  }
+}
+```
+
+유저당 챌린지당 1건. 재전송 시 기존 row 갱신 (content/created_at/expires_at). `expires_at` 은 챌린지의 `day_cutoff_hour` 기준 다음 cutoff 시각 (KST). 경계 30초 이내 입력은 그 다음 cutoff 로 push.
+
+**에러:**
+| code | HTTP | 조건 |
+|------|------|------|
+| SPEECH_EMPTY | 422 | trim 후 빈 문자열 |
+| SPEECH_TOO_LONG | 422 | content 가 40자 초과 |
+| SPEECH_NOT_MEMBER | 403 | 해당 챌린지의 멤버가 아님 |
+| SPEECH_RATE_LIMITED | 429 | 동일 (challenge, user) 쌍의 10초 이내 재전송 |
+
+### DELETE `/challenges/{challenge_id}/room-speech` — 내 한마디 삭제
+
+**응답 200**: `{"data": {"ok": true}}`
+
+발언이 없는 경우도 idempotent 200.
+
+**에러:**
+| code | 조건 |
+|------|------|
+| SPEECH_NOT_MEMBER | 해당 챌린지의 멤버가 아님 (403) |

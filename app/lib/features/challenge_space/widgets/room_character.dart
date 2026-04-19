@@ -1,11 +1,13 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
 import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/challenge_room_scene.dart' show ChallengeRoomColors;
 import '../../../core/widgets/tappable_character.dart';
 import '../../character/models/character_data.dart';
+import 'speech_bubble.dart';
 
 /// A character widget rendered inside [ChallengeRoomScene].
 ///
@@ -21,6 +23,10 @@ class RoomCharacter extends StatefulWidget {
   final String nickname;
   final bool celebrationJump;
   final VoidCallback? onTap;
+  final String? speechText;
+  final double bubbleOpacity;
+  final double bubbleScale;
+  final VoidCallback? onLongPress;
 
   const RoomCharacter({
     super.key,
@@ -32,6 +38,10 @@ class RoomCharacter extends StatefulWidget {
     required this.nickname,
     this.celebrationJump = false,
     this.onTap,
+    this.speechText,
+    this.bubbleOpacity = 0.0,
+    this.bubbleScale = 1.0,
+    this.onLongPress,
   });
 
   @override
@@ -124,9 +134,12 @@ class _RoomCharacterState extends State<RoomCharacter>
     }
   }
 
+  bool get _hasSpeech =>
+      widget.speechText != null && widget.bubbleOpacity > 0;
+
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
+    final tapDetector = GestureDetector(
       onTap: widget.isSelf ? null : _handleTap,
       behavior: HitTestBehavior.opaque,
       child: Column(
@@ -139,6 +152,23 @@ class _RoomCharacterState extends State<RoomCharacter>
               alignment: Alignment.center,
               clipBehavior: Clip.none,
               children: [
+                // Speech bubble (above everything)
+                if (_hasSpeech)
+                  Positioned(
+                    top: -widget.size * 0.45,
+                    left: 0,
+                    right: 0,
+                    child: Center(
+                      child: SpeechBubble(
+                        text: widget.speechText!,
+                        opacity: widget.bubbleOpacity,
+                        scale: widget.bubbleScale,
+                        semanticsNickname: widget.nickname,
+                        maxWidth: widget.size * 3,
+                      ),
+                    ),
+                  ),
+
                 // Crown for creator
                 if (widget.isCreator)
                   Positioned(
@@ -157,8 +187,8 @@ class _RoomCharacterState extends State<RoomCharacter>
                 // Character body with animations
                 _buildAnimatedCharacter(),
 
-                // Wave bubble
-                if (_showBubble)
+                // Wave bubble — suppressed when speech bubble is active
+                if (_showBubble && !_hasSpeech)
                   Positioned(
                     top: -widget.size * 0.25,
                     right: -widget.size * 0.1,
@@ -184,6 +214,26 @@ class _RoomCharacterState extends State<RoomCharacter>
           _buildNicknameLabel(context),
         ],
       ),
+    );
+
+    if (!widget.isSelf || widget.onLongPress == null) {
+      return tapDetector;
+    }
+
+    return RawGestureDetector(
+      behavior: HitTestBehavior.opaque,
+      gestures: <Type, GestureRecognizerFactory>{
+        LongPressGestureRecognizer:
+            GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+          () => LongPressGestureRecognizer(
+            duration: const Duration(milliseconds: 600),
+          ),
+          (recognizer) {
+            recognizer.onLongPress = widget.onLongPress;
+          },
+        ),
+      },
+      child: tapDetector,
     );
   }
 

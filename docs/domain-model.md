@@ -262,6 +262,29 @@ User 1──N DeviceToken
 - 보유(UserItem)하지 않은 아이템은 착용 불가
 - 코인 잔액 부족 시 구매 불가
 
+### 2.13 RoomSpeech (챌린지 방 한마디) — P2
+
+챌린지 방 캐릭터 위에 흰 말풍선으로 표시되는 ambient 한마디. 유저당 챌린지당 활성 1행, day-cutoff TTL.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | |
+| challenge_id | UUID | NOT NULL, FK → Challenge | |
+| user_id | UUID | NOT NULL, FK → User | 발언자 |
+| content | VARCHAR(40) | NOT NULL | trim + 줄바꿈 제거 후 1-40자 |
+| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | |
+| expires_at | TIMESTAMPTZ | NOT NULL | 챌린지 `day_cutoff_hour` 기준 다음 cutoff (KST). 경계 30초 이내는 그 다음 cutoff |
+
+**제약:**
+- UNIQUE `(challenge_id, user_id)` — 유저별 챌린지당 1건. 재전송은 upsert.
+- INDEX `(challenge_id, expires_at)` — 만료 필터링 가속화.
+
+**비즈니스 룰:**
+- POST 시 동일 (challenge, user) 쌍에 대한 10초 rate limit (in-memory, 단일 worker MVP).
+- GET 시 `expires_at > now()` 만 반환.
+- DELETE 는 idempotent (없는 행 삭제도 200).
+- 멤버가 아닌 user 의 모든 호출은 `SPEECH_NOT_MEMBER` (403).
+
 ---
 
 ## 3. 인덱스 설계
