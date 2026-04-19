@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -136,24 +137,37 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
       await ref.read(roomSpeechProvider(params).notifier).submit(text);
       if (!mounted) return;
       _textCtrl.clear();
+    } on DioException catch (e) {
+      if (!mounted) return;
+      _handleApiError(e.error, e.response?.statusCode, e.message);
     } on ApiException catch (e) {
       if (!mounted) return;
-      if (e.code == 'SPEECH_RATE_LIMITED') {
-        _showHint('잠시 후 다시');
-      } else if (e.code == 'SPEECH_NOT_MEMBER') {
-        _showHint('멤버만 한마디 남길 수 있어요');
-      } else if (e.code == 'SPEECH_TOO_LONG') {
-        _showHint('40자 이내로');
-      } else if (e.code == 'SPEECH_EMPTY') {
-        _showHint('내용을 입력해주세요');
-      } else {
-        _showHint('전송 실패');
-      }
-    } catch (_) {
+      _handleApiError(e, e.statusCode, null);
+    } catch (e) {
       if (!mounted) return;
-      _showHint('전송 실패');
+      _showHint('전송 실패: ${e.runtimeType}');
     } finally {
       if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  void _handleApiError(Object? raw, int? status, String? fallbackMsg) {
+    final apiEx = raw is ApiException ? raw : null;
+    final code = apiEx?.code;
+    if (code == 'SPEECH_RATE_LIMITED') {
+      _showHint('잠시 후 다시');
+    } else if (code == 'SPEECH_NOT_MEMBER') {
+      _showHint('멤버만 한마디 남길 수 있어요');
+    } else if (code == 'SPEECH_TOO_LONG') {
+      _showHint('40자 이내로');
+    } else if (code == 'SPEECH_EMPTY') {
+      _showHint('내용을 입력해주세요');
+    } else if (code != null) {
+      _showHint('전송 실패: $code');
+    } else if (status != null) {
+      _showHint('전송 실패 (HTTP $status)');
+    } else {
+      _showHint('전송 실패: ${fallbackMsg ?? '알 수 없음'}');
     }
   }
 
@@ -162,9 +176,14 @@ class _SpeechInputBarState extends ConsumerState<SpeechInputBar> {
     if (params == null) return;
     try {
       await ref.read(roomSpeechProvider(params).notifier).deleteMine();
-    } catch (_) {
+    } on DioException catch (e) {
       if (!mounted) return;
-      _showHint('지우기 실패');
+      final apiEx = e.error;
+      final code = apiEx is ApiException ? apiEx.code : null;
+      _showHint('지우기 실패${code != null ? ': $code' : ''}');
+    } catch (e) {
+      if (!mounted) return;
+      _showHint('지우기 실패: ${e.runtimeType}');
     }
   }
 
