@@ -98,3 +98,31 @@ iOS 시뮬레이터: 앱 기동 확인 (로그인 화면)
 ## Screenshots
 
 ![앱 기동 (로그인 화면)](screenshots/2026-04-19-feature-room-speech-01.png)
+
+## Post-Implementation Debugging Cycle (PR #13–#27 + cleanup)
+
+초기 구현 PR #12 머지 후 사용자 시뮬레이터 검증 단계에서 후속 PR 들을 통해 다음 root cause 들이 순차로 드러났다. 자세한 단계별 흐름은 `impl-log/feat-room-speech-feature.md` §"Post-Implementation Debugging Journey", `test-reports/feat-room-speech-feature-test-report.md` §"Post-Implementation Manual Verification" 참조.
+
+### 진짜 root cause 3개 (자동화 테스트가 못 잡았던 것)
+
+1. **Riverpod autoDispose** (PR #24) — `@riverpod` default 가 autoDispose 라서 `authStateProvider` 가 my-page → 챌린지 방 navigation 사이 dispose → 재진입 시 `AsyncData(null)` 로 재생성되어 currentUserId 손실. **챌린지 방 안의 모든 isSelf 판정에 영향**. 수정: `@Riverpod(keepAlive: true)`
+2. **DioException wrap unwrap 누락** (PR #26) — `ResponseInterceptor.onError` 가 `ApiException` 을 `DioException.error` 안에 wrap 하는데, `_submit` 이 `on ApiException catch` 만 가져 모든 서버 에러가 generic catch 로 빠짐. 수정: `on DioException catch` + `e.error is ApiException` unwrap
+3. **TIMESTAMPTZ tz 불일치** (PR #27) — `room_speeches.expires_at` SQLAlchemy 모델에서 `Mapped[datetime]` 만 선언 → `TIMESTAMP WITHOUT TIME ZONE` 으로 판단됨. KST tz-aware datetime INSERT 시 asyncpg DataError. 수정: 모델에 `TIMESTAMP(timezone=True)` 명시 + 서비스 `datetime.now(tz=KST)` 통일
+
+### 그 밖의 작은 우회 (PR #13–#23)
+
+- long-press wrap 실패 (#13), `_speechParams` race condition (#14), 디자인 무시한 임의 UX 추가 (#15), 디자인 갱신으로 카톡식 입력 바로 전환 (#17), `myNickname` source 단일화 (#19), 키보드/송신 버튼 wiring (#21), 진단 hint 추가 (#23). 각 단계는 진짜 root cause 에 도달하기 위한 정보 수집이었음.
+
+### 최종 cleanup PR
+
+- 진단 hint (`로그인 정보 로딩 중`/`전송 실패: <CODE>`/`(HTTP $status)`) 를 친절한 표현으로 정리
+- `_resolveUserId` / `_resolveNickname` 헬퍼 제거 (PR #24 keepAlive 로 더 이상 필요 없음)
+
+## Lessons (다음 슬라이스 예방)
+
+1. **Riverpod 전역 상태 → `keepAlive: true`** 명시
+2. **dio + ResponseInterceptor 콜러는 `on DioException catch` + `e.error` unwrap**. `member_nudge_list.dart:52-67` 검증된 패턴
+3. **PG TIMESTAMPTZ 컬럼은 모델에서도 `TIMESTAMP(timezone=True)`** 명시. SQLite 테스트로는 검출 불가 → docker compose 통합 검증 필수
+4. **디자인 미확정 시 임의 UX 개선 금지**
+5. **단일 source 원칙** — 같은 정보가 두 위젯에서 쓰이면 같은 source. 다르면 Riverpod family key 분기
+6. **무반응 버그는 wiring 누락 가능성 우선 의심** — gesture/keyboard 같은 기술적 원인보다 callback 자체가 null 인 경우가 잦음

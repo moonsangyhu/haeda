@@ -115,3 +115,28 @@ Command: `cd app && flutter build ios --simulator`
 - **Feature complete**: Complete (코드·테스트·빌드 기준)
 - **Proceed**: Yes (수동 UX 검증은 다음 세션 진행 가능)
 - **Reason**: 모든 자동화 테스트 통과, 빌드 성공, deployer 헬스체크 통과. 실제 UX 수동 검증만 미완료.
+
+## Post-Implementation Manual Verification (2026-04-19)
+
+초기 구현 후 사용자 시뮬레이터 검증에서 PR #13–#27 + cleanup 의 후속 디버깅 사이클 발생. 자세한 root cause 분석과 lessons 는 `impl-log/feat-room-speech-feature.md` §"Post-Implementation Debugging Journey" 참조.
+
+### 검출된 root cause 3개 (모두 자동화 테스트로 못 잡았던 것)
+
+| # | 위치 | 원인 | 검출 방법 |
+|---|------|------|----------|
+| 1 | `auth_provider.dart` | `@riverpod` default autoDispose → navigation 사이 user state 손실 | 진단 hint (`AsyncData(null)` vs loading/error) |
+| 2 | `speech_input_bar.dart` `_submit` | `on ApiException catch` 가 작동 안 함 — `ResponseInterceptor` 가 `DioException.error` 에 wrap | 진단 hint (`전송 실패 (HTTP 500)`) → backend 로그 |
+| 3 | `room_speech.py` model | `expires_at` 컬럼 모델에서 `TIMESTAMP(timezone=True)` 미명시 → asyncpg DataError | docker compose backend 로그 |
+
+### 테스트 갭
+
+- SQLite (in-memory) 환경 단위 테스트 12/12 통과했지만 **PostgreSQL TIMESTAMPTZ + tz-aware datetime 조합 검증 못 함**. 후속 슬라이스에서 docker compose 통합 테스트 필요
+- Riverpod autoDispose 동작은 위젯 트리 mount/unmount 시뮬레이션 필요 → 단위 테스트로는 자연스럽게 검출 안 됨
+- dio interceptor wrap 동작은 mock dio 로 검증 필요 (현재 frontend 테스트 갭)
+
+### 최종 수동 검증 결과
+
+- 본인 캐릭터 자기 인식 (isSelf): ✅ 정상
+- 입력 바 키보드 표시: ✅ 정상
+- 송신 버튼 활성/탭: ✅ 정상
+- 한마디 등록 → 본인 캐릭터 위 말풍선 (round-robin): ✅ 정상
