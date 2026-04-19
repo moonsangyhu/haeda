@@ -49,68 +49,74 @@ if [[ "$HOOK_EVENT" == "Stop" ]]; then
     exit 0
   fi
 
-  # 사용자 명령 읽기
-  USER_PROMPT=""
-  if [[ -f "$PROMPT_FILE" ]]; then
-    USER_PROMPT=$(head -c 200 "$PROMPT_FILE" 2>/dev/null)
-  fi
-
-  # 처리 요약: transcript 에서 이번 턴 어시스턴트 응답 추출
   TRANSCRIPT=$(echo "$INPUT" | python3 -c \
     "import sys,json; print(json.load(sys.stdin).get('transcript_path',''))" \
     2>/dev/null || echo "")
-  SUMMARY=""
-  if [[ -n "$TRANSCRIPT" && -f "$TRANSCRIPT" ]]; then
-    SUMMARY=$(TRANSCRIPT_PATH="$TRANSCRIPT" python3 <<'PYEOF' 2>/dev/null
-import json, os
-path = os.environ['TRANSCRIPT_PATH']
-entries = []
-with open(path, 'r', encoding='utf-8', errors='replace') as f:
-    for line in f:
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            entries.append(json.loads(line))
-        except Exception:
-            pass
-last_user_idx = -1
-for i, e in enumerate(entries):
-    if e.get('type') == 'user':
-        last_user_idx = i
-texts = []
-for e in entries[last_user_idx + 1:]:
-    if e.get('type') != 'assistant':
-        continue
-    msg = e.get('message') or {}
-    content = msg.get('content') or []
-    if isinstance(content, str):
-        texts.append(content)
-        continue
-    for block in content:
-        if isinstance(block, dict) and block.get('type') == 'text':
-            t = (block.get('text') or '').strip()
-            if t:
-                texts.append(t)
-substantial = [t for t in texts if len(t) > 20]
-chosen = substantial[-1] if substantial else (texts[-1] if texts else '')
-chosen = ' '.join(chosen.split())
-print(chosen[:300])
-PYEOF
-)
-  fi
-  if [[ -z "$SUMMARY" ]]; then
-    SUMMARY="(요약 없음)"
-  fi
 
-  # 메시지 조립 — env 로 전달해 셸 보간 인젝션 방지
-  PAYLOAD=$(USER_PROMPT="$USER_PROMPT" SUMMARY="$SUMMARY" WORKTREE="$WORKTREE" REPO="$REPO" \
+  PAYLOAD=$(PROMPT_FILE="$PROMPT_FILE" TRANSCRIPT_PATH="$TRANSCRIPT" \
+            WORKTREE="$WORKTREE" REPO="$REPO" \
     python3 <<'PYEOF' 2>>"$LOG_FILE"
-import os, json
-prompt = os.environ.get('USER_PROMPT', '')[:200]
-summary = os.environ.get('SUMMARY', '')[:300]
-worktree = os.environ.get('WORKTREE', 'unknown')
-repo = os.environ.get('REPO', '')
+import os, json, re
+
+def safe_read(path, limit_bytes=8192):
+    try:
+        with open(path, 'rb') as f:
+            data = f.read(limit_bytes)
+        return data.decode('utf-8', errors='replace')
+    except (FileNotFoundError, OSError):
+        return ''
+
+def sanitize(s):
+    if not s:
+        return ''
+    return re.sub(r'[\ud800-\udfff]', '\ufffd', s)
+
+prompt_file = os.environ.get('PROMPT_FILE', '')
+prompt = sanitize(safe_read(prompt_file, 4096))
+prompt = ' '.join(prompt.split())[:200]
+
+transcript_path = os.environ.get('TRANSCRIPT_PATH', '')
+summary = ''
+if transcript_path and os.path.exists(transcript_path):
+    entries = []
+    try:
+        with open(transcript_path, 'r', encoding='utf-8', errors='replace') as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entries.append(json.loads(line))
+                except Exception:
+                    pass
+    except OSError:
+        entries = []
+    last_user_idx = -1
+    for i, e in enumerate(entries):
+        if e.get('type') == 'user':
+            last_user_idx = i
+    texts = []
+    for e in entries[last_user_idx + 1:]:
+        if e.get('type') != 'assistant':
+            continue
+        msg = e.get('message') or {}
+        content = msg.get('content') or []
+        if isinstance(content, str):
+            texts.append(content)
+            continue
+        for block in content:
+            if isinstance(block, dict) and block.get('type') == 'text':
+                t = (block.get('text') or '').strip()
+                if t:
+                    texts.append(t)
+    substantial = [t for t in texts if len(t) > 20]
+    chosen = substantial[-1] if substantial else (texts[-1] if texts else '')
+    summary = sanitize(' '.join(chosen.split()))[:300]
+if not summary:
+    summary = '(요약 없음)'
+
+worktree = sanitize(os.environ.get('WORKTREE', 'unknown'))
+repo = sanitize(os.environ.get('REPO', ''))
 header_id = repo + '/' + worktree if repo and repo != worktree else worktree
 lines = [':white_check_mark: *작업 완료* — `' + header_id + '`']
 if prompt:
@@ -121,13 +127,22 @@ print(json.dumps(payload, ensure_ascii=False))
 PYEOF
 )
   if [[ -z "$PAYLOAD" ]]; then
-    log_err "payload assembly failed"
-    exit 0
+    log_err "payload assembly failed; sending fallback"
+    PAYLOAD=$(WORKTREE="$WORKTREE" REPO="$REPO" python3 <<'PYEOF'
+import os, json
+worktree = os.environ.get('WORKTREE', 'unknown')
+repo = os.environ.get('REPO', '')
+header_id = repo + '/' + worktree if repo and repo != worktree else worktree
+text = ':white_check_mark: *작업 완료* — `' + header_id + '` (payload assembly 실패; 로그 확인: /tmp/claude-slack-notify-' + worktree + '.log)'
+print(json.dumps({'blocks': [{'type': 'section', 'text': {'type': 'mrkdwn', 'text': text}}]}, ensure_ascii=False))
+PYEOF
+)
   fi
   HTTP_CODE=$(printf '%s' "$PAYLOAD" | curl -s -o /dev/null -w '%{http_code}' \
     -X POST "$SLACK_WEBHOOK_URL" -H 'Content-type: application/json' -d @-)
   if [[ "$HTTP_CODE" != "200" ]]; then
     log_err "slack post failed http=$HTTP_CODE"
+    echo "slack-notify: post failed http=$HTTP_CODE (see /tmp/claude-slack-notify-${WORKTREE}.log)" >&2
   fi
 
   exit 0
@@ -142,19 +157,27 @@ if [[ "$HOOK_EVENT" == "Notification" ]]; then
     "import sys,json; print(json.load(sys.stdin).get('message','attention needed'))" \
     2>/dev/null || echo "attention needed")
 
-  # 사용자 명령 읽기
-  USER_PROMPT=""
-  if [[ -f "$PROMPT_FILE" ]]; then
-    USER_PROMPT=$(head -c 200 "$PROMPT_FILE" 2>/dev/null)
-  fi
-
-  PAYLOAD=$(USER_PROMPT="$USER_PROMPT" MESSAGE="$MESSAGE" WORKTREE="$WORKTREE" REPO="$REPO" NTYPE="$NTYPE" \
+  PAYLOAD=$(PROMPT_FILE="$PROMPT_FILE" MESSAGE="$MESSAGE" WORKTREE="$WORKTREE" REPO="$REPO" NTYPE="$NTYPE" \
     python3 <<'PYEOF' 2>>"$LOG_FILE"
-import os, json
-prompt = os.environ.get('USER_PROMPT', '')[:200]
-msg = os.environ.get('MESSAGE', 'attention needed')[:300]
-worktree = os.environ.get('WORKTREE', 'unknown')
-repo = os.environ.get('REPO', '')
+import os, json, re
+
+def safe_read(path, limit_bytes=4096):
+    try:
+        with open(path, 'rb') as f:
+            data = f.read(limit_bytes)
+        return data.decode('utf-8', errors='replace')
+    except (FileNotFoundError, OSError):
+        return ''
+
+def sanitize(s):
+    if not s:
+        return ''
+    return re.sub(r'[\ud800-\udfff]', '\ufffd', s)
+
+prompt = ' '.join(sanitize(safe_read(os.environ.get('PROMPT_FILE', ''))).split())[:200]
+msg = sanitize(os.environ.get('MESSAGE', 'attention needed'))[:300]
+worktree = sanitize(os.environ.get('WORKTREE', 'unknown'))
+repo = sanitize(os.environ.get('REPO', ''))
 header_id = repo + '/' + worktree if repo and repo != worktree else worktree
 lines = [':bell: *결정 필요* — `' + header_id + '`']
 if prompt:
@@ -165,13 +188,22 @@ print(json.dumps(payload, ensure_ascii=False))
 PYEOF
 )
   if [[ -z "$PAYLOAD" ]]; then
-    log_err "notification payload assembly failed"
-    exit 0
+    log_err "notification payload assembly failed; sending fallback"
+    PAYLOAD=$(WORKTREE="$WORKTREE" REPO="$REPO" MESSAGE="$MESSAGE" python3 <<'PYEOF'
+import os, json
+worktree = os.environ.get('WORKTREE', 'unknown')
+repo = os.environ.get('REPO', '')
+header_id = repo + '/' + worktree if repo and repo != worktree else worktree
+text = ':bell: *결정 필요* — `' + header_id + '` (payload assembly 실패)'
+print(json.dumps({'blocks': [{'type': 'section', 'text': {'type': 'mrkdwn', 'text': text}}]}, ensure_ascii=False))
+PYEOF
+)
   fi
   HTTP_CODE=$(printf '%s' "$PAYLOAD" | curl -s -o /dev/null -w '%{http_code}' \
     -X POST "$SLACK_WEBHOOK_URL" -H 'Content-type: application/json' -d @-)
   if [[ "$HTTP_CODE" != "200" ]]; then
     log_err "notification slack post failed http=$HTTP_CODE"
+    echo "slack-notify: notification post failed http=$HTTP_CODE (see /tmp/claude-slack-notify-${WORKTREE}.log)" >&2
   fi
 
   exit 0
