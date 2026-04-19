@@ -109,6 +109,26 @@ Expect `200` with a health payload. If non-200 or timeout, capture `docker compo
 - Confirm the Flutter app is running on simulator (process exit code from `flutter run` or visible UI).
 - If launch fails, capture `flutter run` stderr.
 
+### Phase 3.5: Screenshot Capture (frontend only, non-blocking)
+
+If `app/` was rebuilt and the simulator app is confirmed running, capture screenshots as visual verification evidence. Main passes `{slug}` and `{role}` when invoking the deployer.
+
+1. Create output directory:
+   ```bash
+   mkdir -p docs/reports/screenshots
+   ```
+2. Capture launch screenshot:
+   ```bash
+   xcrun simctl io <device-id> screenshot "docs/reports/screenshots/YYYY-MM-DD-{role}-{slug}-01.png"
+   ```
+3. Wait 5 seconds for UI to settle, then capture settled screenshot:
+   ```bash
+   sleep 5
+   xcrun simctl io <device-id> screenshot "docs/reports/screenshots/YYYY-MM-DD-{role}-{slug}-02.png"
+   ```
+
+If `xcrun simctl io` fails, log the error and continue to Phase 4. Do NOT fail the deploy for screenshot failure. If `app/` was not in the affected area, skip this phase entirely and report "Screenshot capture skipped: backend-only change" in the output.
+
 ### Phase 4: Report & Release Lock
 
 Emit the deploy report. The lock is released automatically via the `trap` from Phase 0. If the trap did not fire (e.g. you exit mid-script without trap scope), explicitly `rm -f .deployer.lock` before returning.
@@ -149,6 +169,12 @@ If anything failed, STOP and hand off to the user — do not attempt to fix. The
 ```
 {last 100 lines of failing service logs}
 ```
+
+### Screenshots
+- Launch: `docs/reports/screenshots/{YYYY-MM-DD}-{role}-{slug}-01.png`
+- Settled: `docs/reports/screenshots/{YYYY-MM-DD}-{role}-{slug}-02.png`
+
+(or "Screenshot capture skipped: backend-only change" / "Screenshot capture failed: {error}")
 
 ### Verdict
 {Success | Failed}

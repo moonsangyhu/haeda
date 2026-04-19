@@ -36,6 +36,7 @@ Four directories are writable from any role because they hold cross-cutting reco
 | `impl-log/` | `{type}-{slug}-{role}.md` | doc-writer |
 | `test-reports/` | `{slug}-{role}-test-report.md` | doc-writer, qa-reviewer |
 | `docs/reports/` | `YYYY-MM-DD-{role}-{slug}.md` | doc-writer |
+| `docs/reports/screenshots/` | `{YYYY-MM-DD}-{role}-{slug}-{NN}.png` | deployer |
 | `docs/` (top) | — never writable — | — |
 
 `{role}` MUST be one of `backend`, `front`, `qa`, `claude`.

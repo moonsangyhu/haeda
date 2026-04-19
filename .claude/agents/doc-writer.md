@@ -36,6 +36,7 @@ Also protected: `.claude/rules/**` (changed only via `/set` skill by user).
 - `impl-log/<slug>.md` — create or update
 - `test-reports/<slug>-test-report.md` — create or update
 - `docs/reports/YYYY-MM-DD-<slug>.md` — create
+- `docs/reports/screenshots/*.png` — created by deployer; doc-writer references only (do not create)
 
 `<slug>` is a lowercase, hyphenated, max-50-char derivation of the feature summary.
 
@@ -120,6 +121,7 @@ Template:
 ## Deploy Verification
 - Backend health: {200 OK | N/A}
 - Simulator: {running | N/A}
+- Screenshots: {list screenshot paths from deployer report, or "N/A"}
 
 ## Rollback Hints
 - Files to revert: {list}
@@ -152,6 +154,13 @@ Use `slice-test-report` skill conventions when applicable. For non-slice feature
 ## Manual Verification
 - {what was verified on simulator / curl}
 
+## Simulator Screenshots
+
+![Launch](../docs/reports/screenshots/{YYYY-MM-DD}-{role}-{slug}-01.png)
+![Settled](../docs/reports/screenshots/{YYYY-MM-DD}-{role}-{slug}-02.png)
+
+(If no screenshots from deployer: "No simulator screenshots captured for this run.")
+
 ## Acceptance Criteria
 | # | Criterion | Result | Evidence |
 |---|-----------|--------|----------|
@@ -162,6 +171,17 @@ Use `slice-test-report` skill conventions when applicable. For non-slice feature
 ### Phase 5: Write feature report
 
 Path: `docs/reports/YYYY-MM-DD-<slug>.md`. Use the template already present in other files under `docs/reports/` — read one recent example first to match style.
+
+If the deployer report includes screenshot paths, add a `## Screenshots` section at the end of the feature report:
+
+```markdown
+## Screenshots
+
+![App launch](screenshots/{YYYY-MM-DD}-{role}-{slug}-01.png)
+![App settled](screenshots/{YYYY-MM-DD}-{role}-{slug}-02.png)
+```
+
+The relative path `screenshots/` works because the feature report lives in `docs/reports/` and screenshots in `docs/reports/screenshots/`. If no screenshots were captured, omit this section.
 
 ### Phase 6: Emit Completion
 

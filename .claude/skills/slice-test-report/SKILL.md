@@ -123,6 +123,15 @@ Command: `cd app && flutter test test/{path}`
 |------|--------|--------|
 | {endpoint or flow} | PASS / FAIL / [not run] | curl / browser / [unverified] |
 
+### Simulator Screenshots
+
+(Include only if deployer captured screenshots for this slice. Omit section if none.)
+
+| Screenshot | Path | Notes |
+|-----------|------|-------|
+| Launch | `docs/reports/screenshots/{YYYY-MM-DD}-{role}-{slug}-01.png` | |
+| Settled | `docs/reports/screenshots/{YYYY-MM-DD}-{role}-{slug}-02.png` | |
+
 ## Verification Distinction
 
 ### Actually Verified
