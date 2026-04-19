@@ -130,8 +130,11 @@ async def get_my_items(
                     "id": str(i.item_id),
                     "name": i.name,
                     "category": i.category,
+                    "price": i.price,
                     "rarity": i.rarity,
                     "asset_key": i.asset_key,
+                    "effect_type": i.effect_type,
+                    "effect_value": i.effect_value,
                 },
                 "purchased_at": i.purchased_at.isoformat(),
             }

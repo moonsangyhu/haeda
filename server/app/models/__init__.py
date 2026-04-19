@@ -14,6 +14,7 @@ from app.models.character_equip import CharacterEquip
 from app.models.friendship import Friendship
 from app.models.feed_item import FeedItem
 from app.models.clap import Clap
+from app.models.room_speech import RoomSpeech
 
 __all__ = [
     "Base",
@@ -32,4 +33,5 @@ __all__ = [
     "Friendship",
     "FeedItem",
     "Clap",
+    "RoomSpeech",
 ]
