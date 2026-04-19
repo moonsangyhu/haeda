@@ -11,7 +11,7 @@ from app.models.challenge_member import ChallengeMember
 from app.models.room_speech import RoomSpeech
 from app.models.user import User
 from app.schemas.room_speech import RoomSpeechDeleteResult, RoomSpeechItem, RoomSpeechSubmitResult
-from app.utils.time import next_cutoff_at
+from app.utils.time import KST, next_cutoff_at
 
 _LAST_POST: dict[tuple[uuid.UUID, uuid.UUID], float] = {}
 _RATE_LIMIT_SECONDS = 10
@@ -54,7 +54,7 @@ async def list_room_speech(
     user_id: uuid.UUID,
 ) -> list[RoomSpeechItem]:
     await _assert_member(db, challenge_id, user_id)
-    now = datetime.now().astimezone()
+    now = datetime.now(tz=KST)
     stmt = (
         select(RoomSpeech, User.nickname)
         .join(User, User.id == RoomSpeech.user_id)
@@ -102,7 +102,7 @@ async def submit_room_speech(
 
     if existing is not None:
         existing.content = content
-        existing.created_at = datetime.now().astimezone()
+        existing.created_at = datetime.now(tz=KST)
         existing.expires_at = expires_at
         await db.commit()
         await db.refresh(existing)
