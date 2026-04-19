@@ -228,3 +228,37 @@ These rules apply at ALL steps:
 - **Deploy before document**: Never write docs without a successful deploy report.
 - **Document before commit**: Never commit before doc-writer writes impl-log + test-report + feature report.
 - **Auto-proceed**: All steps run without user approval. STOP only on: spec verify double failure, code review double failure, QA double failure after debug loop, deploy failure, or protected-file violation.
+
+---
+
+## 미완료 복구
+
+feature-flow가 중간에 중단된 경우(세션 종료, 에러, 타임아웃, 컨텍스트 소진), **다음 세션에서 Main은 반드시 아래 절차를 따른다:**
+
+### 세션 시작 시 자동 감지
+
+```bash
+STAGED=$(git diff --cached --name-only 2>/dev/null | wc -l | tr -d ' ')
+UNSTAGED=$(git diff --name-only 2>/dev/null | wc -l | tr -d ' ')
+if [ "$STAGED" -gt 0 ] || [ "$UNSTAGED" -gt 0 ]; then
+  echo "⚠️ 이전 세션에서 feature-flow가 미완료된 상태입니다"
+  echo "   staged: $STAGED, unstaged: $UNSTAGED"
+fi
+```
+
+워크트리에 staged/unstaged 변경이 있으면 사용자에게 즉시 보고한다.
+
+### 마지막 완료 Step 식별
+
+| 조건 | 마지막 완료 Step | 재개 지점 |
+|------|-----------------|-----------|
+| staged 변경 있고, 커밋 없음 | Step 3 (구현) | Step 4 (코드 리뷰)부터 |
+| 커밋은 있으나 test-report 없음 | Step 5 (QA) | Step 6 (배포)부터 |
+| test-report 있으나 impl-log 없음 | Step 6 (배포) | Step 7 (문서)부터 |
+| impl-log 있으나 PR 없음 | Step 7 (문서) | Step 8 (커밋)부터 |
+
+### 복구 절차
+
+1. 사용자에게 "feature-flow 미완료 — Step N부터 재개합니다" 선언
+2. 해당 Step부터 feature-flow를 재개한다
+3. **Step 6 (배포)부터 재시작이 가장 안전** — 빌드+시뮬레이터 확인을 다시 거치므로
