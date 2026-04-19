@@ -26,6 +26,7 @@ import 'features/character/screens/character_creation_screen.dart';
 import 'features/friends/screens/friend_list_screen.dart';
 import 'features/friends/screens/friend_requests_screen.dart';
 import 'features/friends/screens/contact_search_screen.dart';
+import 'features/room_decoration/screens/room_decorator_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -179,6 +180,11 @@ final _router = GoRouter(
     GoRoute(
       path: '/character-create',
       builder: (context, state) => const CharacterCreationScreen(),
+    ),
+    // 미니룸 에디터
+    GoRoute(
+      path: '/room-decorator',
+      builder: (context, state) => const RoomDecoratorScreen(),
     ),
     // 친구 관리
     GoRoute(

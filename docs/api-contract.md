@@ -727,7 +727,8 @@
 **Query Parameters:**
 | 파라미터 | 타입 | 필수 | 설명 |
 |----------|------|------|------|
-| category | string | N | HAT, TOP, BOTTOM, SHOES, ACCESSORY |
+| category | string | N | HAT, TOP, BOTTOM, SHOES, ACCESSORY, MR_WALL, MR_CEILING, MR_WINDOW, MR_SHELF, MR_PLANT, MR_DESK, MR_RUG, MR_FLOOR, CR_WALL, CR_WINDOW, CR_CALENDAR, CR_BOARD, CR_SOFA, CR_FLOOR, SIGNATURE |
+| is_limited | boolean | N | true → 한정판만, false → 일반만, 미지정 → 전체 (P2) |
 
 **Response (200):**
 ```json
@@ -740,11 +741,14 @@
       "price": 50,
       "rarity": "COMMON",
       "asset_key": "hat/hat_gentleman.png",
-      "is_owned": false
+      "is_owned": false,
+      "is_limited": false
     }
   ]
 }
 ```
+
+`is_limited=true` 인 아이템은 상점 진열 시 잠금(획득 경로 안내) 표시. 보상 전용(reward_trigger 가 SHOP 이 아닌 값) 인 경우 구매가 거부될 수 있다.
 
 ---
 
@@ -1042,3 +1046,146 @@
 | code | 조건 |
 |------|------|
 | SPEECH_NOT_MEMBER | 해당 챌린지의 멤버가 아님 (403) |
+
+---
+
+## 11. Room Decoration (방 꾸미기) — P2
+
+미니룸·챌린지 방의 슬롯별 variant 교체. F-31. 본 섹션의 모든 엔드포인트는 인증된 사용자 한정.
+
+공통 에러 코드:
+
+| code | HTTP | 조건 |
+|------|------|------|
+| ITEM_NOT_OWNED | 403 | 보유(UserItem)하지 않은 아이템 장착 시도 (기존 §8 캐릭터와 동일 코드 재사용) |
+| ITEM_CATEGORY_MISMATCH | 422 | 슬롯과 아이템 카테고리 불일치 |
+| ITEM_NOT_FOUND | 404 | 존재하지 않거나 비활성(is_active=false) 아이템 |
+| CR_NOT_CREATOR | 403 | 챌린지 방장이 아닌 사용자가 공용 슬롯 편집 시도 |
+| CR_NOT_MEMBER | 403 | 챌린지 멤버가 아닌 사용자가 signature 편집 시도 |
+| INVALID_SLOT | 422 | path 의 slot 값이 미정의 슬롯 |
+| REWARD_ALREADY_CLAIMED | 409 | 동일 reward_trigger 로 이미 보상 지급됨 (Phase 5 이후 활성화) |
+
+### GET `/me/room/miniroom` — 내 미니룸 장착 조회
+
+`RoomEquipMr` row 가 없으면 모든 슬롯 null 응답 (자동 생성하지 않는다).
+
+**Response (200):**
+```json
+{
+  "data": {
+    "wall": { "id": "uuid", "name": "라벤더 벽지", "category": "MR_WALL", "rarity": "COMMON", "asset_key": "mr/wall_lavender", "is_limited": false },
+    "ceiling": null,
+    "window": null,
+    "shelf": null,
+    "plant": null,
+    "desk": null,
+    "rug": null,
+    "floor": { "id": "uuid", "name": "마루 바닥", "category": "MR_FLOOR", "rarity": "COMMON", "asset_key": "mr/floor_wood", "is_limited": false },
+    "updated_at": "2026-04-19T10:00:00Z"
+  }
+}
+```
+
+### PUT `/me/room/miniroom` — 미니룸 슬롯 부분 변경
+
+각 슬롯은 옵셔널. 명시된 슬롯만 변경된다. `null` 명시는 해당 슬롯을 기본값으로 되돌린다 (DELETE 와 동일 효과).
+
+**Request:**
+```json
+{
+  "wall_item_id": "uuid",
+  "ceiling_item_id": null,
+  "window_item_id": "uuid"
+}
+```
+
+**Response (200):** `GET /me/room/miniroom` 와 동일한 형식의 변경 후 상태.
+
+**에러:** `ITEM_NOT_OWNED`, `ITEM_CATEGORY_MISMATCH`, `ITEM_NOT_FOUND`.
+
+### DELETE `/me/room/miniroom/{slot}` — 슬롯 기본값으로 복원
+
+`{slot}` ∈ `wall | ceiling | window | shelf | plant | desk | rug | floor`.
+
+**Response:** 204 No Content.
+
+**에러:** `INVALID_SLOT` (422).
+
+### GET `/challenges/{id}/room` — 챌린지 방 장착 조회
+
+공용 슬롯 + 멤버 signature 목록.
+
+**Response (200):**
+```json
+{
+  "data": {
+    "wall": { "id": "uuid", "name": "...", "category": "CR_WALL", "rarity": "COMMON", "asset_key": "cr/wall_green", "is_limited": false },
+    "window": null,
+    "calendar": null,
+    "board": null,
+    "sofa": null,
+    "floor": null,
+    "updated_by_user_id": "uuid | null",
+    "updated_at": "2026-04-19T10:00:00Z",
+    "signatures": [
+      {
+        "user_id": "uuid",
+        "nickname": "민수",
+        "signature_item": { "id": "uuid", "name": "강아지", "category": "SIGNATURE", "rarity": "COMMON", "asset_key": "sig/dog", "is_limited": false }
+      }
+    ]
+  }
+}
+```
+
+방 row 가 없으면 모든 슬롯 null + signatures=[].
+
+### PUT `/challenges/{id}/room` — 챌린지 방 공용 슬롯 부분 변경 (방장 전용)
+
+**Request:**
+```json
+{
+  "wall_item_id": "uuid",
+  "sofa_item_id": null
+}
+```
+
+**Response (200):** `GET /challenges/{id}/room` 와 동일.
+
+**에러:** `CR_NOT_CREATOR`, `ITEM_NOT_OWNED`, `ITEM_CATEGORY_MISMATCH`, `ITEM_NOT_FOUND`.
+
+### DELETE `/challenges/{id}/room/{slot}` — 공용 슬롯 기본값 복원 (방장 전용)
+
+`{slot}` ∈ `wall | window | calendar | board | sofa | floor`.
+
+**Response:** 204 No Content.
+
+**에러:** `CR_NOT_CREATOR`, `INVALID_SLOT`.
+
+### PUT `/challenges/{id}/room/signature` — 내 signature 지정/변경
+
+**Request:**
+```json
+{ "signature_item_id": "uuid" }
+```
+
+`signature_item_id` 의 Item.category 는 반드시 `SIGNATURE`.
+
+**Response (200):**
+```json
+{
+  "data": {
+    "user_id": "uuid",
+    "nickname": "민수",
+    "signature_item": { "id": "uuid", "name": "강아지", "category": "SIGNATURE", "rarity": "COMMON", "asset_key": "sig/dog", "is_limited": false }
+  }
+}
+```
+
+**에러:** `CR_NOT_MEMBER`, `ITEM_NOT_OWNED`, `ITEM_CATEGORY_MISMATCH`, `ITEM_NOT_FOUND`.
+
+### DELETE `/challenges/{id}/room/signature` — 내 signature 해제
+
+**Response:** 204 No Content. signature 가 없는 경우도 idempotent 204.
+
+**에러:** `CR_NOT_MEMBER`.

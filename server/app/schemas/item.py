@@ -40,6 +40,7 @@ class EquippedItemBrief(BaseModel):
     category: str
     rarity: str
     asset_key: str
+    is_limited: bool = False
 
     model_config = {"from_attributes": True}
 

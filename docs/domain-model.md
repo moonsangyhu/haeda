@@ -209,25 +209,28 @@ User 1──N DeviceToken
 | 7일 연속 인증 | +50 | 같은 챌린지 내 연속 7일 |
 | 일일 출석 | +5 | 앱 접속 시 1일 1회 |
 
-### 2.10 Item (아이템 카탈로그) — P0
+### 2.10 Item (아이템 카탈로그) — P0 / P2 확장
 
-상점에서 판매하는 캐릭터 착용 아이템.
+상점에서 판매하는 캐릭터 착용 아이템 + 미니룸/챌린지 방 꾸미기 아이템 (P2: F-31).
 
 | 필드 | 타입 | 제약 | 설명 |
 |------|------|------|------|
 | id | UUID | PK | 고유 ID |
 | name | VARCHAR(50) | NOT NULL | 아이템 이름 |
-| category | VARCHAR(20) | NOT NULL | HAT, TOP, BOTTOM, SHOES, ACCESSORY |
+| category | VARCHAR(20) | NOT NULL | 카테고리 (아래 참조) |
 | price | INTEGER | NOT NULL | 코인 가격 |
 | rarity | VARCHAR(10) | NOT NULL | COMMON, RARE, EPIC |
 | asset_key | VARCHAR(100) | NOT NULL | 에셋 파일 경로 키 |
 | is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | 상점 진열 여부 |
+| is_limited | BOOLEAN | NOT NULL, DEFAULT FALSE | 한정판 여부 (보상 전용) — P2 |
+| reward_trigger | VARCHAR(64) | NULLABLE | 획득 경로. SHOP=상점 전용, NULL=상점+보상 병행, FIRST_VERIFICATION/STREAK_7/COMPLETE_30/ALL_VERIFIED_DAY=보상 전용 — P2 |
 | sort_order | INTEGER | NOT NULL, DEFAULT 0 | 정렬 순서 |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | |
 
 **제약 조건:**
-- `category IN ('HAT', 'TOP', 'BOTTOM', 'SHOES', 'ACCESSORY')`
+- `category IN ('HAT', 'TOP', 'BOTTOM', 'SHOES', 'ACCESSORY', 'MR_WALL', 'MR_CEILING', 'MR_WINDOW', 'MR_SHELF', 'MR_PLANT', 'MR_DESK', 'MR_RUG', 'MR_FLOOR', 'CR_WALL', 'CR_WINDOW', 'CR_CALENDAR', 'CR_BOARD', 'CR_SOFA', 'CR_FLOOR', 'SIGNATURE')`
 - `rarity IN ('COMMON', 'RARE', 'EPIC')`
+- `MR_*` = 미니룸 슬롯, `CR_*` = 챌린지 방 공용 슬롯, `SIGNATURE` = 챌린지 방 멤버 개인 슬롯 (크로스 룸).
 
 ### 2.11 UserItem (인벤토리) — P0
 
@@ -285,6 +288,73 @@ User 1──N DeviceToken
 - DELETE 는 idempotent (없는 행 삭제도 200).
 - 멤버가 아닌 user 의 모든 호출은 `SPEECH_NOT_MEMBER` (403).
 
+### 2.14 RoomEquipMr (미니룸 장착 상태) — P2
+
+사용자의 미니룸 8개 슬롯 현재 장착 상태. 유저당 1행. 슬롯 NULL = 디자인 기본값 렌더.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| user_id | UUID | PK, FK → User | 사용자 |
+| wall_item_id | UUID | FK → Item, NULLABLE | 벽지 (category=MR_WALL) |
+| ceiling_item_id | UUID | FK → Item, NULLABLE | 천장 (category=MR_CEILING) |
+| window_item_id | UUID | FK → Item, NULLABLE | 창 (category=MR_WINDOW) |
+| shelf_item_id | UUID | FK → Item, NULLABLE | 선반 (category=MR_SHELF) |
+| plant_item_id | UUID | FK → Item, NULLABLE | 화분 (category=MR_PLANT) |
+| desk_item_id | UUID | FK → Item, NULLABLE | 책상 (category=MR_DESK) |
+| rug_item_id | UUID | FK → Item, NULLABLE | 러그 (category=MR_RUG) |
+| floor_item_id | UUID | FK → Item, NULLABLE | 바닥 (category=MR_FLOOR) |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 마지막 변경 |
+
+**비즈니스 룰:**
+- 각 슬롯은 해당 카테고리 아이템만 허용 (불일치 = `ITEM_CATEGORY_MISMATCH` 422).
+- 보유(UserItem)하지 않은 아이템 장착 시 `NOT_OWNED` 403.
+- 슬롯 NULL → 디자인 기본값 렌더.
+- Item.is_active=false 로 변경 시 자동 NULL fallback (silent).
+
+### 2.15 RoomEquipCr (챌린지 방 공용 장착) — P2
+
+챌린지 방의 공용 6개 슬롯 장착 상태. 챌린지당 1행. 방장만 편집 가능.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| challenge_id | UUID | PK, FK → Challenge | 챌린지 |
+| wall_item_id | UUID | FK → Item, NULLABLE | 벽지 (category=CR_WALL) |
+| window_item_id | UUID | FK → Item, NULLABLE | 창 (category=CR_WINDOW) |
+| calendar_item_id | UUID | FK → Item, NULLABLE | 미니 달력 (category=CR_CALENDAR) |
+| board_item_id | UUID | FK → Item, NULLABLE | 게시판 (category=CR_BOARD) |
+| sofa_item_id | UUID | FK → Item, NULLABLE | 중앙 소파 (category=CR_SOFA) |
+| floor_item_id | UUID | FK → Item, NULLABLE | 바닥 (category=CR_FLOOR) |
+| updated_by_user_id | UUID | FK → User, NULLABLE | 마지막 변경 사용자 (감사용) |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 마지막 변경 |
+
+**비즈니스 룰:**
+- 방장(`Challenge.creator_id`) 만 편집 가능. 비방장 = `CR_NOT_CREATOR` 403.
+- 카테고리 불일치 = `ITEM_CATEGORY_MISMATCH` 422.
+- 방장이 챌린지를 떠나면 row 유지하되 기본값 렌더 (P3에서 승계 정책).
+- 챌린지 삭제 시 cascade delete.
+
+### 2.16 RoomEquipCrSignature (챌린지 방 멤버 signature) — P2
+
+챌린지 방에서 각 멤버가 자기 캐릭터 옆에 표시할 개인 signature 아이템. 챌린지당 멤버당 최대 1행.
+
+| 필드 | 타입 | 제약 | 설명 |
+|------|------|------|------|
+| id | UUID | PK | 고유 ID |
+| challenge_id | UUID | FK → Challenge, NOT NULL | 챌린지 |
+| user_id | UUID | FK → User, NOT NULL | 멤버 |
+| signature_item_id | UUID | FK → Item, NOT NULL | signature 아이템 (category=SIGNATURE) |
+| updated_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 마지막 변경 |
+
+**제약 조건:**
+- UNIQUE(challenge_id, user_id) — 챌린지당 멤버별 1건. 재지정은 upsert.
+- INDEX(challenge_id), INDEX(user_id).
+
+**비즈니스 룰:**
+- ChallengeMember 가 아니면 `CR_NOT_MEMBER` 403.
+- `signature_item_id` 의 Item.category != 'SIGNATURE' = `ITEM_CATEGORY_MISMATCH` 422.
+- 보유(UserItem)하지 않은 signature 지정 시 `NOT_OWNED` 403.
+- 멤버 탈퇴 시 row 삭제. 챌린지 삭제 시 cascade delete.
+
 ---
 
 ## 3. 인덱스 설계
@@ -301,6 +371,8 @@ User 1──N DeviceToken
 | Verification | idx_verification_user_challenge | 사람별 인증 내역 |
 | DayCompletion | idx_day_completion_challenge | 챌린지의 전원 인증 날짜 목록 |
 | Comment | idx_comment_verification | 인증별 댓글 목록 |
+| RoomEquipCrSignature | idx_cr_sig_challenge | 챌린지별 signature 목록 (P2) |
+| RoomEquipCrSignature | idx_cr_sig_user | 사용자별 signature 조회 (P2) |
 
 ### P1 인덱스
 

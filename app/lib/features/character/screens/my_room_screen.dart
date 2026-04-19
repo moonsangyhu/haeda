@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/item_icon_painter.dart';
 import '../../../core/widgets/loading_widget.dart';
@@ -64,6 +65,15 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
     final charSize = screenHeight < 600 ? 90.0 : 110.0;
 
     return Scaffold(
+      floatingActionButton: Semantics(
+        label: '미니룸 꾸미기 편집',
+        child: FloatingActionButton(
+          onPressed: () => context.push('/room-decorator'),
+          tooltip: '내 방 꾸미기',
+          child: const Icon(Icons.edit_rounded),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       body: SafeArea(
         child: Column(
           children: [
