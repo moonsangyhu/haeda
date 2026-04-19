@@ -57,7 +57,9 @@ If QA review result is "complete", user copies the next-slice prompt and pastes 
 
 - [ ] No OWASP vulnerabilities (SQL injection, XSS, etc.)
 - [ ] No hardcoded .env or secrets in code
-- [ ] Tests exist (pytest / widget test)
+- [ ] Each new endpoint has at least 1 happy-path + 1 error-path pytest in `server/tests/`
+- [ ] Each new screen has at least 1 widget test in `app/test/features/**/screens/` covering render + primary interaction
+- [ ] Builder completion output included a `### Tests Added` section listing the new test files/functions
 
 ### MVP Scope
 
