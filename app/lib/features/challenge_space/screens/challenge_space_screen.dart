@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/widgets/challenge_room_scene.dart';
 import '../../../core/widgets/emoji_icon.dart';
 import '../../../core/widgets/invite_share_buttons.dart';
 import '../../../core/widgets/loading_widget.dart';
@@ -156,7 +157,7 @@ class _ChallengeSpaceScreenState
   }
 }
 
-class _ChallengeSpaceBody extends ConsumerWidget {
+class _ChallengeSpaceBody extends ConsumerStatefulWidget {
   final String challengeId;
   final String startDate; // YYYY-MM-DD
   final String endDate;   // YYYY-MM-DD
@@ -177,9 +178,17 @@ class _ChallengeSpaceBody extends ConsumerWidget {
     required this.onNextMonth,
   });
 
+  @override
+  ConsumerState<_ChallengeSpaceBody> createState() =>
+      _ChallengeSpaceBodyState();
+}
+
+class _ChallengeSpaceBodyState extends ConsumerState<_ChallengeSpaceBody> {
+  final _calendarKey = GlobalKey();
+
   void _onDayTap(BuildContext context, String date, List<DayEntry> days) {
     final tapped = DateTime.parse(date);
-    final start = DateTime.parse(startDate);
+    final start = DateTime.parse(widget.startDate);
     final today = DateTime.now();
     final tappedDay = DateTime(tapped.year, tapped.month, tapped.day);
     final startDay = DateTime(start.year, start.month, start.day);
@@ -219,44 +228,91 @@ class _ChallengeSpaceBody extends ConsumerWidget {
 
     // allCompleted 날짜는 완료 결과 화면으로 이동
     final matchingDay = days.where((d) => d.date == date).firstOrNull;
-    if (matchingDay != null && matchingDay.allCompleted && status == 'completed') {
-      context.push('/challenges/$challengeId/completion');
+    if (matchingDay != null &&
+        matchingDay.allCompleted &&
+        widget.status == 'completed') {
+      context.push('/challenges/${widget.challengeId}/completion');
       return;
     }
 
-    context.push('/challenges/$challengeId/verifications/$date');
+    context.push('/challenges/${widget.challengeId}/verifications/$date');
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final params = CalendarParams(
-      challengeId: challengeId,
-      year: year,
-      month: month,
+      challengeId: widget.challengeId,
+      year: widget.year,
+      month: widget.month,
     );
     final calendarAsync = ref.watch(calendarProvider(params));
     final now = DateTime.now();
+    final todayDateStr =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+    final calendarData = calendarAsync.valueOrNull;
+    DayEntry? todayEntry;
+    if (calendarData != null) {
+      try {
+        todayEntry =
+            calendarData.days.firstWhere((d) => d.date == todayDateStr);
+      } catch (_) {
+        todayEntry = null;
+      }
+    }
+
+    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
+    final creatorId = ref
+        .watch(challengeDetailProvider(widget.challengeId))
+        .valueOrNull
+        ?.creator
+        .id;
 
     return SingleChildScrollView(
       child: Column(
         children: [
+          // 미니룸 챌린지 씬
+          if (calendarData != null) ...[
+            ChallengeRoomScene(
+              challengeId: widget.challengeId,
+              members: calendarData.members,
+              verifiedMemberIds: todayEntry?.verifiedMembers ?? [],
+              currentUserId: currentUserId,
+              creatorId: creatorId,
+              allCompletedToday: todayEntry?.allCompleted ?? false,
+              onCalendarTap: () {
+                final ctx = _calendarKey.currentContext;
+                if (ctx != null) {
+                  Scrollable.ensureVisible(
+                    ctx,
+                    duration: const Duration(milliseconds: 300),
+                  );
+                }
+              },
+              onVerify: () =>
+                  context.push('/challenges/${widget.challengeId}/verify'),
+            ),
+            const SizedBox(height: 8),
+          ],
           // 콕 찌르기 수신 배너
-          NudgeBanner(challengeId: challengeId),
+          NudgeBanner(challengeId: widget.challengeId),
           // 챌린지 완료 배너
-          if (status == 'completed')
+          if (widget.status == 'completed')
             _CompletionBanner(
-              onTap: () => context.push('/challenges/$challengeId/completion'),
+              onTap: () => context
+                  .push('/challenges/${widget.challengeId}/completion'),
             ),
           // 월 네비게이터
           _MonthNavigator(
-            year: year,
-            month: month,
-            onPrevious: onPreviousMonth,
-            onNext: onNextMonth,
+            year: widget.year,
+            month: widget.month,
+            onPrevious: widget.onPreviousMonth,
+            onNext: widget.onNextMonth,
           ),
           const Divider(height: 1),
           // 달력 그리드
           Padding(
+            key: _calendarKey,
             padding: const EdgeInsets.symmetric(horizontal: 8),
             child: calendarAsync.when(
               loading: () => const SizedBox(
@@ -268,8 +324,8 @@ class _ChallengeSpaceBody extends ConsumerWidget {
                 child: AppErrorWidget(error: error),
               ),
               data: (calendarData) => CalendarGrid(
-                year: year,
-                month: month,
+                year: widget.year,
+                month: widget.month,
                 days: calendarData.days,
                 members: calendarData.members,
                 onDayTap: (date) =>
@@ -281,15 +337,15 @@ class _ChallengeSpaceBody extends ConsumerWidget {
           // 오늘 섹션
           _TodaySection(
             now: now,
-            calendarData: calendarAsync.valueOrNull,
-            challengeId: challengeId,
+            calendarData: calendarData,
+            challengeId: widget.challengeId,
           ),
           const SizedBox(height: 16),
           // 멤버 목록 (탭하면 콕 찌르기)
-          if (calendarAsync.valueOrNull != null)
+          if (calendarData != null)
             _MemberSection(
-              challengeId: challengeId,
-              calendarData: calendarAsync.valueOrNull!,
+              challengeId: widget.challengeId,
+              calendarData: calendarData,
             ),
           const SizedBox(height: 24),
         ],
