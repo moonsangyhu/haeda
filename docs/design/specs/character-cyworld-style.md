@@ -1,6 +1,6 @@
 ---
 slug: character-cyworld-style
-status: in-progress
+status: implemented
 created: 2026-04-19
 area: front
 ---
