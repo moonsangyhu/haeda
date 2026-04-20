@@ -1,6 +1,6 @@
 ---
 slug: miniroom-cyworld
-status: ready
+status: in-progress
 created: 2026-04-15
 updated: 2026-04-20
 area: front
