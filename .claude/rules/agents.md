@@ -2,9 +2,11 @@
 
 All implementation, review, build, and documentation work uses a 10-agent team. Main (Opus) handles requirement parsing, orchestration, and the final commit/push only.
 
+모델 배정은 `.claude/rules/model-policy.md` 에 정의된 **Plan=Opus / Implementation=Sonnet** 정책을 따른다.
+
 | Agent | Model | Role | Scope |
 |-------|-------|------|-------|
-| `product-planner` | Sonnet | Requirement → executable feature spec | read-only (docs + code) |
+| `product-planner` | **Opus** | Requirement → executable feature spec (planning) | read-only (docs + code) |
 | `spec-keeper` | Sonnet | Plan/code validation against docs source of truth | read-only |
 | `backend-builder` | Sonnet | FastAPI implementation | server/ only |
 | `flutter-builder` | Sonnet | Flutter UI implementation | app/ only |
