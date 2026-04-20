@@ -20,7 +20,7 @@ In a design worktree, Write / Edit / NotebookEdit is **blocked** for any path ou
 | Path | Design may edit? |
 |------|-------------------|
 | `docs/design/**` | yes |
-| `app/**`, `server/**` | **no** — code belongs in front/backend worktrees |
+| `app/**`, `server/**` | **no** — code belongs in feature 워크트리(솔로 개발 기본) 또는 front/backend 분리 워크트리 |
 | `.claude/**`, `CLAUDE.md` | **no** — config belongs in claude-role worktree |
 | `docs/prd.md`, `docs/user-flows.md`, etc. | **no** — source-of-truth docs require user approval |
 | `docs/planning/**` | **no** — planning belongs in planner worktree |
@@ -30,7 +30,7 @@ In a design worktree, Write / Edit / NotebookEdit is **blocked** for any path ou
 
 1. Researches design references (web search, image analysis, competitor review).
 2. Creates design documents at `docs/design/<slug>.md` — screen layouts, color palettes, pixel art specs, interaction patterns, component breakdowns.
-3. Produces detailed enough specs that `ui-designer` and `flutter-builder` agents in a front worktree can implement without ambiguity.
+3. Produces detailed enough specs that `ui-designer` and `flutter-builder` agents in a feature 워크트리(솔로 개발 기본) 또는 front 분리 워크트리에서 구현 가능하도록 한다. 이 레포의 기본 구현 타겟은 **feature 워크트리 한 곳**이며 (`.claude/rules/worktree-parallel.md` §Worktree Role Contract), front 분리 워크트리는 레이어 병렬이 필요한 예외 케이스에서만 사용한다. 핸드오프 안내 문구도 **feature 워크트리 기준**으로 작성한다 ("프론트 워크트리에서..." X, "feature 워크트리에서..." O).
 4. Commits and pushes design docs (standard PR-based push; design only ever touches `docs/design/**`, so rebase is trivial).
 
 It does NOT:

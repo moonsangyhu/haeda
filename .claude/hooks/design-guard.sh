@@ -33,5 +33,5 @@ fi
 
 echo -e "${RED}BLOCKED: design worktree may only edit docs/design/**${NC}" >&2
 echo -e "${RED}File: $REL_PATH${NC}" >&2
-echo -e "${RED}Code edits belong in backend/front worktrees. Config/rule edits in claude worktree.${NC}" >&2
+echo -e "${RED}Code edits belong in feature worktree (or backend/front split worktrees). Config/rule edits in claude worktree.${NC}" >&2
 exit 2
