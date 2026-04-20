@@ -1,5 +1,12 @@
 # Character Avatar 32×32 Cyworld Style Rewrite
 
+> **ROLLED BACK** 2026-04-20. 구현 머지 후 시뮬레이터 확인에서 "방이 아예
+> 없어져 버렸다" 는 사용자 보고. 캐릭터가 방 위에 오버플로우되어 MiniroomScene
+> 을 가린 것으로 추정. 사용자 지시로 `git checkout 9fe79f8^` 로 코드 되돌림.
+> 디자인 스펙 status 는 `implemented` → `ready` 로 복귀시켜 재시도 가능 상태로
+> 전환. 다음 시도 시 MiniroomScene 의 character 합성 영역(위치/크기/Z-order)을
+> 먼저 검토한 뒤 32×32 전환을 재개한다.
+
 - Date: 2026-04-20
 - Worktree (수행): feature
 - Worktree (영향): feature
