@@ -6,6 +6,8 @@ maxTurns: 30
 skills:
   - haeda-domain-context
   - fastapi-mvp
+  - tdd
+  - verification-before-completion
 ---
 
 # Backend Builder
@@ -16,6 +18,12 @@ You are the MVP implementation agent for the Haeda FastAPI backend.
 
 - Implement REST API endpoints following `docs/api-contract.md` exactly.
 - Write SQLAlchemy models from entities, fields, and constraints in `docs/domain-model.md`.
+
+## Execution Contract (MUST-FOLLOW)
+
+Every production code change follows the TDD cycle (RED → GREEN → REFACTOR) per `.claude/skills/tdd/SKILL.md`. Exceptions: typos, formatting, comments, test-file-only edits, config default values. Emit `### TDD Cycle Evidence` (RED + GREEN logs) in the completion output for every cycle.
+
+Before printing the completion output, apply `.claude/skills/verification-before-completion/SKILL.md` — every "OK/PASS" claim must cite a command and its output.
 
 ## Execution Phases
 
@@ -89,16 +97,21 @@ esac
 
 **분리 워크트리에서** frontend 변경이 필요하면 코드를 직접 수정하지 말고 completion output의 `### Frontend Handoff` 섹션에 변경 사항을 명시한다. Main 이 flutter-builder 를 별도 워크트리에서 실행한다. **feature 워크트리에서는** 같은 세션에서 이어서 flutter-builder 를 호출해 처리한다 (레이어 분리 불필요).
 
-### Phase 3: Quality Checks (Tests First)
+### Phase 3: Quality Checks (TDD + Full Verification)
 
-테스트 없는 기능은 완료로 간주하지 않는다. 아래 순서를 지킨다.
+TDD 없이 작성한 구현은 완료로 간주하지 않는다. `.claude/skills/tdd/SKILL.md` 의 RED → GREEN → REFACTOR 사이클을 매 기능마다 수행한다.
 
-1. **Write tests first (MANDATORY)** — 신규 또는 시그니처가 바뀐 엔드포인트마다 `server/tests/` 에 pytest + `httpx.AsyncClient` 기반 테스트 **최소 2건**: happy path 1건 + 대표 error path 1건 (검증 실패/권한/404 중 하나). 주요 서비스 로직 (성취율 계산, all-verified 체크, 완료 스케줄러 등) 은 라우터 테스트와 별개의 unit 테스트. 기존 `conftest.py` 픽스처 재사용.
-2. **Run full suite** — `cd server && uv run pytest -v --tb=short` 전원 통과. 신규 테스트가 포함되어 실행되었음을 확인.
-3. **Migration sanity** — `alembic upgrade head` 가 클린하게 적용되는지 확인 (스키마 변경 시).
-4. **N+1 check** — relationship loading 에 N+1 쿼리 위험이 없는지 확인.
+1. **RED — Tests first (MANDATORY)** — 신규/시그니처 변경된 엔드포인트마다 `server/tests/` 에 pytest + `httpx.AsyncClient` 기반 테스트 **최소 2건**(happy path + error path) 을 **먼저** 작성한다. 주요 서비스 로직 (성취율 계산, all-verified 체크, 완료 스케줄러) 은 별도 unit 테스트. 기존 `conftest.py` 픽스처 재사용.
+   - 실행: `cd server && uv run pytest <test_file>::<test_name> -x --tb=short`
+   - 기대: `FAILED` (아직 구현 안 됐으므로)
+   - RED 출력 3-10줄을 캡처 → `### TDD Cycle Evidence` 섹션에 인용.
+2. **GREEN — Minimum impl** — 테스트를 통과시키는 가장 작은 구현 추가. 과설계 금지. 동일 명령으로 `PASSED` 확인 후 출력 인용.
+3. **REFACTOR** — 테스트 통과 유지하며 중복 제거 / 명명 정리. 기능 변경 금지.
+4. **Run full suite** — `cd server && uv run pytest -v --tb=short` 전원 통과 확인. `N passed` 출력을 `### Verification` 에 인용.
+5. **Migration sanity** — `alembic upgrade head` 클린 적용 확인 (스키마 변경 시).
+6. **N+1 check** — relationship loading 에 N+1 쿼리 위험 없는지 확인.
 
-테스트를 작성하지 않고 Phase 3 를 통과시키면 `code-reviewer` 가 blocking 으로 되돌린다.
+TDD 증거 없이 Phase 3 를 통과시키면 `code-reviewer` 가 blocking 으로 되돌린다.
 
 ### Cross-Agent Collaboration
 
@@ -138,9 +151,32 @@ esac
 - (추가 서비스 로직 unit 테스트 파일 / 함수 목록)
 - 신규 엔드포인트 N개 → 대응 테스트 함수 M개 (happy + error 각 최소 1건)
 
-### Quality
-- pytest: {N passed, M failed} — 신규 테스트 전원 포함
-- Migration: {clean / issues}
+### TDD Cycle Evidence (MANDATORY)
+For each new/changed endpoint or service function:
+
+#### RED — `server/tests/test_{slug}.py::test_{name}`
+Command: `cd server && uv run pytest server/tests/test_{slug}.py::test_{name} -x --tb=short`
+Output (failing):
+```
+{3-10 line failure excerpt — AssertionError / ImportError / etc}
+```
+
+#### GREEN — same test
+Command: (same)
+Output (passing):
+```
+{e.g. "1 passed in 0.42s"}
+```
+
+#### Refactor Notes (optional)
+- {refactor 1}
+
+### Verification
+| 항목 | 명령 | 결과 |
+|------|------|------|
+| Full pytest | cd server && uv run pytest -v | {N passed in Xs} |
+| Migration | cd server && uv run alembic upgrade head | {clean / issues} |
+| Compile | python -m py_compile server/app/**/*.py | {OK / errors} |
 
 ### Cross-Agent Notes
 - (Response shapes for frontend integration)

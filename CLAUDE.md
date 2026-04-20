@@ -22,9 +22,11 @@ Detailed rules in `.claude/rules/`:
 
 - **coding-style.md** — terminology, API format, season icons, file size limits
 - **git-workflow.md** — conventional commits, session naming, branch naming
-- **agents.md** — 10-agent team, dispatch rules, gate rules
+- **agents.md** — 11-agent team (spec-compliance-reviewer 포함), dispatch rules, gate rules
 - **model-policy.md** — Plan=Opus / Implementation=Sonnet 강제 (MANDATORY)
-- **workflow.md** — 9-step slice flow, verification principles
+- **workflow.md** — 10-step slice flow, verification principles
+- **tdd.md** — 모든 production 코드 변경은 RED-GREEN-REFACTOR 사이클 (MANDATORY)
+- **verification.md** — "완료/pass" 주장 전 증거 인용 필수 (MANDATORY)
 - **worktree-parallel.md** — role contract, rebase-retry push, deployer lockfile (MANDATORY for all worktree work)
 - **worktree-task-report.md** — 작업 단위마다 `docs/reports/YYYY-MM-DD-{role}-{slug}.md` 보고서 생성 의무 (MANDATORY)
 - **claude-config-sync.md** — claude role의 `.claude/**` 변경은 즉시 push, 다른 role은 작업 시작 전 반드시 rebase (MANDATORY)

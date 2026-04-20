@@ -1,13 +1,13 @@
 ---
 name: feature-flow
-description: Enforced workflow for all feature work. 9 steps: plan → spec verify → implement → code review → qa → [debug] → deploy → document → commit. Every step is delegated to a specialist agent; Main only orchestrates and runs the final commit.
+description: Enforced workflow for all feature work. 10 steps - plan - spec verify - implement (TDD) - spec compliance review - code review - qa - debug if fail - deploy - document + retrospective - commit. Every step is delegated to a specialist agent; Main only orchestrates and runs the final commit.
 user_invocable: true
 disable_model_invocation: true
 ---
 
 # Feature Flow — Agent-Orchestrated Feature Workflow
 
-All feature work MUST follow this 9-step workflow. No step may be skipped.
+All feature work MUST follow this 10-step workflow. No step may be skipped.
 
 **Auto-proceed mode**: All steps run end-to-end without user approval gates. STOP only when: spec verify fails twice, code review fails twice, QA fails twice after debug loop, deploy fails, or doc-writer hits a protected-file violation.
 
@@ -18,16 +18,17 @@ All feature work MUST follow this 9-step workflow. No step may be skipped.
 | Phase | Executor | Model |
 |-------|----------|-------|
 | Step 0 (Parse requirement) | Main | Opus |
-| Step 1 (Plan) | `product-planner` | Sonnet |
-| Step 2 (Spec verify) | `spec-keeper` | Sonnet |
-| Step 3 (Implement) | `backend-builder` / `flutter-builder` (parallel) | Sonnet |
-| Step 4 (Code review) | `code-reviewer` | Sonnet |
-| Step 5 (QA) | `qa-reviewer` | Sonnet |
-| Step 5b (Debug, conditional) | `debugger` → builder | Sonnet |
-| Step 6 (Deploy) | `deployer` | Sonnet |
-| Step 7 (Document) | `doc-writer` | Sonnet |
-| Step 8 (Commit & Push) | Main + `/commit` | Opus |
-| Step 9 (Final output) | Main | Opus |
+| Step 1 (Plan; brainstorming if rough) | `product-planner` (Opus) | Opus |
+| Step 2 (Spec verify, pre-impl) | `spec-keeper` | Sonnet |
+| Step 3 (Implement with TDD) | `backend-builder` / `flutter-builder` (parallel) | Sonnet |
+| Step 4 (Spec compliance review, post-impl) | `spec-compliance-reviewer` | Sonnet |
+| Step 5 (Code review — quality + TDD evidence) | `code-reviewer` | Sonnet |
+| Step 6 (QA with verification-before-completion) | `qa-reviewer` | Sonnet |
+| Step 6b (Debug, conditional) | `debugger` (systematic-debugging) → builder (TDD) | Sonnet |
+| Step 7 (Deploy, evidence-based) | `deployer` | Sonnet |
+| Step 8 (Document + retrospective) | `doc-writer` | Sonnet |
+| Step 9 (Commit & Push) | Main + `/commit` | Opus |
+| Step 10 (Final output) | Main | Opus |
 
 Argument: `<requirement description>`
 
@@ -104,46 +105,64 @@ If a builder fails its own build, it must self-correct before reporting. If it c
 
 ---
 
-## Step 4: Code Review (code-reviewer)
+## Step 4: Spec Compliance Review (spec-compliance-reviewer)
 
-Spawn `code-reviewer` with the builder completion outputs from Step 3.
+Spawn `spec-compliance-reviewer` with:
+- Feature Plan from Step 1
+- Builder completion outputs from Step 3 (changed files, TDD evidence, tests added)
+
+The agent verifies each acceptance criterion / endpoint / screen / field in the plan is actually implemented (cites `{file}:{line}` for each), and flags Missing / Drift / scope creep.
 
 | Verdict | Action |
 |---------|--------|
 | **Pass** | Auto-proceed to Step 5 |
+| **Changes Requested** | Re-spawn the owning builder with the Missing / Drift list, then re-run spec-compliance-reviewer (max 1 retry). If still Changes Requested, STOP. |
+
+---
+
+## Step 5: Code Review (code-reviewer)
+
+Spawn `code-reviewer` with the builder completion outputs from Step 3 (and any changes made during Step 4 iterations).
+
+The agent reviews **품질 only** — style, naming, duplication, security, dead code, test coverage, **TDD evidence (RED + GREEN 로그 인용 존재)**. 스펙 compliance 는 이미 Step 4 에서 검증됨.
+
+| Verdict | Action |
+|---------|--------|
+| **Pass** | Auto-proceed to Step 6 |
 | **Changes Requested** | Re-spawn the owning builder with the blocking-issues list, then re-run code-reviewer (max 1 retry). If still Changes Requested, STOP. |
 
 ---
 
-## Step 5: QA (qa-reviewer)
+## Step 6: QA (qa-reviewer)
 
 Spawn `qa-reviewer` with:
 - Acceptance criteria from Step 1
 - Changed files from Step 3
-- Code review verdict from Step 4
+- Spec compliance verdict from Step 4
+- Code review verdict from Step 5
 
-The agent runs `pytest`, `flutter test`, `flutter analyze`, and the checklist review.
+The agent runs `pytest`, `flutter test`, `flutter analyze`, and the checklist review. qa-reviewer 는 `verification-before-completion` 스킬 준수 — 모든 pass 주장에 명령+출력 인용 필수.
 
 | Verdict | Action |
 |---------|--------|
-| **Complete** | Auto-proceed to Step 6 |
-| **Partial / Incomplete** | Auto-enter Step 5b (debug loop) |
+| **Complete** | Auto-proceed to Step 7 |
+| **Partial / Incomplete** | Auto-enter Step 6b (debug loop) |
 
 ---
 
-## Step 5b: Debug Loop (debugger → builder → re-QA)
+## Step 6b: Debug Loop (debugger → builder → re-QA)
 
-Conditional step — only runs when Step 5 returns partial/incomplete.
+Conditional step — only runs when Step 6 returns partial/incomplete.
 
-1. Spawn `debugger` with the failing test output and qa-reviewer verdict. The agent produces a **fix spec** naming the owning builder.
-2. Spawn the owning builder (`backend-builder` or `flutter-builder`) with the fix spec.
+1. Spawn `debugger` (with `systematic-debugging` + `tdd` 스킬) with the failing test output and qa-reviewer verdict. The agent produces a **fix spec** naming the owning builder.
+2. Spawn the owning builder (`backend-builder` or `flutter-builder`) with the fix spec. Builder 는 `tdd` 준수.
 3. Re-spawn `qa-reviewer`.
 
-Max 2 retries of the full 5b loop. After 2 failed retries, STOP and hand to user with the last debug report.
+Max 2 retries of the full 6b loop. After 2 failed retries, STOP and hand to user with the last debug report.
 
 ---
 
-## Step 6: Deploy (deployer)
+## Step 7: Deploy (deployer)
 
 Spawn `deployer`. The agent:
 - Detects affected area via git diff
@@ -153,43 +172,44 @@ Spawn `deployer`. The agent:
 
 | Verdict | Action |
 |---------|--------|
-| **Success** | Auto-proceed to Step 7 |
+| **Success** | Auto-proceed to Step 8 |
 | **Failed** | STOP, print deployer logs, hand to user |
 
 ---
 
-## Step 7: Document (doc-writer)
+## Step 8: Document + Retrospective (doc-writer)
 
 Spawn `doc-writer` with:
 - Feature plan from Step 1
 - Builder outputs from Step 3
-- Code review verdict from Step 4
-- QA verdict from Step 5
-- Deploy report from Step 6
+- Spec compliance verdict from Step 4
+- Code review verdict from Step 5
+- QA verdict from Step 6
+- Deploy report from Step 7
 
 The agent writes:
 - `impl-log/<slug>.md`
 - `test-reports/<slug>-test-report.md`
-- `docs/reports/YYYY-MM-DD-<slug>.md`
+- `docs/reports/YYYY-MM-DD-<slug>.md` **with Retrospective section** (What worked / What could improve / Process signal) per `.claude/skills/retrospective/SKILL.md`
 
-If doc-writer reports a protected-file violation (attempted to touch `docs/prd.md` etc.), STOP — the plan was wrong.
+If doc-writer reports a protected-file violation (attempted to touch `docs/prd.md` etc.) or omits the Retrospective section, STOP.
 
 ---
 
-## Step 8: Commit & Push (Main + /commit)
+## Step 9: Commit & Push (Main + /commit)
 
 Main runs `/commit` to:
-1. Stage code changes (from Step 3) + documentation (from Step 7)
+1. Stage code changes (from Step 3) + documentation (from Step 8)
 2. Commit with a conventional-commits message
-3. Push directly to main
+3. Create PR and auto-merge to main (see `worktree-parallel.md` §PR-Based Push)
 
-Commit is forbidden before Step 7 completes. Push is forbidden before commit.
+Commit is forbidden before Step 8 completes. Push is forbidden before commit.
 
 Cross-layer commits use `/role-scoped-commit-push` separately for `backend` and `front` roles.
 
 ---
 
-## Step 9: Final Output (Main)
+## Step 10: Final Output (Main)
 
 Print the completion summary:
 
@@ -201,15 +221,16 @@ Print the completion summary:
 | Feature | {summary} |
 | Area | {frontend / backend / both} |
 | Plan | product-planner ✓ |
-| Spec verify | spec-keeper ✓ |
-| Implementation | {backend-builder / flutter-builder} ✓ |
+| Spec verify (pre-impl) | spec-keeper ✓ |
+| Implementation (TDD) | {backend-builder / flutter-builder} ✓ (TDD 증거 포함) |
+| Spec compliance (post-impl) | spec-compliance-reviewer ✓ |
 | Code review | code-reviewer ✓ |
-| QA | qa-reviewer: complete |
+| QA | qa-reviewer: complete (verification-before-completion 통과) |
 | Debug loop | {N retries | skipped} |
-| Deploy | deployer: backend health OK, simulator running |
-| Documentation | impl-log + test-report + feature report |
+| Deploy | deployer: backend health OK, simulator running (명령+출력 인용) |
+| Documentation | impl-log + test-report + feature report + retrospective |
 | Commit | {hash} |
-| Push | done |
+| PR merge | done |
 ```
 
 ---
