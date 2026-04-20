@@ -1,5 +1,9 @@
 # Character Avatar 32×32 Cyworld Style Rewrite
 
+> **ROLLED BACK** 2026-04-20. 구현 직후 시뮬레이터 검증에서 방 전체가 캐릭터에
+> 의해 가려지는 회귀 발생. 사용자 지시로 코드 revert. 아래 구현 로그는 과거
+> 시도의 참고용으로 남김. 재시도는 MiniroomScene 합성 로직 재검토 후 진행.
+
 - Date: 2026-04-20
 - Type: feat
 - Area: frontend

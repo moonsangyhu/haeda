@@ -1,9 +1,21 @@
 ---
 slug: character-cyworld-style
-status: implemented
+status: ready
 created: 2026-04-19
 area: front
 ---
+
+> **ROLLED BACK** 2026-04-20. 첫 구현(PR #39, commit `9fe79f8`)이 머지됐으나
+> 시뮬레이터 검증 결과 캐릭터가 방 위에 오버플로우되어 방 전체가 가려지는
+> 회귀 발생. 사용자 지시로 롤백(commit `<this revert>`) 후 재계획하여 재구현
+> 예정. 32×32 그리드 좌표 자체는 유효하나, 방과의 합성(MiniroomScene) 또는
+> CharacterAvatar 의 캔버스 배치(여백/중심 정렬)가 방 크기와 맞지 않는 것으로
+> 추정. 재시도 시 다음 항목을 먼저 검토할 것:
+> - MiniroomScene 안에서 CharacterAvatar 의 size 와 위치 offset
+> - 16-그리드 기준으로 하드코딩된 배치 로직이 32-그리드 캐릭터를 가정하지
+>   못하는 부분이 있는지 (예: room 내 character Z-order, y-offset 계산)
+> - 스펙 §16 Integration with MiniroomScene 섹션의 "캐릭터 위젯 110dp" 가정이
+>   실제 방 렌더와 맞는지
 
 # Character Avatar — Cyworld Miniroom Style Redesign
 
