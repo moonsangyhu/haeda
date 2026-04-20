@@ -10,6 +10,7 @@ import '../models/character_data.dart';
 import '../models/item_data.dart';
 import '../providers/character_provider.dart';
 import '../providers/coin_provider.dart';
+import '../../room_decoration/providers/room_equip_provider.dart';
 import '../widgets/equip_stat_bar.dart';
 
 /// 내 방 탭 — 캐릭터 + 카테고리별 아이템 그리드 + 탭→바텀시트.
@@ -59,6 +60,8 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
         ref.watch(authStateProvider).valueOrNull?.backgroundColor;
     final userBgColor = AppTheme.characterBackgroundFromHex(bgHex);
 
+    final equip = ref.watch(myMiniroomProvider).valueOrNull;
+
     // Responsive sizing
     final screenHeight = MediaQuery.of(context).size.height;
     final roomHeight = screenHeight < 600 ? 200.0 : 250.0;
@@ -107,6 +110,7 @@ class _MyRoomScreenState extends ConsumerState<MyRoomScreen>
                 child: MiniroomScene(
                   character: character,
                   wallTintColor: userBgColor,
+                  equip: equip,
                   height: roomHeight,
                   characterSize: charSize,
                 ),
