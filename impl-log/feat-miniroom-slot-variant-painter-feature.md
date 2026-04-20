@@ -1,7 +1,9 @@
 # feat: Miniroom Slot Variant Painter
 
+> **ROLLED BACK** on 2026-04-21. PR #51 (revert of #49) 머지 완료. 사용자 보고 "또 내 방 없어졌다" — 렌더 회귀. `miniroom_scene.dart` 는 PR #48 시점(359줄)으로 복구. 근본 원인 조사는 후속 debug slice.
+
 - **Date**: 2026-04-21
-- **Type**: feat
+- **Type**: feat (rolled back)
 - **Area**: frontend
 - **Worktree**: feature
 
