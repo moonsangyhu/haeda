@@ -27,11 +27,11 @@ fi
 
 REL_PATH="${FILE_PATH#$PROJECT_DIR/}"
 
-if [[ "$REL_PATH" == docs/planning/* ]]; then
+if [[ "$REL_PATH" == docs/planning/* ]] || [[ "$REL_PATH" == docs/reports/* ]]; then
   exit 0
 fi
 
-echo -e "${RED}BLOCKED: planner worktree may only edit docs/planning/**${NC}" >&2
+echo -e "${RED}BLOCKED: planner worktree may only edit docs/planning/** (task reports in docs/reports/** also allowed)${NC}" >&2
 echo -e "${RED}File: $REL_PATH${NC}" >&2
 echo -e "${RED}Config/rule/skill edits belong in a claude-role worktree; code edits in backend/front worktrees.${NC}" >&2
 exit 2

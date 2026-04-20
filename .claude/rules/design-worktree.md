@@ -24,7 +24,8 @@ In a design worktree, Write / Edit / NotebookEdit is **blocked** for any path ou
 | `.claude/**`, `CLAUDE.md` | **no** — config belongs in claude-role worktree |
 | `docs/prd.md`, `docs/user-flows.md`, etc. | **no** — source-of-truth docs require user approval |
 | `docs/planning/**` | **no** — planning belongs in planner worktree |
-| `docs/reports/**`, `impl-log/**`, `test-reports/**` | **no** |
+| `docs/reports/**` | **yes** — 본 워크트리의 작업 결과서 작성용 (`worktree-task-report.md` 의무). 필요 시 `docs/reports/YYYY-MM-DD-design-<slug>.md` 로 기록 |
+| `impl-log/**`, `test-reports/**` | **no** |
 
 ## What the Design Worktree Does
 

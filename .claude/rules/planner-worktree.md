@@ -21,7 +21,8 @@ In a planner worktree, Write / Edit / NotebookEdit is **blocked** for any path o
 |------|-------------------|
 | `docs/planning/**` | yes |
 | `docs/prd.md`, `docs/user-flows.md`, `docs/domain-model.md`, `docs/api-contract.md` | **no** (docs-guard also blocks) |
-| `docs/reports/**`, `impl-log/**`, `test-reports/**` | **no** |
+| `docs/reports/**` | **yes** — 본 워크트리의 작업 결과서 작성용 (`worktree-task-report.md` 의무). 필요 시 `docs/reports/YYYY-MM-DD-planner-<slug>.md` 로 기록 |
+| `impl-log/**`, `test-reports/**` | **no** |
 | `app/**`, `server/**` | **no** |
 | `.claude/**`, `CLAUDE.md`, `.gitignore`, top-level configs | **no** — move to a `claude`-role worktree |
 
