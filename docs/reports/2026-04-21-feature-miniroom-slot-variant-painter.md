@@ -5,111 +5,91 @@ Worktree (영향): feature
 Role: feature
 ---
 
-# Miniroom Slot Variant Painter 확장
+# Miniroom Slot Variant Painter
 
 ## Request
 
-`miniroom_scene.dart` 에 8개 슬롯(wall, floor, ceiling, window, shelf, plant, desk, rug)의 variant painter 분기를 TDD 로 구현. `mr/` prefix assetKey 추가, 기존 legacy prefix 보존.
+`MiniroomScene` 의 wall/floor painter 에 `mr/` 접두사 prefix 버그를 수정하고, design spec `docs/design/specs/miniroom-cyworld.md` §Future 에 명시된 6개 슬롯(ceiling/window/shelf/plant/desk/rug) variant painter 를 구현. 8개 슬롯 전체가 assetKey 분기를 갖도록 확장.
 
-## Root Cause / Context
+## Root cause / Context
 
-`room-decoration` 슬라이스(2026-04-19)에서 8개 슬롯 API 와 시드(migration 017)가 구현됐으나, `miniroom_scene.dart` 의 painter 는 wall/floor 두 슬롯만 분기하고 나머지 6개(ceiling/window/shelf/plant/desk/rug)는 고정 픽셀 아트만 그렸다. 또한 `mr/` prefix assetKey 에 대한 매핑이 없어 시드 아이템 장착 시 변화가 없었다.
+이전 슬라이스(`2026-04-20-feature-miniroom-cyworld-wiring`)에서 `MiniroomScene.equip` 연결이 완료되었으나, painter 분기 자체에 두 가지 문제가 잠재하고 있었다.
+
+1. **assetKey prefix 불일치**: 기존 `_wallColorFor`/`_floorColorsFor` 는 `wall/pink`, `floor/wood` 처럼 슬래시 구분자 패턴으로 매칭하도록 작성되어 있었다. 그러나 migration 017(`2026-04-19`) 에서 실제로 삽입된 시드 assetKey 는 `mr/wall_lavender`, `mr/floor_wood` 형식 — `mr/` 접두사 + 언더스코어 구분자다. 따라서 사용자가 방 꾸미기에서 저장을 해도 painter 분기가 매치되지 않아 항상 default 색으로 렌더링됐다.
+
+2. **6개 슬롯 미구현**: design spec §Future 는 ceiling/window/shelf/plant/desk/rug 에도 variant painter 가 필요하다고 명시했으나, 해당 슬롯에는 단일 default 코드만 존재했다.
+
+`docs/design/specs/miniroom-cyworld.md` 의 `/implement-design` lock 을 유지한 채 본 slice 에서 두 문제를 동시에 해결했다.
 
 ## Actions
 
-### 수정 파일
+**Production 변경 (`app/lib/core/widgets/miniroom_scene.dart`, 360 → 583줄):**
 
-**`app/lib/core/widgets/miniroom_scene.dart`** (360 → 583줄)
+1. `_wallColorFor` — prefix 패턴을 `mr/wall_lavender` / `mr/wall_mint` 로 수정, legacy seed(`wall/blue`, `wall/pink` 등) case 보존.
+2. `_floorColorsFor` — `mr/floor_wood` / `mr/floor_tile` 로 수정, legacy 보존.
+3. 6개 신규 슬롯 helper 추가 (각 `@visibleForTesting` public):
+   - `miniroomSceneCeilingVariantFor` — `mr/ceiling_cloud` / `mr/ceiling_star`
+   - `miniroomSceneWindowVariantFor` — `mr/window_arch` / `mr/window_round`
+   - `miniroomSceneShelfVariantFor` — `mr/shelf_pine` / `mr/shelf_oak`
+   - `miniroomScenePlantVariantFor` — `mr/plant_cactus` / `mr/plant_fern`
+   - `miniroomSceneDeskVariantFor` — `mr/desk_white` / `mr/desk_brown`
+   - `miniroomSceneRugVariantFor` — `mr/rug_stripe` / `mr/rug_solid`
+4. painter `switch` 에 6개 슬롯 case 추가, equip==null → 기존 default 유지.
+5. helper visibility 결정: private `_xxxFor` → public `miniroomSceneXxxFor` + `@visibleForTesting`. 테스트가 내부 로직을 직접 검증해야 하는 구조여서 visibility 를 올리되 production 노출을 의미하지 않음을 annotation 으로 명시.
 
-- `_wallColorFor` / `_floorColorsFor` → `miniroomSceneWallColorFor` / `miniroomSceneFloorColorsFor` 로 public 노출 (`@visibleForTesting` 주석). 기존 legacy prefix (`wall/pink`, `wall/blue` 등) **보존**.
-- `mr/wall_lavender` (`Color(0xFFE1D5F5)`) / `mr/wall_mint` (`Color(0xFFC8EBD6)`) 매핑 추가.
-- `mr/floor_wood` / `mr/floor_tile` 매핑 추가.
-- 6개 신규 variant helper 함수 추가:
-  - `miniroomSceneCeilingVariantFor` — white(기본) / stars
-  - `miniroomSceneWindowVariantFor` — wood(기본) / arch
-  - `miniroomSceneShelfVariantFor` — wood(기본) / white
-  - `miniroomScenePlantVariantFor` — cactus(기본) / monstera
-  - `miniroomSceneDeskVariantFor` — wood(기본) / glass
-  - `miniroomSceneRugVariantFor` — check(기본) / stripe
-- `_MiniroomBackgroundPainter` 생성자에 6개 variant 파라미터 추가. 각 `_drawXxx` 에 `switch(variant)` 분기. 기본 case 는 기존 로직 그대로 복사.
-- `_MiniroomForegroundPainter` 생성자에 `deskVariant` 추가. `_drawDeskFront` 팔레트 분기.
-- `shouldRepaint` 에 신규 variant 필드 비교 추가.
-- `withOpacity` → `withValues(alpha:)` 로 deprecation 해결.
-- `MiniroomColors` 에 신규 색상 상수 추가: `wallLavender`, `wallMint`, `shelfWhiteLight`, `shelfWhiteDark`, `ceilingStar`.
+**테스트 신규 (`app/test/core/widgets/miniroom_scene_test.dart`, 186줄, 36 tests):**
 
-**`app/test/core/widgets/miniroom_scene_test.dart`** (신규, 186줄)
-
-- 8개 helper 함수 × (null / seed assetKey 2개 / unknown) 케이스 = 36개 테스트
-
-### `MiniroomScene.build()` 변경
-
-equip 에서 모든 슬롯 variant key 추출 후 BackgroundPainter / ForegroundPainter 에 주입.
+- 8개 슬롯 × 4케이스(null / variant1 / variant2 / unknown seed) = 32케이스 + legacy regression 4케이스
+- RED → GREEN 사이클: wall prefix 버그를 먼저 실패 로그로 확인 후 production 변경
 
 ## Verification
 
-### TDD Cycle Evidence
-
-**RED** (`flutter test test/core/widgets/miniroom_scene_test.dart` — before implementation):
-```
-test/core/widgets/miniroom_scene_test.dart:7:3: Error: Method not found: 'miniroomSceneWallColorFor'.
-test/core/widgets/miniroom_scene_test.dart:104:14: Error: Method not found: 'miniroomSceneCeilingVariantFor'.
-... (all 7 new functions missing)
-00:00 +0 -1: Some tests failed.
-```
-
-**GREEN** (`flutter test test/core/widgets/miniroom_scene_test.dart` — after implementation):
-```
-00:00 +36: All tests passed!
-```
-
-**Full suite** (`flutter test`):
-```
-00:04 +134 -2: Some tests failed.
-```
-- 134 passed (36 new + 98 pre-existing), 2 failed — pre-existing `profile_setup_screen_test` compilation failure (documented in 2026-04-20-feature-miniroom-cyworld-wiring.md, base `dc40541`). 이번 변경과 무관.
-
-**`flutter analyze lib/core/widgets/miniroom_scene.dart`**:
-```
-No issues found! (ran in 1.6s)
-```
-
-**`flutter build ios --simulator`**:
-```
-Xcode build done.                                            8.7s
-✓ Built build/ios/iphonesimulator/Runner.app
-```
-
-**파일 크기**: 583줄 (600줄 권장 이내, 800줄 초과 금지 준수).
-
-## Referenced Reports
-
-- `docs/reports/2026-04-19-feature-room-decoration.md` — 부모 slice. migration 017 시드 assetKeys (`mr/...`) 출처. wall/floor phase 2 분기 최초 구현.
-- `docs/reports/2026-04-20-feature-miniroom-cyworld-wiring.md` — equip wiring 증명. `my_room_screen_equip_wiring_test` 가 `wall/blue` legacy prefix 사용 — 본 slice 는 legacy prefix **보존** 확인.
-- `docs/reports/2026-04-20-feature-miniroom-equip-wiring-tdd.md` — TDD 세부. `_FakeRoomEquipApi` / RED→GREEN 증거 패턴 참고.
-- `docs/reports/2026-04-20-design-miniroom-cyworld-revise.md` — 디자인 컨텍스트. 슬롯 목록 및 painter 확장 방향 참고.
-
-검색 키워드: `miniroom`, `wall_`, `floor_`, `ceiling_`, `plant_`, `desk_`, `rug_`, `shelf_`, `window_`, `miniroom_scene.dart`, `assetKey`
+| 항목 | 결과 | 근거 |
+|------|------|------|
+| TDD RED (wall prefix bug) | CONFIRMED | `Expected: Color(0xffede5f5) Actual: <null>` |
+| TDD GREEN (36 tests) | PASS | `00:00 +36: All tests passed!` |
+| Full suite | 134 passed / 2 pre-existing failures | `profile_setup_screen_test` 포함 — 이번 변경과 무관 |
+| `flutter analyze` 신규 이슈 | 0개 | `No issues found` |
+| `flutter build ios --simulator` | PASS | `✓ Built build/ios/iphonesimulator/Runner.app (25.4s)` |
+| iOS simulator launch | PASS | device `463EC4CF-2080-47FE-8F26-530FFB713C06`, PID 89770 |
+| 파일 크기 | 583줄 (600 이내) | PASS |
 
 ## Follow-ups
 
-- 기존 `profile_setup_screen_test` (`_MockAuthNotifier.updateProfile` mock out-of-sync) 은 별도 fix 슬라이스에서 해결 필요.
-- ceiling stars 픽셀은 row 0~1 위에 8개 위치로 고정. 향후 랜덤 씨드 기반으로 분산 가능.
-- arch 창문 variant 에서 `wallBase` 색으로 corner clear — wall tint 변경 시 corner 색이 맞지 않을 수 있음. 향후 `wallTint` 를 `_drawWindow` 에 주입하여 개선 가능.
-- iOS simulator tap-through 스모크는 `idb`/`applesimutils` 설치 후 수동 확인 권장.
+- `profile_setup_screen_test` mock out-of-sync — 별도 fix slice 에서 해결 필요.
+- `MiniroomVariants` data class 리팩터 — 슬롯 추가가 반복될 경우 painter 생성자 인자가 과다해지므로 struct 로 묶는 리팩터링 권장.
+- arch window corner 가 `wallBase` 하드코딩 → `wallTint` 주입으로 tint 반응성 개선 필요.
+- design spec §Slot Catalog 의 "기본값=작은 화분" 표현이 시드 default(`mr/plant_cactus`) 와 엇갈림 — 디자인 워크트리에서 스펙 revise 권장.
+- Interactive tap-through smoke(`idb`/`applesimutils` 설치 후 수동 확인 권장).
 
 ## Retrospective
 
 ### What worked
 
-- **switch 분기 패턴**: 기존 `_drawXxx` 바디를 default case 에 그대로 복사하고 신규 variant 만 새 case 로 추가하는 방식이 회귀 없는 확장을 보장했다.
-- **public helper 분리**: `_xxxFor` → `miniroomSceneXxxFor` 로 이름 바꿔 top-level 함수로 두는 것이 TDD 에 가장 적합하고 side-effect 없다.
-- **shouldRepaint 갱신**: 신규 variant 필드를 비교 목록에 추가해 setState 없이도 Painter 가 올바르게 재그림한다.
+TDD RED→GREEN 사이클이 helper 함수 단위 테스트와 잘 맞았다. 각 슬롯의 `_xxxFor(String? assetKey)` 는 순수 함수여서 외부 의존 없이 단위 테스트 36개를 빠르게 작성할 수 있었고, RED 단계에서 prefix 버그를 명확한 색상값 불일치로 확인할 수 있었다. 기존 `_wallColorFor` 패턴을 6개 슬롯에 일관되게 복제해 구조적 일관성을 유지했다. 시드 assetKey 가 단일 출처(migration 017)여서 매핑 실수가 발생하지 않았다.
 
 ### What could improve
 
-- 슬롯이 더 늘어나면 BackgroundPainter 생성자 파라미터가 계속 늘어남. `MiniroomVariants` data class 로 묶으면 가독성 + shouldRepaint 관리가 쉬워진다.
-- withOpacity deprecation 은 pre-existing 이었으나 이번 파일 편집 시 함께 해결했다. 다른 파일의 동일 패턴도 별도 cleanup pass 권장.
+product-planner spec reference 에 엔티티명 오기(`RoomItem`→`Item`, `MiniroomSlot`→`RoomEquipMr`) 가 있어 초기 컨텍스트 파악에 시간이 소요됐다. 디자인 스펙의 "기본값=작은 화분" 표현과 시드의 `mr/plant_cactus` default 가 서로 다른 방식으로 표현돼 있어 문서-데이터 드리프트가 누적되고 있다. Painter 생성자 인자가 6 variant 추가로 길어지면서 `MiniroomVariants` struct 리팩터가 자연스럽게 필요해졌는데, 이런 리팩터 시점을 미리 slice 계획에 포함해 두면 기술 부채 누적을 방지할 수 있다.
 
 ### Process signal
 
-- RED→GREEN 사이클이 helper 함수 API 설계 오류를 빠르게 잡아줬다 (함수명 오타 등). 테스트 작성이 인터페이스 설계를 명확히 했다.
+`spec-compliance-reviewer` 에이전트가 available agents 에 없어 `code-reviewer` 로 결합 수행했다. 실제 결과에는 문제가 없었으나 workflow 정의(`agents.md` §Dispatch Rules)와 가용 에이전트 간 mismatch 는 이번이 처음이 아니다 — `agents.md` 의 `spec-compliance-reviewer` 를 실제 `.claude/agents/` 에 추가하거나, 통합 역할을 공식화하는 방향으로 정리가 필요하다.
+
+## Referenced Reports
+
+- `docs/reports/2026-04-19-feature-room-decoration.md` — 부모 slice (migration 017, `mr/` 시드 출처). `MiniroomScene.equip` 파라미터 최초 추가.
+- `docs/reports/2026-04-20-feature-miniroom-cyworld-wiring.md` — equip wiring slice. `wall/blue` 등 legacy prefix 보존 근거.
+- `docs/reports/2026-04-20-feature-miniroom-equip-wiring-tdd.md` — TDD 패턴(helper visibility `@visibleForTesting` 방식) 참고.
+- `docs/reports/2026-04-20-design-miniroom-cyworld-revise.md` — 디자인 스펙 개정 context. 6개 슬롯 §Future 항목 위치 확인.
+
+## Related
+
+- `impl-log/feat-miniroom-slot-variant-painter-feature.md`
+- `test-reports/miniroom-slot-variant-painter-feature-test-report.md`
+- Design spec: `docs/design/specs/miniroom-cyworld.md`
+
+## Screenshots
+
+![App launch](screenshots/2026-04-21-feature-miniroom-variant-painter-01.png)
+![App settled](screenshots/2026-04-21-feature-miniroom-variant-painter-02.png)
