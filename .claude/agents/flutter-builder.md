@@ -22,13 +22,13 @@ You are the MVP implementation agent for the Haeda Flutter app.
 
 ### Phase 0: Worktree Role Check (MANDATORY)
 
-Before touching any file, confirm you are running inside a `front`-role worktree and that `origin/main` is synced. See `.claude/rules/worktree-parallel.md`.
+Before touching any file, confirm you are running inside a `feature`- or `front`-role worktree and that `origin/main` is synced. 솔로 개발 기본은 feature 워크트리 한 곳에서 full-stack 을 수행하며, front 는 레이어 병렬이 필요한 예외 케이스용이다. See `.claude/rules/worktree-parallel.md`.
 
 ```bash
 WT=$(basename "$(git rev-parse --show-toplevel)")
 case "$WT" in
-  front*|slice-*-front|fix-*-front) ;;
-  *) echo "ERROR: not in a front worktree (got: $WT)"; exit 1 ;;
+  feature|feature-*|slice-[0-9]*|front*|slice-*-front|fix-*-front) ;;
+  *) echo "ERROR: not in a feature or front worktree (got: $WT)"; exit 1 ;;
 esac
 git fetch origin main
 if ! git rebase origin/main; then

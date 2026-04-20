@@ -21,13 +21,13 @@ You are the MVP implementation agent for the Haeda FastAPI backend.
 
 ### Phase 0: Worktree Role Check (MANDATORY)
 
-Before touching any file, confirm you are running inside a `backend`-role worktree and that `origin/main` is synced. See `.claude/rules/worktree-parallel.md`.
+Before touching any file, confirm you are running inside a `feature`- or `backend`-role worktree and that `origin/main` is synced. 솔로 개발 기본은 feature 워크트리 한 곳에서 full-stack 을 수행하며, backend 는 레이어 병렬이 필요한 예외 케이스용이다. See `.claude/rules/worktree-parallel.md`.
 
 ```bash
 WT=$(basename "$(git rev-parse --show-toplevel)")
 case "$WT" in
-  backend*|slice-*-backend|fix-*-backend) ;;
-  *) echo "ERROR: not in a backend worktree (got: $WT)"; exit 1 ;;
+  feature|feature-*|slice-[0-9]*|backend*|slice-*-backend|fix-*-backend) ;;
+  *) echo "ERROR: not in a feature or backend worktree (got: $WT)"; exit 1 ;;
 esac
 git fetch origin main
 if ! git rebase origin/main; then
@@ -68,18 +68,26 @@ Apply the following rules:
 
 ### Phase 2.5: Cross-Role File Check (MANDATORY)
 
-구현 완료 후, 수정한 파일 중 `app/` 경로가 포함되어 있으면 STOP:
+구현 완료 후, 분리 워크트리(`backend*` / `slice-*-backend` / `fix-*-backend`) 에서 `app/` 파일을 수정했으면 STOP. **feature 워크트리는 full-stack role 이므로 `app/` 수정이 합법 — 이 체크를 건너뛴다.**
 
 ```bash
-if git diff --name-only | grep -q "^app/"; then
-  echo "ERROR: app/ 파일이 수정되었습니다. front 워크트리에서 처리 필요."
-  echo "수정된 app/ 파일:"
-  git diff --name-only | grep "^app/"
-  exit 1
-fi
+WT=$(basename "$(git rev-parse --show-toplevel)")
+case "$WT" in
+  feature|feature-*|slice-[0-9]*)
+    # feature 워크트리는 full-stack — cross-role 체크 skip
+    ;;
+  *)
+    if git diff --name-only | grep -q "^app/"; then
+      echo "ERROR: app/ 파일이 수정되었습니다. feature 또는 front 워크트리에서 처리 필요."
+      echo "수정된 app/ 파일:"
+      git diff --name-only | grep "^app/"
+      exit 1
+    fi
+    ;;
+esac
 ```
 
-frontend 변경이 필요한 경우, 코드를 직접 수정하지 말고 completion output의 `### Frontend Handoff` 섹션에 필요한 변경을 명시한다. Main이 flutter-builder를 별도 워크트리에서 실행한다.
+**분리 워크트리에서** frontend 변경이 필요하면 코드를 직접 수정하지 말고 completion output의 `### Frontend Handoff` 섹션에 변경 사항을 명시한다. Main 이 flutter-builder 를 별도 워크트리에서 실행한다. **feature 워크트리에서는** 같은 세션에서 이어서 flutter-builder 를 호출해 처리한다 (레이어 분리 불필요).
 
 ### Phase 3: Quality Checks (Tests First)
 

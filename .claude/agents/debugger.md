@@ -43,10 +43,13 @@ Your role determines what you can edit directly:
 
 | Worktree pattern | Role | Direct edit scope |
 |------------------|------|------------------|
+| `feature`, `feature-*`, `slice-NN` | feature (full-stack, 솔로 개발 기본) | `app/**`, `server/**` |
 | `backend*`, `slice-*-backend`, `fix-*-backend` | backend | `server/**` |
 | `front*`, `slice-*-front`, `fix-*-front` | front | `app/**` |
 | `qa*` | qa | `app/test/**`, `server/tests/**` |
 | `claude*` | claude | `.claude/**`, `CLAUDE.md` |
+
+feature 워크트리에서는 FE/BE 모두 편집 가능하므로, 크로스 레이어 버그도 단일 워크트리에서 완결 처리한다. front/backend 분리 워크트리에서만 handoff fix spec 이 필요하다.
 
 If the bug spans layers outside your role, you still diagnose everywhere, but execute only what your role allows. For other-role fixes, emit a **handoff fix spec** that the corresponding worktree can consume.
 
