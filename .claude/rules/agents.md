@@ -39,8 +39,8 @@ debugger (systematic-debugging) → (backend-builder | flutter-builder with TDD)
 Detailed rules:
 
 - **Brainstorming (pre-planning)**: 사용자 요청이 러프하면 `product-planner` 에이전트가 `brainstorming` 스킬로 먼저 shaping 요청. 구체적 spec 이 될 때까지 Feature Plan 을 생성하지 않는다.
-- **Planning**: All feature requests start with `product-planner`. The main thread never plans directly. Use `spec-keeper` immediately after to validate the plan (pre-implementation).
-- **Implementation**: Delegate to `backend-builder` and/or `flutter-builder`. 모든 builder 는 `tdd` 스킬을 준수하고 completion output 에 `### TDD Cycle Evidence` 를 포함한다. `feature` role 워크트리에서는 둘 다 순차 실행 가능 (같은 워크트리, 레이어 분리 불필요).
+- **Planning**: All feature requests start with `product-planner`. The main thread never plans directly. product-planner 는 **Phase 0: Prior-Work Lookup** 의무 — 작업 시작 전 `docs/reports/` 에서 관련 과거 보고서를 Grep·Read 해 Feature Plan 의 `### Referenced Reports` 섹션에 인용한다 (`.claude/rules/regression-prevention.md`). Use `spec-keeper` immediately after to validate the plan (pre-implementation).
+- **Implementation**: Delegate to `backend-builder` and/or `flutter-builder`. 모든 builder 는 `tdd` 스킬을 준수하고 completion output 에 `### TDD Cycle Evidence` 를 포함한다. 또한 **Phase 0.5: Reports Lookup** 의무로 `### Referenced Reports` 섹션도 필수. `feature` role 워크트리에서는 둘 다 순차 실행 가능 (같은 워크트리, 레이어 분리 불필요).
 - **Design**: UI/UX improvements go to `ui-designer` first, then `flutter-builder` integrates.
 - **Spec Compliance Review (post-implementation)**: After every builder completion, spawn `spec-compliance-reviewer` **before** `code-reviewer`. 이 에이전트는 구현 diff 가 Feature Plan 의 acceptance criteria / endpoint / screen / field 와 정확히 일치하는지 검증한다. Mismatch 시 해당 builder 재호출 (max 1 retry).
 - **Code Review**: After `spec-compliance-reviewer` passes, spawn `code-reviewer`. 이 에이전트는 품질 (스타일, 중복, 보안, TDD 증거) 만 본다. 변경 요구 시 builder 재호출 (max 1 retry).
@@ -91,6 +91,7 @@ Every feature/fix gets a detailed log file at `impl-log/<slug>.md`.
 | Spec Verify (Step 2, pre-impl) | spec-keeper finds zero mismatches | Re-run product-planner once, then STOP |
 | Spec Compliance (Step 4.5, post-impl) | spec-compliance-reviewer verdict = Pass (no Missing / no Drift) | Re-invoke builder with fix list (max 1 retry) |
 | Code Review (Step 5) | code-reviewer verdict = Pass (품질 + TDD 증거 포함) | Re-invoke builder with fix list (max 1 retry) |
+| Regression Prevention (Step 5 sub-gate) | builder/debugger completion output 에 `### Referenced Reports` 섹션 존재 + (기존 파일 수정/삭제 시 관련 보고서 인용) — `.claude/rules/regression-prevention.md` | Re-invoke builder with instruction to Grep `docs/reports/` and cite (max 1 retry) |
 | QA (Step 6) | qa-reviewer verdict = complete (verification-before-completion 통과) | Spawn debugger (systematic-debugging) → builder (TDD) → re-QA (max 2 retries) |
 | Deploy (Step 7) | health check passes + simulator running (모든 주장 명령/출력 인용) | STOP, report to user with logs |
 | Document (Step 8) | doc-writer writes all 3 files with retrospective section, without touching source-of-truth docs | STOP, report protected-file violation or missing retrospective |

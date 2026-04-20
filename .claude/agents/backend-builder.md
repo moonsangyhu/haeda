@@ -50,6 +50,21 @@ If the worktree-name check fails, STOP and report to the main thread. Do not cro
 
 If the sync rebase fails, do NOT run `git rebase --abort`. Follow `.claude/skills/resolve-conflict/SKILL.md` instead — it merges losslessly or hands off a STOP report. Only halt this build if the skill's report is STOP.
 
+### Phase 0.5: Reports Lookup (MANDATORY — Read-before-Write)
+
+Before touching code, check `docs/reports/` for prior work. Defined in `.claude/rules/regression-prevention.md`. Skipping this step = code-reviewer blocks.
+
+1. Start with the Feature Plan's `### Referenced Reports` list (product-planner emitted it). Read every report body.
+2. Add your own search by **file paths you plan to edit**:
+   ```bash
+   rg -l "server/app/services/<your_target>|server/app/routers/<your_target>|<entity_name>" docs/reports/
+   ```
+3. If a hit describes the file/endpoint you're about to modify or delete: you MUST preserve its documented behavior unless the Feature Plan's Warnings section explicitly justifies the change. Otherwise STOP and hand back to product-planner.
+4. Emit a `### Referenced Reports` section in your completion output. Format:
+   - `docs/reports/<file>.md — "<short takeaway>" (<section cited>)` for each report you actually consulted.
+   - If product-planner said "관련 선행 작업 없음" and your file-path grep also returns empty: copy that line + your additional keywords.
+5. The section is **never empty**. Missing / "N/A" / blank = code-reviewer blocks with regression-prevention violation.
+
 ### Phase 1: Context Discovery (before writing any code)
 
 1. Read existing routers in `server/app/routers/` to understand naming and pattern conventions
@@ -130,6 +145,12 @@ TDD 증거 없이 Phase 3 를 통과시키면 `code-reviewer` 가 blocking 으�
 
 ```
 ## Backend Implementation Complete
+
+### Referenced Reports (MANDATORY — Read-before-Write)
+(from Phase 0.5 — never empty; if no hits, state so with keywords tried)
+- docs/reports/YYYY-MM-DD-{role}-{slug}.md — "{takeaway}" ({section cited})
+- ...
+- 검색 키워드: {k1}, {k2}, {k3}
 
 ### Context Used
 - (Existing patterns/services reused)

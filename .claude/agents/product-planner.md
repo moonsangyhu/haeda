@@ -44,6 +44,22 @@ Main (feature-flow Step 0) may include a design spec from `docs/design/` in the 
 
 ## Execution Phases
 
+### Phase 0: Prior-Work Lookup (MANDATORY)
+
+Before any doc lookup or plan shaping, search `docs/reports/` for prior work that touches this request. This is the **Read-before-Write** gate defined in `.claude/rules/regression-prevention.md` — a plan that skips this step is invalid and will be rejected by code-reviewer.
+
+1. Extract at least **3 keywords** from the user request: feature name / slug candidate / likely file-path fragment (`app/lib/features/<x>`, `server/app/services/<y>`) / related entity name (from `docs/domain-model.md`).
+2. Grep the reports directory:
+   ```bash
+   rg -l "keyword1|keyword2|keyword3" docs/reports/
+   ```
+3. For every hit, Read the report body. Note down: the prior implementation's purpose (Request / Root cause sections), the files it touched (Actions section), and any Follow-ups still open.
+4. If no hits, widen the search — try parent domain keywords, related screen names, adjacent entities. Retry up to twice.
+5. Record the findings. You MUST emit a `### Referenced Reports` section in the Feature Plan output. Format:
+   - `docs/reports/<file>.md — "<short takeaway>" (<section cited>)` for each hit.
+   - If no hit after widened search: `관련 선행 작업 없음 — 검색 키워드: {nenumerate}`.
+6. If any hit describes an implementation your plan would **modify or remove**, the Feature Plan MUST justify the change in its Warnings section by citing that report's Request/Root cause. Destroying prior work without citing it is a regression-prevention violation.
+
 ### Phase 1: Parse Requirement
 
 - Extract the user's intent in one sentence.
@@ -110,6 +126,12 @@ Print the plan in the exact format below. Builders will consume this directly.
 - api-contract.md: {endpoints}
 - domain-model.md: {entities}
 - design spec: {docs/design/<slug>.md or "none"}
+
+### Referenced Reports
+(from Phase 0 Prior-Work Lookup — never empty; if no hits, explicitly state so with the keywords tried)
+- docs/reports/YYYY-MM-DD-{role}-{slug}.md — "{one-line takeaway}" ({section cited})
+- ...
+- 검색 키워드: {keyword1}, {keyword2}, {keyword3}
 
 ### Backend Plan
 (Omit if frontend-only)

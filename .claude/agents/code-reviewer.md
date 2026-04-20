@@ -68,6 +68,20 @@ Read `.claude/rules/coding-style.md` at the start of every review and apply its 
 - **예외**: trivial 변경 (오타, 주석, 포맷), 이미 테스트가 존재하는 함수의 내부 리팩터, 테스트 파일 자체의 수정은 제외.
 - **대응 테스트가 전혀 없거나 빌더가 `### Tests Added` / `### TDD Cycle Evidence` 를 생략한 경우 → blocking issue.** "Missing tests for `{file}`" 또는 "Missing TDD evidence for `{file}`" 형태로 플래그하고, owner 는 구현한 builder.
 
+### 9. Regression Prevention (Blocking)
+
+`.claude/rules/regression-prevention.md` 에 정의된 Read-before-Write 의무를 모든 builder · debugger 가 지켰는지 검증한다. 이 체크는 코드 품질보다도 먼저 본다 — 기존 구현을 모르고 덮어쓰는 실수가 가장 비용이 크기 때문.
+
+- **Section presence**: builder / debugger 의 completion output 에 `### Referenced Reports` 섹션이 존재하는가?
+  - 없음 → **blocking**. "Missing Referenced Reports section" 으로 플래그하고 owner = 해당 builder.
+- **Section substance**: 섹션이 있으나 내용이 `N/A`, `없음`, 공란, 또는 `관련 선행 작업 없음` 만 적혀 있는 경우, 다음 조건을 동시에 검사:
+  - `git diff --diff-filter=MD --name-only HEAD` 로 **수정/삭제된 기존 파일** 목록을 얻는다.
+  - 위 목록이 비어있지 않다면 (즉 기존 코드를 수정했다면) → **blocking**. "Claimed no prior reports but modified existing files: {list}. Re-search `docs/reports/` with file-path keywords." 로 플래그.
+  - 목록이 비어있고 신규 파일 생성만 있었다면 허용.
+- **Destructive change check**: `git diff --diff-filter=D --name-only HEAD` 로 **삭제된 파일** 이 있으면 해당 파일을 언급한 `docs/reports/` 보고서가 `### Referenced Reports` 섹션에 인용되어 있는지 확인.
+  - 인용 누락 → **blocking**. "Deleted `{file}` but did not cite the report documenting its original purpose. Regression-prevention rule requires explicit justification for removal." (사용자 명시 승인 없이 제거 금지 원칙)
+- **검증 절차**: Bash 로 `git diff --diff-filter=MD --name-only HEAD` 실행 후 그 출력과 completion output 의 Referenced Reports 섹션을 직접 대조해 blocking 여부를 판단한다. 추정·생략 금지 (`.claude/rules/verification.md`).
+
 ## Execution Steps
 
 1. Read `.claude/rules/coding-style.md` and (if backend changed) `.claude/rules/server-guard.md`, (if frontend changed) `.claude/rules/app-guard.md`.
@@ -87,6 +101,7 @@ Blocking issues:
 - Duplication of an existing utility
 - Hardcoded secrets or security smells
 - Missing tests for new endpoint / screen / service (section 8)
+- Missing `### Referenced Reports` section, or empty content while modifying/deleting existing files (section 9)
 
 Non-blocking (suggest only):
 - Minor naming preferences

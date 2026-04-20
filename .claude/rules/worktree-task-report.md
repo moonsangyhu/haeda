@@ -1,6 +1,12 @@
 # Worktree Task Report Rule (MANDATORY)
 
-모든 워크트리에서 수행되는 **작업 단위마다** git-tracked 보고 문서를 반드시 남긴다. git 히스토리만으로 "어느 워크트리에서 무슨 작업이 있었는지" 추적 가능해야 한다는 사용자 요구(2026-04-11)에 따른다. 이 규칙은 `.claude/rules/agents.md` 의 에이전트 파이프라인과 `.claude/rules/workflow.md` 의 9-step slice flow 와 동등한 강제력을 갖는다.
+모든 워크트리에서 수행되는 **작업 단위마다** git-tracked 보고 문서를 반드시 남긴다. git 히스토리만으로 "어느 워크트리에서 무슨 작업이 있었는지" 추적 가능해야 한다는 사용자 요구(2026-04-11)에 따른다. 이 규칙은 `.claude/rules/agents.md` 의 에이전트 파이프라인과 `.claude/rules/workflow.md` 의 10-step slice flow 와 동등한 강제력을 갖는다.
+
+본 규칙은 **작성 의무** 를 정의한다. 짝이 되는 **참고 의무 (Read-before-Write)** 는 `.claude/rules/regression-prevention.md` 에 정의되어 있다. 두 규칙은 항상 쌍으로 동작한다: 작업 시작 전 과거 보고서를 반드시 참고하고, 작업 종료 후 새 보고서를 반드시 남긴다.
+
+## 참고 의무 (요약)
+
+상태 변경 작업을 시작하는 에이전트는 **첫 단계**로 `docs/reports/` 를 최소 3개 키워드(기능명 / 파일 경로 / 엔티티명) 로 Grep 해 관련 보고서를 읽고, Feature Plan / builder completion output 의 `### Referenced Reports` 섹션에 인용해야 한다. 세부 조항·강제력·예외는 `.claude/rules/regression-prevention.md` 참고.
 
 ## 적용 범위
 

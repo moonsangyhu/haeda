@@ -64,6 +64,21 @@ feature 워크트리에서는 FE/BE 모두 편집 가능하므로, 크로스 레
 
 If the bug spans layers outside your role, you still diagnose everywhere, but execute only what your role allows. For other-role fixes, emit a **handoff fix spec** that the corresponding worktree can consume.
 
+## Phase 0.5: Reports Lookup (MANDATORY — Read-before-Write)
+
+Regression-prevention gate (`.claude/rules/regression-prevention.md`). Debuggers are the highest-risk agents for accidentally undoing prior fixes — past bugs cluster around the same files. Skipping this step = code-reviewer blocks + very likely re-introducing a regression.
+
+1. Grep `docs/reports/` for prior work on the buggy feature / file / error class:
+   ```bash
+   rg -l "{feature_or_screen}|{error_class}|{file_path_fragment}" docs/reports/
+   ```
+2. Pay special attention to prior debug reports (`docs/reports/*-debug-*.md`) that touched the same files — the current bug may be a regression of a previously-fixed issue, or a side effect of a prior fix.
+3. Read the hits. For every report describing a prior fix to a file you're about to edit, note:
+   - What root cause that report solved (so your fix doesn't undo it)
+   - What regression test it added (your fix must keep that test passing)
+4. Emit a `### Referenced Reports` section in the Phase 7 debug report AND in the Phase-final completion output. Never empty; if no hits, state so with the widened keywords tried.
+5. If Phase 6 verification breaks a test added by a prior report, STOP — you are undoing a prior fix. Revise the fix plan.
+
 ## Phase 1: Reproduce
 
 Make the failure visible and repeatable. Do NOT proceed without a reproduction.
@@ -455,6 +470,12 @@ Leave the report files staged but uncommitted. The main thread runs `/commit` af
 
 ```
 ## Debug Complete
+
+### Referenced Reports (MANDATORY — Read-before-Write)
+(from Phase 0.5 — never empty; prior-debug reports on same files must appear here if they exist)
+- docs/reports/YYYY-MM-DD-{role}-debug-{slug}.md — "{takeaway}" ({section cited})
+- ...
+- 검색 키워드: {k1}, {k2}, {k3}
 
 ### Bug
 {one-line summary}

@@ -29,6 +29,7 @@ Detailed rules in `.claude/rules/`:
 - **verification.md** — "완료/pass" 주장 전 증거 인용 필수 (MANDATORY)
 - **worktree-parallel.md** — role contract, rebase-retry push, deployer lockfile (MANDATORY for all worktree work)
 - **worktree-task-report.md** — 작업 단위마다 `docs/reports/YYYY-MM-DD-{role}-{slug}.md` 보고서 생성 의무 (MANDATORY)
+- **regression-prevention.md** — 상태 변경 작업 전 관련 `docs/reports/` 보고서 Grep + `### Referenced Reports` 인용 필수. 기존 구현 파괴 금지 원칙 (MANDATORY)
 - **claude-config-sync.md** — claude role의 `.claude/**` 변경은 즉시 push, 다른 role은 작업 시작 전 반드시 rebase (MANDATORY)
 - **autonomous-execution.md** — 파일 수정·명령·커밋·푸시는 허락 없이 즉시 수행. 사용자 결정이 필요한 경우만 질문 (MANDATORY)
 - **automation.md** — slice-auto, refinement pipeline
