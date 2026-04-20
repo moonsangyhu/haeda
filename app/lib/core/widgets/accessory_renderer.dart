@@ -11,6 +11,30 @@ void _drawPx(Canvas canvas, Color color, List<List<int>> pixels, double s) {
   }
 }
 
+/// Coordinate remap from 16-grid to 32-grid (spec §13):
+/// x_new = x_old * 2 - 1
+/// y_new = y_old * 2 + 4
+/// Each pixel becomes a 2×2 block.
+void _drawPxRemapped(Canvas canvas, Color color, List<List<int>> pixels, double px) {
+  final paint = Paint()
+    ..color = color
+    ..isAntiAlias = false
+    ..filterQuality = FilterQuality.none
+    ..style = PaintingStyle.fill;
+  for (final p in pixels) {
+    final xNew = p[0] * 2 - 1;
+    final yNew = p[1] * 2 + 4;
+    for (int dx = 0; dx < 2; dx++) {
+      for (int dy = 0; dy < 2; dy++) {
+        canvas.drawRect(
+          Rect.fromLTWH((xNew + dx) * px, (yNew + dy) * px, px, px),
+          paint,
+        );
+      }
+    }
+  }
+}
+
 void drawAccessoryOnCharacter(
   Canvas canvas,
   double px,
@@ -20,21 +44,21 @@ void drawAccessoryOnCharacter(
 ) {
   switch (assetKey) {
     case 'accessory/watch.png':
-      _drawPx(canvas, const Color(0xFF78909C), [[4, 10]], px);
-      _drawPx(canvas, const Color(0xFFFFFFFF), [[4, 10]], px);
+      _drawPxRemapped(canvas, const Color(0xFF78909C), [[4, 10]], px);
+      _drawPxRemapped(canvas, const Color(0xFFFFFFFF), [[4, 10]], px);
       break;
 
     case 'accessory/sunglasses.png':
-      _drawPx(canvas, const Color(0xFF37474F), [
+      _drawPxRemapped(canvas, const Color(0xFF37474F), [
         [5, 3], [6, 3], [7, 3], [8, 3], [9, 3], [10, 3],
       ], px);
-      _drawPx(canvas, const Color(0xFF4DB6AC), [[6, 3], [7, 3]], px);
-      _drawPx(canvas, const Color(0xFF4DB6AC), [[8, 3], [9, 3]], px);
-      _drawPx(canvas, const Color(0xFF37474F), [[7, 3], [8, 3]], px);
+      _drawPxRemapped(canvas, const Color(0xFF4DB6AC), [[6, 3], [7, 3]], px);
+      _drawPxRemapped(canvas, const Color(0xFF4DB6AC), [[8, 3], [9, 3]], px);
+      _drawPxRemapped(canvas, const Color(0xFF37474F), [[7, 3], [8, 3]], px);
       break;
 
     case 'accessory/angel_wings.png':
-      _drawPx(canvas, Colors.white, [
+      _drawPxRemapped(canvas, Colors.white, [
         [2, 8], [3, 8],
         [1, 9], [2, 9], [3, 9],
         [2, 10], [3, 10],
@@ -44,42 +68,42 @@ void drawAccessoryOnCharacter(
         [12, 10], [13, 10],
         [12, 11], [13, 11],
       ], px);
-      _drawPx(canvas, const Color(0xFFE3F2FD), [[2, 9], [13, 9]], px);
+      _drawPxRemapped(canvas, const Color(0xFFE3F2FD), [[2, 9], [13, 9]], px);
       break;
 
     case 'accessory/necklace.png':
-      _drawPx(canvas, const Color(0xFFFFD700), [[7, 8], [8, 8]], px);
+      _drawPxRemapped(canvas, const Color(0xFFFFD700), [[7, 8], [8, 8]], px);
       break;
 
     case 'accessory/newspaper.png':
-      _drawPx(canvas, const Color(0xFFBDBDBD), [
+      _drawPxRemapped(canvas, const Color(0xFFBDBDBD), [
         [10, 9], [11, 9], [12, 9],
         [10, 11], [11, 11], [12, 11],
       ], px);
-      _drawPx(canvas, const Color(0xFF9E9E9E), [
+      _drawPxRemapped(canvas, const Color(0xFF9E9E9E), [
         [10, 10], [11, 10], [12, 10],
       ], px);
-      _drawPx(canvas, const Color(0xFF757575), [[12, 10]], px);
+      _drawPxRemapped(canvas, const Color(0xFF757575), [[12, 10]], px);
       break;
 
     case 'accessory/duck_watergun.png':
       // Duck body
-      _drawPx(canvas, const Color(0xFFFFEB3B), [
+      _drawPxRemapped(canvas, const Color(0xFFFFEB3B), [
         [11, 9], [12, 9],
         [11, 10], [12, 10],
       ], px);
       // Duck head
-      _drawPx(canvas, const Color(0xFFFFEB3B), [[13, 8], [13, 9]], px);
+      _drawPxRemapped(canvas, const Color(0xFFFFEB3B), [[13, 8], [13, 9]], px);
       // Beak
-      _drawPx(canvas, const Color(0xFFFF9800), [[14, 9]], px);
+      _drawPxRemapped(canvas, const Color(0xFFFF9800), [[14, 9]], px);
       // Eye
-      _drawPx(canvas, const Color(0xFF212121), [[13, 8]], px);
+      _drawPxRemapped(canvas, const Color(0xFF212121), [[13, 8]], px);
       // Water squirt animation (every 2s in 6s cycle)
       if (animValue != null) {
         final phase = (animValue * 3) % 1.0;
         if (phase < 0.15) {
           final alpha = (255 * (1.0 - phase / 0.15)).round().clamp(0, 255);
-          _drawPx(canvas, Color.fromARGB(alpha, 0x42, 0xA5, 0xF5), [
+          _drawPxRemapped(canvas, Color.fromARGB(alpha, 0x42, 0xA5, 0xF5), [
             [15, 9], [15, 8],
           ], px);
         }
@@ -88,32 +112,32 @@ void drawAccessoryOnCharacter(
 
     case 'accessory/laptop.png':
       // Keyboard base
-      _drawPx(canvas, const Color(0xFF424242), [
+      _drawPxRemapped(canvas, const Color(0xFF424242), [
         [3, 10], [4, 10], [5, 10],
       ], px);
       // Screen (animated open/close every 3s in 6s cycle)
       final isOpen = animValue == null || (animValue * 2).floor() % 2 == 0;
-      _drawPx(
+      _drawPxRemapped(
         canvas,
         isOpen ? const Color(0xFF90CAF9) : const Color(0xFF616161),
         [[3, 9], [4, 9], [5, 9]],
         px,
       );
       // Hinge
-      _drawPx(canvas, const Color(0xFF212121), [[3, 10]], px);
+      _drawPxRemapped(canvas, const Color(0xFF212121), [[3, 10]], px);
       break;
 
     case 'accessory/pencil.png':
       // Eraser (pink)
-      _drawPx(canvas, const Color(0xFFFF8A80), [[11, 7]], px);
+      _drawPxRemapped(canvas, const Color(0xFFFF8A80), [[11, 7]], px);
       // Metal band (silver)
-      _drawPx(canvas, const Color(0xFFBDBDBD), [[11, 8]], px);
+      _drawPxRemapped(canvas, const Color(0xFFBDBDBD), [[11, 8]], px);
       // Body (yellow)
-      _drawPx(canvas, const Color(0xFFFFEB3B), [[11, 9], [11, 10], [11, 11]], px);
+      _drawPxRemapped(canvas, const Color(0xFFFFEB3B), [[11, 9], [11, 10], [11, 11]], px);
       // Sharpened tip (tan)
-      _drawPx(canvas, const Color(0xFFFFCC80), [[11, 12]], px);
+      _drawPxRemapped(canvas, const Color(0xFFFFCC80), [[11, 12]], px);
       // Lead (dark)
-      _drawPx(canvas, const Color(0xFF424242), [[11, 13]], px);
+      _drawPxRemapped(canvas, const Color(0xFF424242), [[11, 13]], px);
       break;
 
     default:
