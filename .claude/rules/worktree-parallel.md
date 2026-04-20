@@ -42,7 +42,7 @@ Four directories are writable from any role because they hold cross-cutting reco
 | `docs/reports/screenshots/` | `{YYYY-MM-DD}-{role}-{slug}-{NN}.png` | deployer |
 | `docs/` (top) | — never writable — | — |
 
-`{role}` MUST be one of `feature`, `backend`, `front`, `qa`, `claude`.
+`{role}` MUST be one of `feature`, `backend`, `front`, `qa`, `claude`, `design`, `planner`.
 `{slug}` is lowercase hyphenated, max 40 chars.
 
 Because every filename embeds the role, two worktrees never write the same file — rebase will always fast-forward.

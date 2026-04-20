@@ -22,7 +22,7 @@
 ## 파일 규약
 
 - **경로**: `docs/reports/YYYY-MM-DD-{role}-{slug}.md`
-- **role**: 작업을 수행한 워크트리의 역할. `backend | front | qa | claude` 중 하나. (역할 표는 `.claude/rules/worktree-parallel.md` 참고)
+- **role**: 작업을 수행한 워크트리의 역할. `feature | backend | front | qa | claude | design | planner` 중 하나. (역할 표는 `.claude/rules/worktree-parallel.md` 참고)
 - **slug**: 소문자 하이픈, 40자 이내. 기능·버그·주제 요약.
 - 한 작업에 여러 워크트리가 영향받으면 파일명은 수행 워크트리의 role 로 고정하고, 본문 헤더에 영향 받은 워크트리 목록을 명시한다.
 - 규약은 `.claude/rules/worktree-parallel.md` 의 Shared Directories 규약을 그대로 따르므로 두 워크트리가 동시 작업해도 파일 충돌은 일어나지 않는다.

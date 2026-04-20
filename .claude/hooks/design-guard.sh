@@ -27,11 +27,11 @@ fi
 
 REL_PATH="${FILE_PATH#$PROJECT_DIR/}"
 
-if [[ "$REL_PATH" == docs/design/* ]]; then
+if [[ "$REL_PATH" == docs/design/* ]] || [[ "$REL_PATH" == docs/reports/* ]]; then
   exit 0
 fi
 
-echo -e "${RED}BLOCKED: design worktree may only edit docs/design/**${NC}" >&2
+echo -e "${RED}BLOCKED: design worktree may only edit docs/design/** (task reports in docs/reports/** also allowed)${NC}" >&2
 echo -e "${RED}File: $REL_PATH${NC}" >&2
 echo -e "${RED}Code edits belong in feature worktree (or backend/front split worktrees). Config/rule edits in claude worktree.${NC}" >&2
 exit 2
