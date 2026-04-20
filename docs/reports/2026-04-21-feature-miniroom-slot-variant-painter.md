@@ -3,9 +3,13 @@ Date: 2026-04-21
 Worktree (수행): feature
 Worktree (영향): feature
 Role: feature
+status: rolled-back
 ---
 
-# Miniroom Slot Variant Painter
+> **ROLLED BACK** on 2026-04-21 (revert PR #51, commit `ec0c90c`).
+> 사용자 보고 "또 내 방 없어졌다" — 머지 직후 렌더 회귀 발생. `miniroom_scene.dart` 를 PR #48 시점(359줄)으로 복구. 본 보고서는 slice 기록으로 보존되나 구현은 main 에서 제거됨. 근본 원인 조사는 별도 debug slice에서.
+
+# Miniroom Slot Variant Painter (ROLLED BACK)
 
 ## Request
 
