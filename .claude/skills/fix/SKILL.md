@@ -13,8 +13,10 @@ Fast-track bug fix workflow. Runs end-to-end without approval gates.
 
 Differences from `feature-flow`:
 - Skips `product-planner` and `spec-keeper` (bug fix assumes no spec change)
-- Starts with `debugger` instead of `product-planner`
-- All other steps (code-reviewer, qa-reviewer, deployer, doc-writer, commit) are identical
+- Starts with `debugger` (backed by `systematic-debugging` 스킬) instead of `product-planner`
+- builder 재수정 시 `tdd` 스킬 준수 (RED test for regression → GREEN with fix → REFACTOR)
+- `spec-compliance-reviewer` 는 skip (spec 변경 없음). 단 기존 spec 대비 drift 생겼으면 별도 알림.
+- All other steps (code-reviewer, qa-reviewer, deployer, doc-writer + retrospective, commit) are identical
 
 ### Model Strategy
 
@@ -43,14 +45,15 @@ Main reads the bug report, identifies the affected area (from error messages, lo
 
 ## Step 1: Diagnose, Plan, Execute, Verify, Report (debugger)
 
-Spawn `debugger` with the bug description. The agent performs the full deep-debug loop:
-1. Reproduce the bug mechanically
-2. Trace it layer-by-layer across Frontend → API → Service → Data Access → Database
-3. Synthesize a single evidence-backed root cause
-4. Write a per-layer fix plan
-5. Execute in-role fixes and emit handoff specs for other roles
-6. Re-run the reproduction to verify the fix
-7. Generate the 3-file debug report (impl-log + test-report + docs/reports) via the doc-writer procedure
+Spawn `debugger` with the bug description. The agent follows `.claude/skills/systematic-debugging/SKILL.md` (4단계 근본 원인 조사 프로토콜) 과 `.claude/skills/tdd/SKILL.md` (fix 실행 시 RED → GREEN → REFACTOR):
+
+1. Reproduce the bug mechanically (skill Phase 1)
+2. Trace it layer-by-layer across Frontend → API → Service → Data Access → Database (skill Phase 2)
+3. Synthesize a single evidence-backed root cause (skill Phase 3)
+4. Write a per-layer fix plan (skill Phase 4)
+5. Execute in-role fixes via TDD (RED test that reproduces the bug → GREEN with fix → REFACTOR) and emit handoff specs for other roles (skill Phase 5)
+6. Re-run the reproduction to verify the fix (skill Phase 6, `verification-before-completion` 준수)
+7. Generate the 3-file debug report + retrospective section (impl-log + test-report + docs/reports) via the doc-writer procedure (skill Phase 7)
 
 Main reads the debugger's output:
 - **In-role fixes already applied** — staged, unpushed. Proceed to Step 3 (code review).
@@ -65,7 +68,7 @@ The debugger already applied in-role fixes in Step 1. This step only runs if the
 
 For each handoff spec, spawn the matching builder agent in its own worktree, passing:
 - The handoff spec verbatim (target file, current code, replacement code, regression test)
-- The instruction: "fix only, no refactor, no feature additions"
+- The instruction: "fix only (`tdd` 스킬 준수), no refactor, no feature additions"
 
 Cross-layer bugs: spawn the relevant builders in parallel.
 

@@ -1,45 +1,50 @@
 # Agent Team
 
-All implementation, review, build, and documentation work uses a 10-agent team. Main (Opus) handles requirement parsing, orchestration, and the final commit/push only.
+All implementation, review, build, and documentation work uses an 11-agent team. Main (Opus) handles requirement parsing, orchestration, and the final commit/push only.
 
 모델 배정은 `.claude/rules/model-policy.md` 에 정의된 **Plan=Opus / Implementation=Sonnet** 정책을 따른다.
 
 | Agent | Model | Role | Scope |
 |-------|-------|------|-------|
 | `product-planner` | **Opus** | Requirement → executable feature spec (planning) | read-only (docs + code) |
-| `spec-keeper` | Sonnet | Plan/code validation against docs source of truth | read-only |
-| `backend-builder` | Sonnet | FastAPI implementation | server/ only |
-| `flutter-builder` | Sonnet | Flutter UI implementation | app/ only |
+| `spec-keeper` | Sonnet | **Pre-implementation** plan validation against docs source of truth | read-only |
+| `backend-builder` | Sonnet | FastAPI implementation (TDD 의무) | server/ only |
+| `flutter-builder` | Sonnet | Flutter UI implementation (TDD 의무) | app/ only |
 | `ui-designer` | Sonnet | UI design / polish / accessibility | app/ only |
-| `code-reviewer` | Sonnet | Static code quality gate (style, reuse, security smells) | read-only + bash (git diff) |
-| `qa-reviewer` | Sonnet | Test execution + checklist review | read-only + bash |
-| `debugger` | Sonnet | Deep cross-layer debugging (FE/BE/DB): reproduce → layer-by-layer analysis → fix plan → execute → verify → report | read+edit+bash within worktree role |
-| `deployer` | Sonnet | Docker rebuild, flutter ios simulator run, health check | bash only |
-| `doc-writer` | Sonnet | impl-log, test-reports, docs/reports/ | write to impl-log/, test-reports/, docs/reports/ only |
+| `spec-compliance-reviewer` | Sonnet | **Post-implementation** spec compliance review (diff vs Feature Plan) | read-only + bash (git diff) |
+| `code-reviewer` | Sonnet | Static code quality gate (style, reuse, security, TDD evidence) | read-only + bash (git diff) |
+| `qa-reviewer` | Sonnet | Test execution + checklist review + verification-before-completion | read-only + bash |
+| `debugger` | Sonnet | Deep cross-layer debugging (systematic-debugging skill): reproduce → layer analysis → fix plan → execute (TDD) → verify → report | read+edit+bash within worktree role |
+| `deployer` | Sonnet | Docker rebuild, flutter ios simulator run, health check (verified evidence) | bash only |
+| `doc-writer` | Sonnet | impl-log, test-reports, docs/reports/ + retrospective section | write to impl-log/, test-reports/, docs/reports/ only |
 
 ## Dispatch Rules
 
 Feature work (new feature, enhancement) follows this chain — each arrow is a mandatory handoff:
 
 ```
-product-planner → spec-keeper → (backend-builder ∥ flutter-builder)
-  → code-reviewer → qa-reviewer → [debugger if QA fails] → deployer → doc-writer → Main /commit
+product-planner → spec-keeper → (backend-builder ∥ flutter-builder with TDD)
+  → spec-compliance-reviewer → code-reviewer → qa-reviewer
+  → [debugger (systematic-debugging) if QA fails] → deployer → doc-writer(+retrospective) → Main /commit
 ```
 
 Fix work (bug fix, no spec change) skips product-planner and spec-keeper:
 
 ```
-debugger → (backend-builder | flutter-builder) → code-reviewer → qa-reviewer
-  → deployer → doc-writer → Main /commit
+debugger (systematic-debugging) → (backend-builder | flutter-builder with TDD)
+  → spec-compliance-reviewer → code-reviewer → qa-reviewer
+  → deployer → doc-writer(+retrospective) → Main /commit
 ```
 
 Detailed rules:
 
-- **Planning**: All feature requests start with `product-planner`. The main thread never plans directly. Use `spec-keeper` immediately after to validate.
-- **Implementation**: Delegate to `backend-builder` and/or `flutter-builder`. `feature` role 워크트리에서는 둘 다 순차 실행 가능 (같은 워크트리, 레이어 분리 불필요).
+- **Brainstorming (pre-planning)**: 사용자 요청이 러프하면 `product-planner` 에이전트가 `brainstorming` 스킬로 먼저 shaping 요청. 구체적 spec 이 될 때까지 Feature Plan 을 생성하지 않는다.
+- **Planning**: All feature requests start with `product-planner`. The main thread never plans directly. Use `spec-keeper` immediately after to validate the plan (pre-implementation).
+- **Implementation**: Delegate to `backend-builder` and/or `flutter-builder`. 모든 builder 는 `tdd` 스킬을 준수하고 completion output 에 `### TDD Cycle Evidence` 를 포함한다. `feature` role 워크트리에서는 둘 다 순차 실행 가능 (같은 워크트리, 레이어 분리 불필요).
 - **Design**: UI/UX improvements go to `ui-designer` first, then `flutter-builder` integrates.
-- **Code Review**: After every builder completion, spawn `code-reviewer` before `qa-reviewer`. If verdict is `Changes Requested`, re-invoke the owning builder with the fix list (max 1 retry), then re-review.
-- **QA**: After `code-reviewer` passes, spawn `qa-reviewer` to run tests + checklist.
+- **Spec Compliance Review (post-implementation)**: After every builder completion, spawn `spec-compliance-reviewer` **before** `code-reviewer`. 이 에이전트는 구현 diff 가 Feature Plan 의 acceptance criteria / endpoint / screen / field 와 정확히 일치하는지 검증한다. Mismatch 시 해당 builder 재호출 (max 1 retry).
+- **Code Review**: After `spec-compliance-reviewer` passes, spawn `code-reviewer`. 이 에이전트는 품질 (스타일, 중복, 보안, TDD 증거) 만 본다. 변경 요구 시 builder 재호출 (max 1 retry).
+- **QA**: After `code-reviewer` passes, spawn `qa-reviewer` to run tests + checklist. qa-reviewer 는 `verification-before-completion` 스킬을 따라 모든 주장에 명령/출력 인용 필수.
 - **Debug**: If `qa-reviewer` returns `partial` or `incomplete`, auto-spawn `debugger`. The debugger performs deep cross-layer analysis (FE/BE/DB), plans, executes in-role fixes, writes handoff specs for other roles, verifies by re-reproduction, and generates a 3-file debug report (impl-log + test-report + docs/reports) following the doc-writer procedure. Main routes handoff specs to the matching builder and re-runs qa-reviewer (max 2 retries).
 - **Deploy**: After QA complete, spawn `deployer` for rebuild + health check + iOS simulator run.
 - **Documentation**: After deploy succeeds, spawn `doc-writer` for impl-log + test-report + feature report.
@@ -83,9 +88,10 @@ Every feature/fix gets a detailed log file at `impl-log/<slug>.md`.
 
 | Gate | Condition | Action on Fail |
 |------|-----------|----------------|
-| Spec Verify (Step 2) | spec-keeper finds zero mismatches | Re-run product-planner once, then STOP |
-| Code Review (Step 4) | code-reviewer verdict = Pass | Re-invoke builder with fix list (max 1 retry) |
-| QA (Step 5) | qa-reviewer verdict = complete | Spawn debugger → builder → re-QA (max 2 retries) |
-| Deploy (Step 6) | health check passes + simulator running | STOP, report to user with logs |
-| Document (Step 7) | doc-writer writes all 3 files without touching source-of-truth docs | STOP, report protected-file violation |
-| Commit (Step 8) | all above passed | — |
+| Spec Verify (Step 2, pre-impl) | spec-keeper finds zero mismatches | Re-run product-planner once, then STOP |
+| Spec Compliance (Step 4.5, post-impl) | spec-compliance-reviewer verdict = Pass (no Missing / no Drift) | Re-invoke builder with fix list (max 1 retry) |
+| Code Review (Step 5) | code-reviewer verdict = Pass (품질 + TDD 증거 포함) | Re-invoke builder with fix list (max 1 retry) |
+| QA (Step 6) | qa-reviewer verdict = complete (verification-before-completion 통과) | Spawn debugger (systematic-debugging) → builder (TDD) → re-QA (max 2 retries) |
+| Deploy (Step 7) | health check passes + simulator running (모든 주장 명령/출력 인용) | STOP, report to user with logs |
+| Document (Step 8) | doc-writer writes all 3 files with retrospective section, without touching source-of-truth docs | STOP, report protected-file violation or missing retrospective |
+| Commit (Step 9) | all above passed | — |

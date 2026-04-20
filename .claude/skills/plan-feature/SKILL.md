@@ -9,6 +9,12 @@ argument-hint: "[slug] [short description]"
 
 Authoring helper for the planner worktree. Turns a user-described idea into a filled-out spec using `docs/planning/TEMPLATE.md` and commits it.
 
+## Pre-check — Rough Idea Gate
+
+아이디어가 러프하거나 여러 구현 방향이 열려있거나 P0/P1 구분이 불명확하면 **먼저** `.claude/skills/brainstorming/SKILL.md` 를 호출해 shaping 한 뒤 본 스킬로 돌아온다. Brainstorming 이 `docs/planning/drafts/<slug>.md` 에 초안을 남겨두면, 본 스킬은 그 초안을 바탕으로 최종 spec 을 작성한다.
+
+구체화된 아이디어 (PRD 섹션 명시, acceptance criteria 나열, 명확한 scope) 라면 brainstorming 을 건너뛰고 바로 진행.
+
 ## Preconditions
 
 - Current worktree MUST be a planner worktree (`.planner-worktree` sentinel at repo root). If not, STOP and tell the user to run this from the planner worktree.
