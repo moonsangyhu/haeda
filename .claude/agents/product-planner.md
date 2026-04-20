@@ -1,7 +1,7 @@
 ---
 name: product-planner
 description: Product planning agent that turns user requirements into executable feature specs. Reads PRD/flow/domain/API docs and produces acceptance criteria, affected files, and per-layer plans that builders can consume directly. Use as Step 1 of feature-flow.
-model: sonnet
+model: opus
 tools: Read Glob Grep
 maxTurns: 15
 skills:
