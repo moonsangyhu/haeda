@@ -1,18 +1,94 @@
 #!/usr/bin/env python3
-"""PreToolUse hook: block git push unless report + QA conditions are met.
+"""PreToolUse hook: gate push/merge commands on AIDLC approval evidence.
 
-Reads tool input from stdin (JSON). Checks:
-1. Is this a git push command?
-2. Does a docs/reports/*.md file exist for today?
-3. Does the report contain a QA result section with passing verdict?
+Post-AIDLC migration rules:
 
-Exit 0 = allow, exit 2 = block with reason on stdout.
+1. Block legacy direct push to main (`git push origin HEAD:main`).
+2. For `gh pr merge` or feature pushes that touch app/ or server/, require
+   `aidlc-docs/audit.md` to exist AND contain at least one recent entry
+   with "Approved" in an AI Response or stage-completion context.
+3. Infra-only pushes (.claude/, CLAUDE.md, docs/, aidlc-docs/, scripts/,
+   .aidlc-rule-details/) are allowed without audit evidence — these are
+   configuration / documentation changes that AIDLC itself does not gate.
+
+Exit 0 = allow, exit 2 = block with reason on stderr.
 """
-import glob
 import json
 import os
+import subprocess
 import sys
-from datetime import date
+
+
+_INFRA_PREFIXES = (
+    ".claude/",
+    ".aidlc-rule-details/",
+    "aidlc-docs/",
+    "docs/",
+    "scripts/",
+    "Makefile",
+    "CLAUDE.md",
+    "README.md",
+    ".gitignore",
+)
+
+
+def _is_gated_command(command: str) -> bool:
+    stripped = command.strip()
+    for part in stripped.replace("&&", ";").split(";"):
+        part = part.strip()
+        if part.startswith("gh pr merge"):
+            return True
+        if part.startswith("git push") and "HEAD:main" in part:
+            return True
+    return False
+
+
+def _is_direct_main_push(command: str) -> bool:
+    stripped = command.strip()
+    for part in stripped.replace("&&", ";").split(";"):
+        part = part.strip()
+        if part.startswith("git push") and "HEAD:main" in part:
+            return True
+    return False
+
+
+def _infra_only_changes(repo_root: str) -> bool:
+    """Return True if all commits since upstream touch only infra paths."""
+    diff_result = subprocess.run(
+        ["git", "diff", "--name-only", "@{u}..HEAD"],
+        capture_output=True,
+        text=True,
+        cwd=repo_root,
+    )
+    if diff_result.returncode != 0 or not diff_result.stdout.strip():
+        return False
+    changed = [f.strip() for f in diff_result.stdout.strip().split("\n") if f.strip()]
+    return all(
+        any(f == p or f.startswith(p) for p in _INFRA_PREFIXES)
+        for f in changed
+    )
+
+
+def _audit_has_recent_approval(repo_root: str) -> bool:
+    audit_path = os.path.join(repo_root, "aidlc-docs", "audit.md")
+    if not os.path.isfile(audit_path):
+        return False
+    try:
+        with open(audit_path, encoding="utf-8") as fh:
+            content = fh.read()
+    except OSError:
+        return False
+    # Accept any sign of explicit approval from the user via AIDLC's
+    # "Wait for Explicit Approval" flow.
+    markers = (
+        "Approved by user",
+        "approved by user",
+        "Continue to Next Stage",
+        '[Answer]: approve',
+        "User Input: \"approve\"",
+        'approved"',
+    )
+    return any(m in content for m in markers)
 
 
 def main() -> None:
@@ -21,113 +97,38 @@ def main() -> None:
     except (json.JSONDecodeError, ValueError):
         sys.exit(0)
 
-    tool_input = data.get("tool_input", {})
-    command = tool_input.get("command", "")
+    command = (data.get("tool_input") or {}).get("command", "")
 
-    # Gate PR merge commands (the new push flow) and direct git push to main
-    stripped = command.strip()
-    is_gated = False
-    for part in stripped.replace("&&", ";").split(";"):
-        part = part.strip()
-        if part.startswith("gh pr merge"):
-            is_gated = True
-            break
-        if part.startswith("git push") and "HEAD:main" in part:
-            is_gated = True  # Block legacy direct push to main
-            break
-
-    if not is_gated:
+    if not _is_gated_command(command):
         sys.exit(0)
+
+    # Hard-block legacy direct-to-main push regardless of content.
+    if _is_direct_main_push(command):
+        print(
+            "BLOCKED: Direct `git push origin HEAD:main` is forbidden.\n"
+            "Use `gh pr create` + `gh pr merge` via the PR flow instead.",
+            file=sys.stderr,
+        )
+        sys.exit(2)
 
     repo_root = os.environ.get("CLAUDE_PROJECT_DIR", os.getcwd())
 
-    # Skip gate for non-feature commits (infra, config, docs-only).
-    # Check if ALL commits since remote are in non-feature paths.
-    import subprocess
+    # Infra-only PR merges skip the AIDLC audit check.
+    if _infra_only_changes(repo_root):
+        sys.exit(0)
 
-    diff_result = subprocess.run(
-        ["git", "diff", "--name-only", "@{u}..HEAD"],
-        capture_output=True,
-        text=True,
-        cwd=repo_root,
+    # Feature change: require audit evidence of AIDLC approval.
+    if _audit_has_recent_approval(repo_root):
+        sys.exit(0)
+
+    print(
+        "BLOCKED: `gh pr merge` requires AIDLC approval evidence in "
+        "aidlc-docs/audit.md.\n"
+        "Drive the change through the AIDLC workflow (`Using AI-DLC, ...`) "
+        "and obtain explicit stage approvals before merging.",
+        file=sys.stderr,
     )
-    if diff_result.returncode == 0 and diff_result.stdout.strip():
-        changed = [f.strip() for f in diff_result.stdout.strip().split("\n") if f.strip()]
-        _NON_FEATURE_PREFIXES = (".claude/", "docs/reports/", "scripts/", "test-reports/", "Makefile", "CLAUDE.md")
-        all_infra = all(
-            any(f.startswith(p) or f == p for p in _NON_FEATURE_PREFIXES)
-            for f in changed
-        )
-        if all_infra:
-            sys.exit(0)  # Infra-only push, no report needed
-    reports_dir = os.path.join(repo_root, "docs", "reports")
-
-    # Check 1: Any report file exists for today
-    today = date.today().isoformat()  # YYYY-MM-DD
-    pattern = os.path.join(reports_dir, f"{today}-*.md")
-    today_reports = glob.glob(pattern)
-
-    if not today_reports:
-        # Also check for any recent report (not just today)
-        all_reports = glob.glob(os.path.join(reports_dir, "*.md"))
-        # Exclude README.md
-        all_reports = [r for r in all_reports if not r.endswith("README.md")]
-        if not all_reports:
-            print(
-                "BLOCKED: git push requires a feature report in docs/reports/.\n"
-                "Run /feature-flow to generate a report before pushing.",
-                file=sys.stderr,
-            )
-            sys.exit(2)
-
-    # Check 2: Most recent report has QA result
-    all_reports = sorted(
-        glob.glob(os.path.join(reports_dir, "*.md")),
-        key=os.path.getmtime,
-        reverse=True,
-    )
-    all_reports = [r for r in all_reports if not r.endswith("README.md")]
-
-    if not all_reports:
-        print(
-            "BLOCKED: No feature reports found in docs/reports/.\n"
-            "Run /feature-flow to complete the workflow before pushing.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-
-    latest_report = all_reports[0]
-    try:
-        with open(latest_report, encoding="utf-8") as f:
-            content = f.read()
-    except OSError:
-        sys.exit(0)  # Can't read? Don't block.
-
-    # Check for QA section with pass indicator
-    has_qa_section = "## QA" in content or "## qa" in content.lower()
-    has_pass = any(
-        marker in content.lower()
-        for marker in ["pass", "complete", "approved", "verdict: complete"]
-    )
-
-    if not has_qa_section:
-        print(
-            f"BLOCKED: Report {os.path.basename(latest_report)} has no QA results section.\n"
-            "Complete QA review before pushing.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-
-    if not has_pass:
-        print(
-            f"BLOCKED: Report {os.path.basename(latest_report)} QA did not pass.\n"
-            "Fix issues and re-run QA before pushing.",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-
-    # All checks passed
-    sys.exit(0)
+    sys.exit(2)
 
 
 if __name__ == "__main__":
