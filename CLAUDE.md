@@ -2,618 +2,161 @@
 
 Haeda is a collaborative challenge app (calendar-based motivation service) for a 4-week hospital pilot MVP. Stack: Flutter (app/) + FastAPI (server/) + PostgreSQL + Kakao OAuth.
 
-As of 2026-04-23 this project uses the **AI-DLC (AI-Driven Life Cycle) adaptive workflow** from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) as its primary development methodology. The previous feature-flow skill-based pipeline is archived under `.claude/*/ARCHIVE/`.
+As of 2026-04-23 this project uses the **AI-DLC adaptive workflow** from [awslabs/aidlc-workflows](https://github.com/awslabs/aidlc-workflows) as its primary development methodology. Legacy feature-flow infrastructure is archived under `.claude/{agents,skills,rules}/ARCHIVE/`.
 
 Activation phrase: start development requests with `Using AI-DLC, ...`
 
 ---
 
 # PRIORITY: This workflow OVERRIDES all other built-in workflows
-# When user requests software development, ALWAYS follow this workflow FIRST
-
-## Adaptive Workflow Principle
-**The workflow adapts to the work, not the other way around.**
-
-The AI model intelligently assesses what stages are needed based on:
-1. User's stated intent and clarity
-2. Existing codebase state (if any)
-3. Complexity and scope of change
-4. Risk and impact assessment
-
-## MANDATORY: Rule Details Loading
-**CRITICAL**: When performing any phase, you MUST read and use relevant content from rule detail files. Check these paths in order and use the first one that exists, regardless of which IDE or setup method was used:
-- `.aidlc/aidlc-rules/aws-aidlc-rule-details/` (typical with AI-assisted setup)
-- `.aidlc-rule-details/` (typical with Cursor, Cline, Claude Code, GitHub Copilot, OpenAI Codex)
-- `.kiro/aws-aidlc-rule-details/` (typical with Kiro IDE and CLI)
-- `.amazonq/aws-aidlc-rule-details/` (typical with Amazon Q Developer)
-
-All subsequent rule detail file references (e.g., `common/process-overview.md`, `inception/workspace-detection.md`) are relative to whichever rule details directory was resolved above.
-
-**Common Rules**: ALWAYS load common rules at workflow start:
-- Load `common/process-overview.md` for workflow overview
-- Load `common/session-continuity.md` for session resumption guidance
-- Load `common/content-validation.md` for content validation requirements
-- Load `common/question-format-guide.md` for question formatting rules
-- Reference these throughout the workflow execution
-
-## MANDATORY: Extensions Loading (Context-Optimized)
-**CRITICAL**: At workflow start, scan the `extensions/` directory recursively but load ONLY lightweight opt-in files — NOT full rule files. Full rule files are loaded on-demand after the user opts in.
-
-**Loading process**:
-1. List all subdirectories under `extensions/` (e.g., `extensions/security/`, `extensions/compliance/`)
-2. In each subdirectory, load ONLY `*.opt-in.md` files — these contain the extension's opt-in prompt. The corresponding rules file is derived by convention: strip the `.opt-in.md` suffix and append `.md` (e.g., `security-baseline.opt-in.md` → `security-baseline.md`)
-3. Do NOT load full rule files (e.g., `security-baseline.md`) at this stage
-
-**Deferred Rule Loading**:
-- During Requirements Analysis, opt-in prompts from the loaded `*.opt-in.md` files are presented to the user
-- When the user opts IN for an extension, load the corresponding rules file (derived by naming convention) at that point
-- When the user opts OUT, the full rules file is never loaded — saving context
-- Extensions without a matching `*.opt-in.md` file are always enforced — load their rule files immediately at workflow start
-
-**Enforcement** (applies only to loaded/enabled extensions):
-- Extension rules are hard constraints, not optional guidance
-- At each stage, the model intelligently evaluates which extension rules are applicable based on the stage's purpose, the artifacts being produced, and the context of the work — enforce only those rules that are relevant
-- Rules that are not applicable to the current stage should be marked as N/A in the compliance summary (this is not a blocking finding)
-- Non-compliance with any applicable enabled extension rule is a **blocking finding** — do NOT present stage completion until resolved
-- When presenting stage completion, include a summary of extension rule compliance (compliant/non-compliant/N/A per rule, with brief rationale for N/A determinations)
-
-**Conditional Enforcement**: Extensions may be conditionally enabled/disabled. See `inception/requirements-analysis.md` for the opt-in mechanism. Before enforcing any extension at ANY stage, check its `Enabled` status in `aidlc-docs/aidlc-state.md` under `## Extension Configuration`. Skip disabled extensions and log the skip in audit.md. Default to enforced if no configuration exists.
-
-## MANDATORY: Content Validation
-**CRITICAL**: Before creating ANY file, you MUST validate content according to `common/content-validation.md` rules:
-- Validate Mermaid diagram syntax
-- Validate ASCII art diagrams (see `common/ascii-diagram-standards.md`)
-- Escape special characters properly
-- Provide text alternatives for complex visual content
-- Test content parsing compatibility
-
-## MANDATORY: Question File Format
-**CRITICAL**: When asking questions at any phase, you MUST follow question format guidelines.
-
-**See `common/question-format-guide.md` for complete question formatting rules including**:
-- Multiple choice format (A, B, C, D, E options)
-- [Answer]: tag usage
-- Answer validation and ambiguity resolution
-
-## MANDATORY: Custom Welcome Message
-**CRITICAL**: When starting ANY software development request, you MUST display the welcome message.
-
-**How to Display Welcome Message**:
-1. Load the welcome message from `common/welcome-message.md` (in the resolved rule details directory)
-2. Display the complete message to the user
-3. This should only be done ONCE at the start of a new workflow
-4. Do NOT load this file in subsequent interactions to save context space
-
-# Adaptive Software Development Workflow
-
----
-
-# INCEPTION PHASE
-
-**Purpose**: Planning, requirements gathering, and architectural decisions
-
-**Focus**: Determine WHAT to build and WHY
-
-**Stages in INCEPTION PHASE**:
-- Workspace Detection (ALWAYS)
-- Reverse Engineering (CONDITIONAL - Brownfield only)
-- Requirements Analysis (ALWAYS - Adaptive depth)
-- User Stories (CONDITIONAL)
-- Workflow Planning (ALWAYS)
-- Application Design (CONDITIONAL)
-- Units Generation (CONDITIONAL)
-
----
-
-## Workspace Detection (ALWAYS EXECUTE)
-
-1. **MANDATORY**: Log initial user request in audit.md with complete raw input
-2. Load all steps from `inception/workspace-detection.md`
-3. Execute workspace detection:
-   - Check for existing aidlc-state.md (resume if found)
-   - Scan workspace for existing code
-   - Determine if brownfield or greenfield
-   - Check for existing reverse engineering artifacts
-4. Determine next phase: Reverse Engineering (if brownfield and no artifacts) OR Requirements Analysis
-5. **MANDATORY**: Log findings in audit.md
-6. Present completion message to user (see workspace-detection.md for message formats)
-7. Automatically proceed to next phase
-
-## Reverse Engineering (CONDITIONAL - Brownfield Only)
-
-**Execute IF**:
-- Existing codebase detected
-- No previous reverse engineering artifacts found
-
-**Skip IF**:
-- Greenfield project
-- Previous reverse engineering artifacts exist
-
-**Execution**:
-1. **MANDATORY**: Log start of reverse engineering in audit.md
-2. Load all steps from `inception/reverse-engineering.md`
-3. Execute reverse engineering:
-   - Analyze all packages and components
-   - Generate a business overview of the whole system covering the business transactions
-   - Generate architecture documentation
-   - Generate code structure documentation
-   - Generate API documentation
-   - Generate component inventory
-   - Generate Interaction Diagrams depicting how business transactions are implemented across components
-   - Generate technology stack documentation
-   - Generate dependencies documentation
-
-4. **Wait for Explicit Approval**: Present detailed completion message (see reverse-engineering.md for message format) - DO NOT PROCEED until user confirms
-5. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-## Requirements Analysis (ALWAYS EXECUTE - Adaptive Depth)
-
-**Always executes** but depth varies based on request clarity and complexity:
-- **Minimal**: Simple, clear request - just document intent analysis
-- **Standard**: Normal complexity - gather functional and non-functional requirements
-- **Comprehensive**: Complex, high-risk - detailed requirements with traceability
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `inception/requirements-analysis.md`
-3. Execute requirements analysis:
-   - Load reverse engineering artifacts (if brownfield)
-   - Analyze user request (intent analysis)
-   - Determine requirements depth needed
-   - Assess current requirements
-   - Ask clarifying questions (if needed)
-   - Generate requirements document
-4. Execute at appropriate depth (minimal/standard/comprehensive)
-5. **Wait for Explicit Approval**: Follow approval format from requirements-analysis.md detailed steps - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-## User Stories (CONDITIONAL)
-
-**INTELLIGENT ASSESSMENT**: Use multi-factor analysis to determine if user stories add value:
-
-**ALWAYS Execute IF** (High Priority Indicators):
-- New user-facing features or functionality
-- Changes affecting user workflows or interactions
-- Multiple user types or personas involved
-- Complex business requirements with acceptance criteria needs
-- Cross-functional team collaboration required
-- Customer-facing API or service changes
-- New product capabilities or enhancements
-
-**LIKELY Execute IF** (Medium Priority - Assess Complexity):
-- Modifications to existing user-facing features
-- Backend changes that indirectly affect user experience
-- Integration work that impacts user workflows
-- Performance improvements with user-visible benefits
-- Security enhancements affecting user interactions
-- Data model changes affecting user data or reports
-
-**COMPLEXITY-BASED ASSESSMENT**: For medium priority cases, execute user stories if:
-- Request involves multiple components or services
-- Changes span multiple user touchpoints
-- Business logic is complex or has multiple scenarios
-- Requirements have ambiguity that stories could clarify
-- Implementation affects multiple user journeys
-- Change has significant business impact or risk
-
-**SKIP ONLY IF** (Low Priority - Simple Cases):
-- Pure internal refactoring with zero user impact
-- Simple bug fixes with clear, isolated scope
-- Infrastructure changes with no user-facing effects
-- Technical debt cleanup with no functional changes
-- Developer tooling or build process improvements
-- Documentation-only updates
-
-**ASSESSMENT CRITERIA**: When in doubt, favor inclusion of user stories for:
-- Requests with business stakeholder involvement
-- Changes requiring user acceptance testing
-- Features with multiple implementation approaches
-- Work that benefits from shared team understanding
-- Projects where requirements clarity is valuable
-
-**ASSESSMENT PROCESS**:
-1. Analyze request complexity and scope
-2. Identify user impact (direct or indirect)
-3. Evaluate business context and stakeholder needs
-4. Consider team collaboration benefits
-5. Default to inclusion for borderline cases
-
-**Note**: If Requirements Analysis executed, Stories can reference and build upon those requirements.
-
-**User Stories has two parts within one stage**:
-1. **Part 1 - Planning**: Create story plan with questions, collect answers, analyze for ambiguities, get approval
-2. **Part 2 - Generation**: Execute approved plan to generate stories and personas
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `inception/user-stories.md`
-3. **MANDATORY**: Perform intelligent assessment (Step 1 in user-stories.md) to validate user stories are needed
-4. Load reverse engineering artifacts (if brownfield)
-5. If Requirements exist, reference them when creating stories
-6. Execute at appropriate depth (minimal/standard/comprehensive)
-7. **PART 1 - Planning**: Create story plan with questions, wait for user answers, analyze for ambiguities, get approval
-8. **PART 2 - Generation**: Execute approved plan to generate stories and personas
-9. **Wait for Explicit Approval**: Follow approval format from user-stories.md detailed steps - DO NOT PROCEED until user confirms
-10. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-## Workflow Planning (ALWAYS EXECUTE)
-
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `inception/workflow-planning.md`
-3. **MANDATORY**: Load content validation rules from `common/content-validation.md`
-4. Load all prior context:
-   - Reverse engineering artifacts (if brownfield)
-   - Intent analysis
-   - Requirements (if executed)
-   - User stories (if executed)
-5. Execute workflow planning:
-   - Determine which phases to execute
-   - Determine depth level for each phase
-   - Create multi-package change sequence (if brownfield)
-   - Generate workflow visualization (VALIDATE Mermaid syntax before writing)
-6. **MANDATORY**: Validate all content before file creation per content-validation.md rules
-7. **Wait for Explicit Approval**: Present recommendations using language from workflow-planning.md Step 9, emphasizing user control to override recommendations - DO NOT PROCEED until user confirms
-8. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-## Application Design (CONDITIONAL)
-
-**Execute IF**:
-- New components or services needed
-- Component methods and business rules need definition
-- Service layer design required
-- Component dependencies need clarification
-
-**Skip IF**:
-- Changes within existing component boundaries
-- No new components or methods
-- Pure implementation changes
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `inception/application-design.md`
-3. Load reverse engineering artifacts (if brownfield)
-4. Execute at appropriate depth (minimal/standard/comprehensive)
-5. **Wait for Explicit Approval**: Present detailed completion message (see application-design.md for message format) - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-## Units Generation (CONDITIONAL)
-
-**Execute IF**:
-- System needs decomposition into multiple units of work
-- Multiple services or modules required
-- Complex system requiring structured breakdown
-
-**Skip IF**:
-- Single simple unit
-- No decomposition needed
-- Straightforward single-component implementation
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `inception/units-generation.md`
-3. Load reverse engineering artifacts (if brownfield)
-4. Execute at appropriate depth (minimal/standard/comprehensive)
-5. **Wait for Explicit Approval**: Present detailed completion message (see units-generation.md for message format) - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-
----
-
-# 🟢 CONSTRUCTION PHASE
-
-**Purpose**: Detailed design, NFR implementation, and code generation
-
-**Focus**: Determine HOW to build it
-
-**Stages in CONSTRUCTION PHASE**:
-- Per-Unit Loop (executes for each unit):
-  - Functional Design (CONDITIONAL, per-unit)
-  - NFR Requirements (CONDITIONAL, per-unit)
-  - NFR Design (CONDITIONAL, per-unit)
-  - Infrastructure Design (CONDITIONAL, per-unit)
-  - Code Generation (ALWAYS, per-unit)
-- Build and Test (ALWAYS - after all units complete)
-
-**Note**: Each unit is completed fully (design + code) before moving to the next unit.
-
----
-
-## Per-Unit Loop (Executes for Each Unit)
-
-**For each unit of work, execute the following stages in sequence:**
-
-### Functional Design (CONDITIONAL, per-unit)
-
-**Execute IF**:
-- New data models or schemas
-- Complex business logic
-- Business rules need detailed design
-
-**Skip IF**:
-- Simple logic changes
-- No new business logic
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `construction/functional-design.md`
-3. Execute functional design for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in functional-design.md - DO NOT use emergent 3-option behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-### NFR Requirements (CONDITIONAL, per-unit)
-
-**Execute IF**:
-- Performance requirements exist
-- Security considerations needed
-- Scalability concerns present
-- Tech stack selection required
-
-**Skip IF**:
-- No NFR requirements
-- Tech stack already determined
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `construction/nfr-requirements.md`
-3. Execute NFR assessment for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in nfr-requirements.md - DO NOT use emergent behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-### NFR Design (CONDITIONAL, per-unit)
-
-**Execute IF**:
-- NFR Requirements was executed
-- NFR patterns need to be incorporated
-
-**Skip IF**:
-- No NFR requirements
-- NFR Requirements was skipped
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `construction/nfr-design.md`
-3. Execute NFR design for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in nfr-design.md - DO NOT use emergent behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-### Infrastructure Design (CONDITIONAL, per-unit)
-
-**Execute IF**:
-- Infrastructure services need mapping
-- Deployment architecture required
-- Cloud resources need specification
-
-**Skip IF**:
-- No infrastructure changes
-- Infrastructure already defined
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `construction/infrastructure-design.md`
-3. Execute infrastructure design for this unit
-4. **MANDATORY**: Present standardized 2-option completion message as defined in infrastructure-design.md - DO NOT use emergent behavior
-5. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-
-### Code Generation (ALWAYS EXECUTE, per-unit)
-
-**Always executes for each unit**
-
-**Code Generation has two parts within one stage**:
-1. **Part 1 - Planning**: Create detailed code generation plan with explicit steps
-2. **Part 2 - Generation**: Execute approved plan to generate code, tests, and artifacts
-
-**Execution**:
-1. **MANDATORY**: Log any user input during this stage in audit.md
-2. Load all steps from `construction/code-generation.md`
-3. **PART 1 - Planning**: Create code generation plan with checkboxes, get user approval
-4. **PART 2 - Generation**: Execute approved plan to generate code for this unit
-5. **MANDATORY**: Present standardized 2-option completion message as defined in code-generation.md - DO NOT use emergent behavior
-6. **Wait for Explicit Approval**: User must choose between "Request Changes" or "Continue to Next Stage" - DO NOT PROCEED until user confirms
-7. **MANDATORY**: Log user's response in audit.md with complete raw input
-
----
-
-## Build and Test (ALWAYS EXECUTE)
-
-1. **MANDATORY**: Log any user input during this phase in audit.md
-2. Load all steps from `construction/build-and-test.md`
-3. Generate comprehensive build and test instructions:
-   - Build instructions for all units
-   - Unit test execution instructions
-   - Integration test instructions (test interactions between units)
-   - Performance test instructions (if applicable)
-   - Additional test instructions as needed (contract tests, security tests, e2e tests)
-4. Create instruction files in build-and-test/ subdirectory: build-instructions.md, unit-test-instructions.md, integration-test-instructions.md, performance-test-instructions.md, build-and-test-summary.md
-5. **Wait for Explicit Approval**: Ask: "**Build and test instructions complete. Ready to proceed to Operations stage?**" - DO NOT PROCEED until user confirms
-6. **MANDATORY**: Log user's response in audit.md with complete raw input
-
----
-
-# 🟡 OPERATIONS PHASE
-
-**Purpose**: Placeholder for future deployment and monitoring workflows
-
-**Focus**: How to DEPLOY and RUN it (future expansion)
-
-**Stages in OPERATIONS PHASE**:
-- Operations (PLACEHOLDER)
-
----
-
-## Operations (PLACEHOLDER)
-
-**Status**: This stage is currently a placeholder for future expansion.
-
-The Operations stage will eventually include:
-- Deployment planning and execution
-- Monitoring and observability setup
-- Incident response procedures
-- Maintenance and support workflows
-- Production readiness checklists
-
-**Current State**: All build and test activities are handled in the CONSTRUCTION phase.
-
-## Key Principles
-
-- **Adaptive Execution**: Only execute stages that add value
-- **Transparent Planning**: Always show execution plan before starting
-- **User Control**: User can request stage inclusion/exclusion
-- **Progress Tracking**: Update aidlc-state.md with executed and skipped stages
-- **Complete Audit Trail**: Log ALL user inputs and AI responses in audit.md with timestamps
-  - **CRITICAL**: Capture user's COMPLETE RAW INPUT exactly as provided
-  - **CRITICAL**: Never summarize or paraphrase user input in audit log
-  - **CRITICAL**: Log every interaction, not just approvals
-- **Quality Focus**: Complex changes get full treatment, simple changes stay efficient
-- **Content Validation**: Always validate content before file creation per content-validation.md rules
-- **NO EMERGENT BEHAVIOR**: Construction phases MUST use standardized 2-option completion messages as defined in their respective rule files. DO NOT create 3-option menus or other emergent navigation patterns.
-
-## MANDATORY: Plan-Level Checkbox Enforcement
-
-### MANDATORY RULES FOR PLAN EXECUTION
-1. **NEVER complete any work without updating plan checkboxes**
-2. **IMMEDIATELY after completing ANY step described in a plan file, mark that step [x]**
-3. **This must happen in the SAME interaction where the work is completed**
-4. **NO EXCEPTIONS**: Every plan step completion MUST be tracked with checkbox updates
-
-### Two-Level Checkbox Tracking System
-- **Plan-Level**: Track detailed execution progress within each stage
-- **Stage-Level**: Track overall workflow progress in aidlc-state.md
-- **Update immediately**: All progress updates in SAME interaction where work is completed
-
-## Prompts Logging Requirements
-- **MANDATORY**: Log EVERY user input (prompts, questions, responses) with timestamp in audit.md
-- **MANDATORY**: Capture user's COMPLETE RAW INPUT exactly as provided (never summarize)
-- **MANDATORY**: Log every approval prompt with timestamp before asking the user
-- **MANDATORY**: Record every user response with timestamp after receiving it
-- **CRITICAL**: ALWAYS append changes to EDIT audit.md file, NEVER use tools and commands that completely overwrite its contents
-- **CRITICAL**: NEVER use file writing tools and commands that overwrite the entire contents of audit.md, as this causes duplication
-- Use ISO 8601 format for timestamps (YYYY-MM-DDTHH:MM:SSZ)
-- Include stage context for each entry
-
-### Audit Log Format:
-```markdown
-## [Stage Name or Interaction Type]
-**Timestamp**: [ISO timestamp]
-**User Input**: "[Complete raw user input - never summarized]"
-**AI Response**: "[AI's response or action taken]"
-**Context**: [Stage, action, or decision made]
-
----
-```
-
-### Correct Tool Usage for audit.md
-
-✅ CORRECT:
-
-1. Read the audit.md file
-2. Append/Edit the file to make changes
-
-❌ WRONG:
-
-1. Read the audit.md file
-2. Completely overwrite the audit.md with the contents of what you read, plus the new changes you want to add to it
+
+## Entry Point (MANDATORY)
+
+On any software-development request the AI MUST:
+
+1. Read `.aidlc-rule-details/core-workflow.md` — the full workflow specification, ~539 lines. This is the single source of truth for phase order, stage gating, and approval flow. Treat it as equivalent to inline content in this file.
+2. Load the common rules listed in that file (`common/process-overview.md`, `common/session-continuity.md`, `common/content-validation.md`, `common/question-format-guide.md`).
+3. Scan `.aidlc-rule-details/extensions/` for `*.opt-in.md` files and load their rule siblings on user opt-in; for extension directories WITHOUT an `*.opt-in.md` file (i.e., `haeda-*`), load the rule file immediately and enforce always.
+4. Display the welcome message from `common/welcome-message.md` once per new workflow.
+5. Log every user input and AI response in `aidlc-docs/audit.md` with ISO 8601 timestamps per the audit format in core-workflow.md. Never overwrite audit.md — append only.
+
+## Phase Overview (summary; full rules in core-workflow.md)
+
+| Phase | Stages | Gating |
+|-------|--------|--------|
+| 🔵 Inception (WHAT/WHY) | Workspace Detection (always) → Reverse Engineering (brownfield) → Requirements Analysis (always, adaptive depth) → User Stories (conditional) → Workflow Planning (always) → Application Design (conditional) → Units Generation (conditional) | Explicit user approval at end of each stage |
+| 🟢 Construction (HOW) | Per-unit loop: Functional Design → NFR Requirements → NFR Design → Infrastructure Design → Code Generation, then Build and Test (after all units) | 2-option completion message per stage: "Request Changes" or "Continue" |
+| 🟡 Operations | Placeholder | — |
+
+**NO EMERGENT BEHAVIOR**: use the standardized 2-option message only. Never invent 3+ option menus.
+
+## Rule Details Loading
+
+Rule details path resolution order (use the first that exists):
+- `.aidlc/aidlc-rules/aws-aidlc-rule-details/`
+- `.aidlc-rule-details/` ← **canonical for this project**
+- `.kiro/aws-aidlc-rule-details/`
+- `.amazonq/aws-aidlc-rule-details/`
+
+All references in core-workflow.md (e.g., `inception/requirements-analysis.md`) are relative to the resolved directory.
+
+## Extensions (MANDATORY loading rules)
+
+Load all `extensions/*/*.opt-in.md` at workflow start. Keep full rule files unloaded until the user opts in during Requirements Analysis. Extensions WITHOUT `.opt-in.md` are always-enforced and MUST be loaded at start.
+
+Always-enforced in this project:
+
+| Extension | Path | Applies to | Purpose |
+|-----------|------|-----------|---------|
+| `haeda-tdd` | `extensions/haeda-tdd/haeda-tdd.md` | Code Generation | RED → GREEN → REFACTOR + pytest/flutter test evidence |
+| `haeda-local-build` | `extensions/haeda-local-build/haeda-local-build.md` | Build and Test | `docker compose up --build -d backend` + `curl /health` |
+| `haeda-flutter-ios-sim` | `extensions/haeda-flutter-ios-sim/haeda-flutter-ios-sim.md` | Build and Test | `flutter build ios --simulator` + terminate/uninstall/install/launch |
+| `haeda-domain-context` | `extensions/haeda-domain-context/haeda-domain-context.md` | Inception + Construction | English identifiers / Korean UX, API envelope, error codes, season icons, size limits, MVP scope |
+
+Non-compliance with any always-enforced extension is a **blocking finding** — the stage MUST NOT present completion until resolved.
+
+## Plan-Level Checkbox Enforcement
+
+- Every plan file uses `- [ ]` / `- [x]` checkboxes.
+- Mark `[x]` IMMEDIATELY in the same interaction the step completes.
+- Also update stage status in `aidlc-docs/aidlc-state.md` at the same time.
+- No exceptions.
+
+## Content Validation
+
+Before writing any file, validate per `common/content-validation.md` + `common/ascii-diagram-standards.md`: Mermaid syntax, escape special characters, ASCII diagram fidelity, text alternatives for visual content.
 
 ## Directory Structure
 
 ```text
-<WORKSPACE-ROOT>/                   # ⚠️ APPLICATION CODE HERE
-├── [project-specific structure]    # Varies by project (see code-generation.md)
-│
-├── aidlc-docs/                     # 📄 DOCUMENTATION ONLY
-│   ├── inception/                  # 🔵 INCEPTION PHASE
+<workspace-root>/
+├── app/                       # Flutter
+├── server/                    # FastAPI
+├── aidlc-docs/                # AIDLC artifacts (auto-generated)
+│   ├── aidlc-state.md         # phase/stage/extension state
+│   ├── audit.md               # append-only user+AI log
+│   ├── inception/
+│   │   ├── plans/  reverse-engineering/  requirements/
+│   │   └── user-stories/  application-design/
+│   ├── construction/
 │   │   ├── plans/
-│   │   ├── reverse-engineering/    # Brownfield only
-│   │   ├── requirements/
-│   │   ├── user-stories/
-│   │   └── application-design/
-│   ├── construction/               # 🟢 CONSTRUCTION PHASE
-│   │   ├── plans/
-│   │   ├── {unit-name}/
-│   │   │   ├── functional-design/
-│   │   │   ├── nfr-requirements/
-│   │   │   ├── nfr-design/
-│   │   │   ├── infrastructure-design/
-│   │   │   └── code/               # Markdown summaries only
+│   │   ├── {unit}/functional-design/  nfr-requirements/  nfr-design/  infrastructure-design/  code/
 │   │   └── build-and-test/
-│   ├── operations/                 # 🟡 OPERATIONS PHASE (placeholder)
-│   ├── aidlc-state.md
-│   └── audit.md
+│   └── operations/            # placeholder
+├── docs/
+│   ├── ARCHIVE/               # legacy prd/user-flows/domain-model/api-contract (read-only)
+│   └── reports/               # ad-hoc worktree reports (retained)
+├── .aidlc-rule-details/       # upstream rules + haeda extensions
+└── .claude/                   # Claude Code config (hooks, archived agents/skills/rules)
 ```
 
-**CRITICAL RULE**:
-- Application code: Workspace root (NEVER in aidlc-docs/)
-- Documentation: aidlc-docs/ only
-- Project structure: See code-generation.md for patterns by project type
+**CRITICAL**: application code lives at the workspace root (`app/`, `server/`), NEVER inside `aidlc-docs/`.
 
 ---
 
 # Haeda-Specific Addendum
 
-This section applies project-local constraints on top of the generic AIDLC workflow above. If anything here conflicts with the AIDLC rules, AIDLC wins — these are refinements, not overrides.
+This section layers project-local constraints on top of the generic AIDLC workflow. AIDLC wins if anything conflicts.
 
 ## Project Context
 
 - **Product**: Collaborative calendar-based challenge motivation app (hospital pilot MVP).
 - **Timeline**: 4-week hospital pilot MVP. P0 features only; P1+ on explicit user request.
 - **Stack**: Flutter 3 (app/), FastAPI + SQLAlchemy 2.0 async (server/), PostgreSQL, Kakao OAuth, Docker Compose local env.
-- **Source of truth docs (pre-AIDLC)**: Archived under `docs/ARCHIVE/`. The new single source of truth is `aidlc-docs/inception/reverse-engineering/` + `aidlc-docs/inception/requirements/`, generated by the first brownfield Inception run.
+- **Source of truth docs (pre-AIDLC)**: Archived at `docs/ARCHIVE/`. The new single source of truth is `aidlc-docs/inception/reverse-engineering/` + `aidlc-docs/inception/requirements/`, generated by the first brownfield Inception run.
 
-## Code Paths
+## 언어 정책 (Language Policy) — MANDATORY
 
-- `app/` — Flutter application. Feature-first structure, Riverpod state management, GoRouter navigation, dio HTTP.
-- `server/` — FastAPI backend. Alembic migrations, Pydantic v2 schemas.
-- `aidlc-docs/` — all generated workflow artifacts (requirements, stories, design, code summaries, state, audit).
-- `docs/ARCHIVE/` — legacy source-of-truth docs (read-only reference).
-- `docs/reports/` — retained for ad-hoc incident / worktree notes.
-- `.aidlc-rule-details/` — AIDLC rule files + Haeda extensions.
-- `.claude/` — Claude Code config (hooks, archived agents/skills/rules).
+사용자는 한국어로 명령한다. **모든 산출물 문서는 한국어로 작성**한다. 내부 작업(tool call, shell 명령, 경로, reasoning)은 영어 허용.
 
-## Always-Enforced Haeda Extensions
+**한국어 필수**:
+- `aidlc-docs/inception/**` 및 `aidlc-docs/construction/**` 의 모든 산출물 (requirements / user-stories / application-design / functional-design / NFR / code summary / build-and-test)
+- `aidlc-docs/audit.md` — 사용자 입력은 원문 그대로, AI 응답 요약은 한국어
+- `aidlc-docs/aidlc-state.md` 의 상태 설명 (upstream 필드명은 영어 허용)
+- `docs/reports/**`
+- AIDLC stage 완료 메시지 · 질문 파일의 질문·선택지 (선택 문자 A/B/C 는 영어)
+- Commit 메시지 (conventional commits scope 는 영어: `feat(claude): ...`)
+- PR 제목·본문
 
-These extensions have NO `.opt-in.md` file and are loaded immediately at workflow start. They are blocking hard constraints applicable to their described stages.
+**영어 유지**:
+- `.aidlc-rule-details/common|inception|construction|operations|extensions/security|extensions/testing/**` — upstream 파일. **번역 금지**.
+- 코드 식별자 (클래스·함수·변수·API 경로·DB 테이블) — `haeda-domain-context` DOMAIN-01.
+- 에러 코드 `UPPER_SNAKE_CASE` (사용자에게 노출되는 `message` 는 한국어).
+- 핵심 섹션 헤더 (`# INCEPTION PHASE`, `## Workspace Detection` 등 upstream 참조 대상).
 
-| Extension | File | Applies to | Purpose |
-|-----------|------|-----------|---------|
-| `haeda-tdd` | `extensions/haeda-tdd/haeda-tdd.md` | Construction → Code Generation | RED → GREEN → REFACTOR cycle, cite pytest / flutter test output |
-| `haeda-local-build` | `extensions/haeda-local-build/haeda-local-build.md` | Construction → Build and Test | `docker compose up --build -d backend` + `curl /health` for server changes |
-| `haeda-flutter-ios-sim` | `extensions/haeda-flutter-ios-sim/haeda-flutter-ios-sim.md` | Construction → Build and Test | `flutter build ios --simulator` + simulator launch for app/ changes |
-| `haeda-domain-context` | `extensions/haeda-domain-context/haeda-domain-context.md` | Inception + Construction | Domain terminology, season icons, API envelope, error-code format |
-
-## Deprecated Infrastructure
-
-The following are **archived** (not deleted) for historical reference:
-- `.claude/agents/ARCHIVE/` — 11 legacy agents (product-planner, backend-builder, flutter-builder, qa-reviewer, deployer, doc-writer, etc.). Do NOT spawn.
-- `.claude/skills/ARCHIVE/` — feature-flow, plan-feature, slice-planning, implement-planned, fix, etc. Do NOT invoke.
-- `.claude/rules/ARCHIVE/` — workflow.md, agents.md, worktree-parallel.md, etc. Do NOT follow.
-- `docs/ARCHIVE/` — prd.md, user-flows.md, domain-model.md, api-contract.md. Read-only.
-- `docs/ARCHIVE/CLAUDE-pre-aidlc.md` — the old CLAUDE.md.
-
-If a reference to any of the above appears in a user prompt or memory, treat it as legacy context only; proceed with AIDLC workflow.
+**위반 시**: AIDLC stage 가 영어로 산출물을 작성하면 Extension Compliance 에 `language-policy: non-compliant` 기록 후 stage 블록. 사용자 답변을 AI 가 영어로 옮겨 적으면 blocking finding.
 
 ## Retained Utilities
 
-These skills survived the migration and may be invoked outside the AIDLC phase flow:
-- `.claude/skills/commit/` — stage, commit, push with conventional-commits.
-- `.claude/skills/resolve-conflict/` — lossless rebase conflict resolution.
-- `.claude/skills/smoke-test/` — local env smoke check.
-- `.claude/skills/local/` — docker compose lifecycle.
-- `.claude/hooks/secret-scanner.sh` — always-on credential scanner.
-- `.claude/hooks/bash-guard.sh` — destructive command guard.
+AIDLC phase 외부에서도 호출 가능한 도구:
+- `.claude/skills/commit/` — stage/commit/push with conventional commits
+- `.claude/skills/resolve-conflict/` — lossless rebase conflict resolution
+- `.claude/skills/smoke-test/` — local env smoke check
+- `.claude/skills/local/` — docker compose lifecycle
+- `.claude/hooks/secret-scanner.sh` — always-on credential scanner
+- `.claude/hooks/bash-guard.sh` — destructive command guard
+- `.claude/hooks/docs-guard.sh` — `docs/ARCHIVE/**` read-only 보호
+- `.claude/hooks/push-gate.py` — `gh pr merge` 시 `aidlc-docs/audit.md` approval 검증 + 직접 main push 차단
+
+## Deprecated (archived, do NOT invoke)
+
+- `.claude/agents/ARCHIVE/` — 11 legacy agents (product-planner, backend/flutter-builder, qa-reviewer 등)
+- `.claude/skills/ARCHIVE/` — feature-flow, plan-feature, slice-planning, fix, tdd skill 등
+- `.claude/rules/ARCHIVE/` — workflow.md, agents.md, worktree-parallel.md 등
+- `docs/ARCHIVE/` — prd / user-flows / domain-model / api-contract / old CLAUDE.md
+- Legacy references in user prompts / memory: 역사적 맥락으로만 취급, AIDLC 플로우로 진행.
 
 ## Worktrees
 
-Physical worktree directories under `.claude/worktrees/` (claude, feature, design, planner, debug) are retained for physical git isolation during parallel work. The AIDLC workflow does not have worktree-role semantics: any worktree may run any AIDLC phase as long as it syncs with `origin/main` at session start and creates a PR rather than direct main push. Legacy role-based path restrictions (planner-guard, design-guard, `.planner-worktree` / `.design-worktree` sentinels) are removed.
+`.claude/worktrees/{claude,feature,design,planner,debug}` 물리 디렉토리는 병렬 작업용 git 격리로 유지. AIDLC 는 worktree-role 개념이 없으므로 어느 워크트리든 어느 phase 든 실행 가능. 세션 시작 시 `git fetch origin main && git rebase origin/main` 하고 PR 로만 main 에 반영.
 
 ## Git Workflow
 
-- All merges to `main` go via `gh pr create` + `gh pr merge`. No direct push to `main`.
-- Conventional commits (`feat(scope): ...`, `fix(scope): ...`, etc.).
-- Never `--force`, never `--no-verify`.
-- Rebase conflicts: try `/resolve-conflict` skill before aborting.
+- main 반영은 `gh pr create` + `gh pr merge`. 직접 push 금지.
+- Conventional commits: `<type>(<scope>): <한글 subject>`
+- `--force` / `--no-verify` 금지.
+- Rebase conflict 는 `/resolve-conflict` skill 로 해결 시도 후 재진행.
 
 ## Rollback
 
-Pre-migration snapshot tagged `pre-aidlc-migration`. Full rollback: `git reset --hard pre-aidlc-migration`.
+Migration 이전 상태 태그: `pre-aidlc-migration`. 전체 복원: `git reset --hard pre-aidlc-migration`.
