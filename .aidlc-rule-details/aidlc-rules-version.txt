@@ -1,0 +1,5 @@
+upstream: awslabs/aidlc-workflows
+commit: 5c33ae752f57ce73111a984bb3e2eaa23157d5a9
+branch: main
+fetched: 2026-04-23
+fetched-by: worktree-claude / aidlc-migration
