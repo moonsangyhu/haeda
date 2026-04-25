@@ -225,12 +225,24 @@ class _ChallengeSpaceBodyState extends ConsumerState<_ChallengeSpaceBody> {
       return;
     }
 
-    // allCompleted 날짜는 완료 결과 화면으로 이동
     final matchingDay = days.where((d) => d.date == date).firstOrNull;
+
+    // allCompleted 날짜는 완료 결과 화면으로 이동
     if (matchingDay != null &&
         matchingDay.allCompleted &&
         widget.status == 'completed') {
       context.push('/challenges/${widget.challengeId}/completion');
+      return;
+    }
+
+    // 오늘 날짜 + 본인 미인증 → 인증 작성 화면으로 직행
+    final currentUserId = ref.read(authStateProvider).valueOrNull?.id;
+    final isToday = tappedDay.isAtSameMomentAs(todayDay);
+    final myselfVerified = matchingDay != null &&
+        currentUserId != null &&
+        matchingDay.verifiedMembers.contains(currentUserId);
+    if (isToday && !myselfVerified) {
+      context.push('/challenges/${widget.challengeId}/verify');
       return;
     }
 
@@ -493,13 +505,15 @@ class _TodaySection extends StatelessWidget {
                   : theme.colorScheme.onSurface,
             ),
           ),
-          const SizedBox(height: 12),
-          ElevatedButton(
-            onPressed: verifiedToday
-                ? null
-                : () => context.push('/challenges/$challengeId/verify'),
-            child: Text(verifiedToday ? '인증 완료' : '인증하기'),
-          ),
+          if (!verifiedToday) ...[
+            const SizedBox(height: 4),
+            Text(
+              '달력의 오늘 날짜를 눌러 인증해 주세요',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ],
       ),
     );
