@@ -10,7 +10,7 @@ void main() {
     CalendarMember(id: 'u3', nickname: '박지민', profileImageUrl: null),
   ];
 
-  Widget buildCell({int day = 1, DayEntry? entry}) {
+  Widget buildCell({int day = 1, DayEntry? entry, bool isToday = false}) {
     return MaterialApp(
       home: Scaffold(
         body: SizedBox(
@@ -20,6 +20,7 @@ void main() {
             day: day,
             entry: entry,
             members: testMembers,
+            isToday: isToday,
           ),
         ),
       ),
@@ -81,6 +82,50 @@ void main() {
         await tester.pumpWidget(buildCell(entry: entry));
         expect(find.text(testCase.$2), findsOneWidget);
       }
+    });
+
+    testWidgets('does not render circle badge when isToday is false', (tester) async {
+      await tester.pumpWidget(buildCell(day: 15));
+      final containers = tester.widgetList<Container>(
+        find.ancestor(of: find.text('15'), matching: find.byType(Container)),
+      ).toList();
+      for (final c in containers) {
+        final deco = c.decoration as BoxDecoration?;
+        expect(deco?.shape, isNot(BoxShape.circle));
+      }
+    });
+
+    testWidgets('renders today indicator when isToday is true', (tester) async {
+      await tester.pumpWidget(buildCell(day: 25, isToday: true));
+
+      expect(find.text('25'), findsOneWidget);
+
+      // day 숫자 Text 의 가장 가까운 Container 에 primary 색 원형 decoration 이 있어야 함
+      final textWidget = tester.widget<Text>(find.text('25'));
+      expect(textWidget.style?.fontWeight, FontWeight.bold);
+
+      // 원형 배지 컨테이너 검증
+      final badge = tester.widget<Container>(
+        find.ancestor(of: find.text('25'), matching: find.byType(Container)).first,
+      );
+      final decoration = badge.decoration as BoxDecoration;
+      expect(decoration.shape, BoxShape.circle);
+      final theme = Theme.of(tester.element(find.text('25')));
+      expect(decoration.color, theme.colorScheme.primary);
+    });
+
+    testWidgets('renders today indicator above season icon when both apply', (tester) async {
+      final entry = DayEntry(
+        date: '2026-04-25',
+        verifiedMembers: ['u1', 'u2', 'u3'],
+        allCompleted: true,
+        seasonIconType: 'spring',
+      );
+
+      await tester.pumpWidget(buildCell(day: 25, entry: entry, isToday: true));
+
+      expect(find.text('25'), findsOneWidget);
+      expect(find.text('🌸'), findsOneWidget);
     });
   });
 }
