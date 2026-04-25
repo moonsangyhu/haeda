@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
+import '../../status_bar/providers/user_stats_provider.dart';
 import '../models/item_data.dart';
 import 'character_provider.dart';
 import 'coin_provider.dart';
@@ -64,6 +65,8 @@ class ShopPurchaseNotifier extends StateNotifier<PurchaseState> {
       // 잔액 및 내 아이템 갱신
       _ref.invalidate(coinBalanceProvider);
       _ref.invalidate(myItemsProvider);
+      // 상단 상태바의 젬 잔액 표시도 즉시 갱신 (verification 흐름과 동일 패턴)
+      _ref.invalidate(userStatsProvider);
       for (final cat in ['HAT', 'TOP', 'BOTTOM', 'SHOES', 'ACCESSORY']) {
         _ref.invalidate(shopItemsProvider(cat));
       }
