@@ -6,6 +6,7 @@ class CalendarDayCell extends StatelessWidget {
   final int day;
   final DayEntry? entry;
   final List<CalendarMember> members;
+  final bool isToday;
   final VoidCallback? onTap;
 
   const CalendarDayCell({
@@ -13,6 +14,7 @@ class CalendarDayCell extends StatelessWidget {
     required this.day,
     this.entry,
     required this.members,
+    this.isToday = false,
     this.onTap,
   });
 
@@ -30,17 +32,40 @@ class CalendarDayCell extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              '$day',
-              style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-            ),
+            _buildDayLabel(context),
             const SizedBox(height: 2),
             _buildContent(context),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDayLabel(BuildContext context) {
+    final theme = Theme.of(context);
+    if (isToday) {
+      return Container(
+        width: 20,
+        height: 20,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.primary,
+          shape: BoxShape.circle,
+        ),
+        child: Text(
+          '$day',
+          style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onPrimary,
+                fontWeight: FontWeight.bold,
+              ),
+        ),
+      );
+    }
+    return Text(
+      '$day',
+      style: theme.textTheme.labelSmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
     );
   }
 
