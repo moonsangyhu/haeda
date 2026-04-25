@@ -8,7 +8,7 @@
 
 ## P0 / P1 범위 안내
 
-- **P0**: Auth, Challenges (생성·상세·초대코드조회·참여·완료), My Page, Verifications, Comments, Coins (재화), Shop (상점/아이템), Character (캐릭터 커스터마이징)
+- **P0**: Auth, Challenges (생성·상세·초대코드조회·참여·완료), My Page, Verifications, Coins (재화), Shop (상점/아이템), Character (캐릭터 커스터마이징)
 - **P1**: 공개 챌린지 목록 (`GET /challenges`), Notifications (디바이스 토큰, 푸시 알림)
 
 ---
@@ -551,7 +551,6 @@
         },
         "photo_urls": ["string"] | null,
         "diary_text": "오늘은 5km 달렸다!",
-        "comment_count": 3,
         "created_at": "2026-04-01T08:30:00Z"
       }
     ]
@@ -584,25 +583,6 @@
     "date": "2026-04-01",
     "photo_urls": ["string"] | null,
     "diary_text": "오늘은 5km 달렸다! 날씨가 좋아서 기분이 좋았다.",
-    "comments": [
-      {
-        "id": "uuid",
-        "author": {
-          "id": "uuid",
-          "nickname": "이영희",
-          "profile_image_url": "string",
-          "character": {
-            "hat": null,
-            "top": { "asset_key": "top/striped_tee.png", "rarity": "COMMON" } | null,
-            "bottom": null,
-            "shoes": null,
-            "accessory": null
-          } | null
-        },
-        "content": "대단해요! 👏",
-        "created_at": "2026-04-01T09:00:00Z"
-      }
-    ],
     "created_at": "2026-04-01T08:30:00Z"
   }
 }
@@ -610,74 +590,7 @@
 
 ---
 
-## 5. Comments — P0
-
-### POST `/verifications/{id}/comments` — 댓글 작성
-
-**Request:**
-```json
-{
-  "content": "대단해요! 👏"
-}
-```
-
-**Response (201):**
-```json
-{
-  "data": {
-    "id": "uuid",
-    "author": {
-      "id": "uuid",
-      "nickname": "이영희",
-      "profile_image_url": "string"
-    },
-    "content": "대단해요! 👏",
-    "created_at": "2026-04-01T09:00:00Z"
-  }
-}
-```
-
-**에러:**
-| code | 조건 |
-|------|------|
-| VERIFICATION_NOT_FOUND | 존재하지 않는 인증 |
-| NOT_A_MEMBER | 해당 챌린지 참여자가 아님 |
-| COMMENT_TOO_LONG | 500자 초과 |
-
----
-
-### GET `/verifications/{id}/comments` — 댓글 목록
-
-**Query Parameters:**
-| 파라미터 | 타입 | 필수 | 설명 |
-|----------|------|------|------|
-| cursor | string | N | 페이지네이션 커서 |
-| limit | int | N | 페이지 크기 (기본 20) |
-
-**Response (200):**
-```json
-{
-  "data": {
-    "comments": [
-      {
-        "id": "uuid",
-        "author": {
-          "id": "uuid",
-          "nickname": "string",
-          "profile_image_url": "string"
-        },
-        "content": "string",
-        "created_at": "2026-04-01T09:00:00Z"
-      }
-    ],
-    "next_cursor": "string | null"
-  }
-}
-```
-
----
-
-## 6. Coins (재화) — P0
+## 5. Coins (재화) — P0
 
 ### GET `/me/coins` — 내 코인 잔액
 
@@ -720,7 +633,7 @@
 
 ---
 
-## 7. Shop (상점) — P0
+## 6. Shop (상점) — P0
 
 ### GET `/shop/items` — 상점 아이템 목록
 
@@ -773,7 +686,7 @@
 
 ---
 
-## 8. Character (캐릭터) — P0
+## 7. Character (캐릭터) — P0
 
 ### GET `/me/items` — 내 보유 아이템 목록
 
@@ -886,7 +799,7 @@
 
 ---
 
-## 9. Notifications — P1
+## 8. Notifications — P1
 
 > P1: 푸시 알림 기능(F-15, F-16, F-18) 구현 시 활성화.
 
@@ -964,7 +877,7 @@
 
 ---
 
-## 7. 푸시 알림 이벤트 (서버 → 클라이언트) — P1
+## 9. 푸시 알림 이벤트 (서버 → 클라이언트) — P1
 
 | 이벤트 | 트리거 | 수신자 | payload |
 |--------|--------|--------|---------|

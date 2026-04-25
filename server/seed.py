@@ -60,7 +60,6 @@ async def seed():
             "gem_transactions",
             "notifications",
             "nudges",
-            "comments",
             "day_completions",
             "verifications",
             "challenge_members",

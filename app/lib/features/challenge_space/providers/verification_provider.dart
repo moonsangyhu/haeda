@@ -5,6 +5,17 @@ import '../../../core/utils/time.dart';
 import '../models/verification_data.dart';
 import '../providers/challenge_detail_provider.dart';
 
+/// GET /verifications/{id} — 인증 상세 조회
+final verificationDetailProvider =
+    FutureProvider.family<VerificationDetail, String>(
+  (ref, verificationId) async {
+    final dio = ref.watch(dioProvider);
+    final response = await dio.get('/verifications/$verificationId');
+    final data = response.data as Map<String, dynamic>;
+    return VerificationDetail.fromJson(data);
+  },
+);
+
 /// GET /challenges/{id}/verifications/{date} 파라미터
 class DailyVerificationParams {
   final String challengeId;

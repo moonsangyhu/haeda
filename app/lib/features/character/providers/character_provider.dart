@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../challenge_space/providers/calendar_provider.dart';
-import '../../challenge_space/providers/comment_provider.dart';
 import '../../challenge_space/providers/verification_provider.dart';
 import '../models/character_data.dart';
 import '../models/item_data.dart';
