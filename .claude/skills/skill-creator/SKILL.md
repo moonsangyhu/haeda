@@ -95,12 +95,12 @@ Use `/commit` to stage, commit, and push the new skill.
 ## Haeda Project Context
 
 Skills in this project live at `.claude/skills/`. Existing skills:
-- `feature-flow` — enforced feature workflow (8 steps)
-- `fix` — lightweight bug fix flow
-- `commit` — quick commit & push
+- `commit` — quick commit & PR 자동 머지
+- `resolve-conflict` — rebase conflict lossless 해결
 - `set` — Claude configuration management
 - `local` — Docker environment management
 - `smoke-test` — integration testing
-- And more (slice-planning, qa-remediation, etc.)
+- `haeda-build-verify`, `haeda-ios-deploy` — 자동 빌드/배포 검증
+- And more (haeda-domain-context, fastapi-mvp, flutter-mvp, etc.)
 
-When creating skills for this project, follow existing patterns and ensure compatibility with the agent team (backend-builder, flutter-builder, qa-reviewer).
+When creating skills for this project, follow existing patterns and ensure compatibility with superpowers' meta-skills (test-driven-development, verification-before-completion, systematic-debugging).

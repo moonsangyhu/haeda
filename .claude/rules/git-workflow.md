@@ -18,11 +18,9 @@ Rules:
 - Subject: max 50 chars, imperative mood, lowercase
 - Body: explain *what* and *why*, wrap at 72 chars
 
-## Session Naming
+## Worktree
 
-- Slice work: `claude -n slice-{NN}-{layer}` (e.g., `slice-04-backend`)
-- Parallel worktree: `claude --worktree slice-{NN} -n slice-{NN}`
-- See `docs/worktree-runbook.md` for detailed rules
+Worktree 격리가 필요하면 `superpowers:using-git-worktrees` 스킬을 사용한다.
 
 ## PR-Based Merge to Main
 
@@ -32,7 +30,6 @@ Rules:
 git add <specific files>
 git commit -m "<message>"
 
-# PR via push_via_pr (see .claude/rules/worktree-parallel.md)
 # 1. rebase on main
 # 2. push worktree branch
 # 3. gh pr create → gh pr merge

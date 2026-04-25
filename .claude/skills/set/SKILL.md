@@ -67,7 +67,7 @@ After user approval, apply the changes using Edit or Write tools.
 
 Invoke the `/commit` skill to stage, commit, and push the changes.
 
-If `/commit` is unavailable, manually — ALWAYS via PR merge (see `.claude/rules/worktree-parallel.md` §PR-Based Push):
+If `/commit` is unavailable, manually — ALWAYS via PR merge (see `.claude/rules/git-workflow.md` § PR-Based Merge to Main):
 ```bash
 git add <changed files>
 git commit -m "chore(claude): <description>
