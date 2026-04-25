@@ -84,6 +84,17 @@ void main() {
       }
     });
 
+    testWidgets('does not render circle badge when isToday is false', (tester) async {
+      await tester.pumpWidget(buildCell(day: 15));
+      final containers = tester.widgetList<Container>(
+        find.ancestor(of: find.text('15'), matching: find.byType(Container)),
+      ).toList();
+      for (final c in containers) {
+        final deco = c.decoration as BoxDecoration?;
+        expect(deco?.shape, isNot(BoxShape.circle));
+      }
+    });
+
     testWidgets('renders today indicator when isToday is true', (tester) async {
       await tester.pumpWidget(buildCell(day: 25, isToday: true));
 
@@ -99,7 +110,8 @@ void main() {
       );
       final decoration = badge.decoration as BoxDecoration;
       expect(decoration.shape, BoxShape.circle);
-      expect(decoration.color, isNotNull);
+      final theme = Theme.of(tester.element(find.text('25')));
+      expect(decoration.color, theme.colorScheme.primary);
     });
 
     testWidgets('renders today indicator above season icon when both apply', (tester) async {
