@@ -21,6 +21,8 @@ class CalendarGrid extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final today = DateTime.now();
+    final isCurrentMonth = today.year == year && today.month == month;
 
     // 해당 월의 1일 요일 (0=일, 1=월, ..., 6=토)
     final firstDayOfMonth = DateTime(year, month, 1);
@@ -92,6 +94,7 @@ class CalendarGrid extends StatelessWidget {
               day: day,
               entry: entry,
               members: members,
+              isToday: isCurrentMonth && today.day == day,
               onTap: onDayTap != null ? () => onDayTap!(dateStr) : null,
             );
           },
