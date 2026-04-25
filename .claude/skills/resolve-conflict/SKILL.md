@@ -188,7 +188,7 @@ If tests pass, conflict resolution is complete. Return control to the caller —
 
 ### Next
 Rebase complete. Caller should re-run the push step:
-  git push origin $BRANCH --force-with-lease && gh pr merge ... (see worktree-parallel.md §PR-Based Push)
+  git push origin $BRANCH --force-with-lease && gh pr merge ... (commit 스킬 또는 git-workflow.md 참고)
 ```
 
 ### On STOP
@@ -237,13 +237,9 @@ Or to abort the rebase and return to ORIG_HEAD:
 
 Agents and skills must invoke this skill when `git rebase origin/main` fails with conflicts:
 
-- `/commit` (Step 3-2 and Step 4 push loops)
-- `/role-scoped-commit-push` (Step 6 push loop)
+- `/commit` (push 단계의 rebase 실패 시)
 - `/set` (manual push fallback)
-- `/rollback` (impl-log commit push)
-- `backend-builder` Phase 0 origin/main sync
-- `flutter-builder` Phase 0 origin/main sync
-- `deployer` if it encounters an interrupted rebase from prior work
+- 어떤 작업이든 시작 전 origin/main 와 sync 가 필요하면 사용
 
 **Invocation form for subagents**: Read this file (`.claude/skills/resolve-conflict/SKILL.md`) and follow the phases in order. Do not skip phases. Do not modify the procedure.
 

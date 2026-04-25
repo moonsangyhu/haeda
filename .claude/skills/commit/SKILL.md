@@ -53,7 +53,7 @@ git commit -m "<message>
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"
 ```
 
-Then push via PR (see `.claude/rules/worktree-parallel.md` §PR-Based Push):
+Then push via PR (see `.claude/rules/git-workflow.md` § PR-Based Merge to Main):
 
 ```bash
 BRANCH=$(git branch --show-current)
@@ -69,7 +69,7 @@ fi
 # 2. Push worktree branch
 git push origin "$BRANCH" --force-with-lease
 
-# 3. Create PR — 한글 제목+본문 (see worktree-parallel.md §PR 작성 규칙)
+# 3. Create PR — 한글 제목+본문
 gh pr create --base main --head "$BRANCH" \
   --title "<type>(<scope>): <한글 설명>" \
   --body "$(cat <<'PREOF'
@@ -106,7 +106,7 @@ git rebase origin/main
 
 **On merge failure**: STOP. Do not force merge. PR is left open for manual review.
 
-**IMPORTANT**: No `git push origin HEAD:main`. No `--force`. See `.claude/rules/worktree-parallel.md`.
+**IMPORTANT**: No `git push origin HEAD:main`. No `--force`. See `.claude/rules/git-workflow.md`.
 
 ## Step 4: Write Implementation Log
 
@@ -147,12 +147,12 @@ Enough detail that another agent can understand what was done and undo it if nee
 - Build: {pass / skip}
 ```
 
-The impl-log filename MUST embed the worktree role (`backend` / `front` / `qa` / `claude`) to prevent parallel-worktree collisions — e.g. `impl-log/feat-slice-07-backend.md`. See `.claude/rules/worktree-parallel.md` §Shared Directories.
+impl-log 파일명은 `impl-log/{type}-{slug}.md` 형식 (예: `impl-log/feat-slice-07.md`).
 
 Commit and push the impl-log using the same PR flow from Step 3-2:
 
 ```bash
-git add impl-log/<name>-<role>.md
+git add impl-log/<name>.md
 git commit -m "docs: add impl-log for <name>
 
 Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com>"

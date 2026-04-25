@@ -78,4 +78,4 @@ feature/
 - **Widget helpers**: `lib/core/widgets/` 에 추가하는 공용 위젯은 render 테스트 최소 1건.
 - **검증 기준**: `cd app && flutter analyze` 에러 0 + `cd app && flutter test` 전원 통과. 신규 위젯 경로가 한 번도 실행되지 않으면 통과로 인정하지 않는다.
 
-테스트를 생략한 구현은 `code-reviewer` 가 blocking issue 로 막고, `qa-reviewer` 체크리스트에서도 실패 처리된다.
+테스트는 `superpowers:test-driven-development` 사이클로 작성하고, `superpowers:verification-before-completion` 으로 결과를 인용해 보고한다.

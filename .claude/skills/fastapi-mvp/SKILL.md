@@ -87,4 +87,4 @@ Achievement rate calculation, all-verified check, and challenge completion sched
 - **픽스처 재사용**: 기존 `server/tests/conftest.py` 의 `async_client`, `test_user`, `test_challenge` 등 픽스처를 최대한 재사용한다. 테스트 DB 셋업은 기존 컨벤션을 따른다.
 - **검증 기준**: `cd server && uv run pytest -v --tb=short` 전원 통과. 신규 코드 경로가 한 번도 실행되지 않으면 통과로 인정하지 않는다.
 
-테스트를 생략한 구현은 `code-reviewer` 가 blocking issue 로 막고, `qa-reviewer` 체크리스트에서도 실패 처리된다.
+테스트는 `superpowers:test-driven-development` 사이클로 작성하고, `superpowers:verification-before-completion` 으로 결과를 인용해 보고한다.
