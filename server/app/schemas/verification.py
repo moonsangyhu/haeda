@@ -25,7 +25,6 @@ class VerificationItem(BaseModel):
     user: UserBrief
     photo_urls: list[str] | None
     diary_text: str
-    comment_count: int
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -36,3 +35,13 @@ class DailyVerificationsResponse(BaseModel):
     all_completed: bool
     season_icon_type: str | None
     verifications: list[VerificationItem]
+
+
+class VerificationDetailResponse(BaseModel):
+    id: uuid.UUID
+    challenge_id: uuid.UUID
+    user: UserBrief
+    date: date
+    photo_urls: list[str] | None
+    diary_text: str
+    created_at: datetime

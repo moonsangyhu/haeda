@@ -8,7 +8,7 @@
 ## 핵심 객체 정의
 
 앱의 중심 단위는 **Challenge(챌린지)**이다.
-- 모든 활동(인증, 댓글, 달력, 완료)은 챌린지 안에서 이루어진다.
+- 모든 활동(인증, 달력, 완료)은 챌린지 안에서 이루어진다.
 - **category**는 Challenge의 자유 입력 속성(VARCHAR)이며, 독립 엔터티가 아니다.
 - 라우팅과 API 경로 모두 `/challenges/{id}` 를 최상위 그룹으로 사용한다.
 
@@ -22,10 +22,6 @@
 User 1──N ChallengeMember N──1 Challenge
   │                                  │
   │ 1──N Verification N──1 ──────────┘
-  │           │
-  │           │ 1──N Comment
-  │                    │
-  └────────────────────┘ (author)
 
 Challenge 1──N DayCompletion
 ```
@@ -139,17 +135,7 @@ User 1──N DeviceToken
 12월~2월 → winter
 ```
 
-### 2.6 Comment — P0
-
-| 필드 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| id | UUID | PK | 고유 ID |
-| verification_id | UUID | FK → Verification, NOT NULL | 대상 인증 |
-| author_id | UUID | FK → User, NOT NULL | 작성자 |
-| content | VARCHAR(500) | NOT NULL | 댓글 내용 |
-| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 작성일시 |
-
-### 2.7 DeviceToken — P1
+### 2.6 DeviceToken — P1
 
 > P1: 푸시 알림(F-15, F-16) 구현 시 추가.
 
@@ -165,7 +151,7 @@ User 1──N DeviceToken
 - UNIQUE(user_id, token)
 - `platform IN ('ios', 'android')`
 
-### 2.8 Notification — P1
+### 2.7 Notification — P1
 
 > P1: 인앱 알림 히스토리(F-19) 구현 시 추가.
 
@@ -183,7 +169,7 @@ User 1──N DeviceToken
 **제약 조건:**
 - `type IN ('verification_reminder', 'member_verified', 'day_completed', 'challenge_completed', 'streak_milestone')`
 
-### 2.9 GemTransaction (코인 거래) — P0
+### 2.8 GemTransaction (코인 거래) — P0
 
 재화(코인) 획득/소비 내역. 인증, 스트릭, 전원 달성, 챌린지 완주, 출석, 아이템 구매 시 자동 생성.
 
@@ -209,7 +195,7 @@ User 1──N DeviceToken
 | 7일 연속 인증 | +50 | 같은 챌린지 내 연속 7일 |
 | 일일 출석 | +5 | 앱 접속 시 1일 1회 |
 
-### 2.10 Item (아이템 카탈로그) — P0 / P2 확장
+### 2.9 Item (아이템 카탈로그) — P0 / P2 확장
 
 상점에서 판매하는 캐릭터 착용 아이템 + 미니룸/챌린지 방 꾸미기 아이템 (P2: F-31).
 
@@ -232,7 +218,7 @@ User 1──N DeviceToken
 - `rarity IN ('COMMON', 'RARE', 'EPIC')`
 - `MR_*` = 미니룸 슬롯, `CR_*` = 챌린지 방 공용 슬롯, `SIGNATURE` = 챌린지 방 멤버 개인 슬롯 (크로스 룸).
 
-### 2.11 UserItem (인벤토리) — P0
+### 2.10 UserItem (인벤토리) — P0
 
 사용자가 구매한 아이템 목록.
 
@@ -246,7 +232,7 @@ User 1──N DeviceToken
 **제약 조건:**
 - UNIQUE(user_id, item_id) — 동일 아이템 중복 구매 불가
 
-### 2.12 CharacterEquip (캐릭터 착용 상태) — P0
+### 2.11 CharacterEquip (캐릭터 착용 상태) — P0
 
 사용자의 현재 캐릭터 착용 상태. 유저당 1행.
 
@@ -265,7 +251,7 @@ User 1──N DeviceToken
 - 보유(UserItem)하지 않은 아이템은 착용 불가
 - 코인 잔액 부족 시 구매 불가
 
-### 2.13 RoomSpeech (챌린지 방 한마디) — P2
+### 2.12 RoomSpeech (챌린지 방 한마디) — P2
 
 챌린지 방 캐릭터 위에 흰 말풍선으로 표시되는 ambient 한마디. 유저당 챌린지당 활성 1행, day-cutoff TTL.
 
@@ -288,7 +274,7 @@ User 1──N DeviceToken
 - DELETE 는 idempotent (없는 행 삭제도 200).
 - 멤버가 아닌 user 의 모든 호출은 `SPEECH_NOT_MEMBER` (403).
 
-### 2.14 RoomEquipMr (미니룸 장착 상태) — P2
+### 2.13 RoomEquipMr (미니룸 장착 상태) — P2
 
 사용자의 미니룸 8개 슬롯 현재 장착 상태. 유저당 1행. 슬롯 NULL = 디자인 기본값 렌더.
 
@@ -311,7 +297,7 @@ User 1──N DeviceToken
 - 슬롯 NULL → 디자인 기본값 렌더.
 - Item.is_active=false 로 변경 시 자동 NULL fallback (silent).
 
-### 2.15 RoomEquipCr (챌린지 방 공용 장착) — P2
+### 2.14 RoomEquipCr (챌린지 방 공용 장착) — P2
 
 챌린지 방의 공용 6개 슬롯 장착 상태. 챌린지당 1행. 방장만 편집 가능.
 
@@ -333,7 +319,7 @@ User 1──N DeviceToken
 - 방장이 챌린지를 떠나면 row 유지하되 기본값 렌더 (P3에서 승계 정책).
 - 챌린지 삭제 시 cascade delete.
 
-### 2.16 RoomEquipCrSignature (챌린지 방 멤버 signature) — P2
+### 2.15 RoomEquipCrSignature (챌린지 방 멤버 signature) — P2
 
 챌린지 방에서 각 멤버가 자기 캐릭터 옆에 표시할 개인 signature 아이템. 챌린지당 멤버당 최대 1행.
 
@@ -370,7 +356,6 @@ User 1──N DeviceToken
 | Verification | idx_verification_challenge_date | 달력 뷰 (챌린지+날짜별 조회) |
 | Verification | idx_verification_user_challenge | 사람별 인증 내역 |
 | DayCompletion | idx_day_completion_challenge | 챌린지의 전원 인증 날짜 목록 |
-| Comment | idx_comment_verification | 인증별 댓글 목록 |
 | RoomEquipCrSignature | idx_cr_sig_challenge | 챌린지별 signature 목록 (P2) |
 | RoomEquipCrSignature | idx_cr_sig_user | 사용자별 signature 조회 (P2) |
 

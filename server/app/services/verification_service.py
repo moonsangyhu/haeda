@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.exceptions import AppException
 from app.models.challenge import Challenge
 from app.models.challenge_member import ChallengeMember
-from app.models.comment import Comment
 from app.models.day_completion import DayCompletion
 from app.models.user import User
 from app.models.verification import Verification
@@ -16,6 +15,7 @@ from app.schemas.user import UserBrief
 from app.schemas.verification import (
     DailyVerificationsResponse,
     VerificationCreateResponse,
+    VerificationDetailResponse,
     VerificationItem,
 )
 from app.services import gem_service, streak_service
@@ -42,6 +42,37 @@ async def _check_membership(
 ) -> None:
     stmt = select(ChallengeMember.id).where(
         ChallengeMember.challenge_id == challenge_id,
+        ChallengeMember.user_id == user_id,
+    )
+    result = await db.execute(stmt)
+    if result.first() is None:
+        raise AppException(
+            status_code=403,
+            code="NOT_A_MEMBER",
+            message="챌린지 참여자가 아닙니다.",
+        )
+
+
+async def _get_verification_or_404(
+    db: AsyncSession, verification_id: uuid.UUID
+) -> Verification:
+    stmt = select(Verification).where(Verification.id == verification_id)
+    result = await db.execute(stmt)
+    verification = result.scalar_one_or_none()
+    if verification is None:
+        raise AppException(
+            status_code=404,
+            code="VERIFICATION_NOT_FOUND",
+            message="인증을 찾을 수 없습니다.",
+        )
+    return verification
+
+
+async def _check_verification_membership(
+    db: AsyncSession, verification: Verification, user_id: uuid.UUID
+) -> None:
+    stmt = select(ChallengeMember.id).where(
+        ChallengeMember.challenge_id == verification.challenge_id,
         ChallengeMember.user_id == user_id,
     )
     result = await db.execute(stmt)
@@ -276,20 +307,7 @@ async def get_daily_verifications(
     dc_result = await db.execute(dc_stmt)
     day_completion = dc_result.scalar_one_or_none()
 
-    # 5. 각 Verification의 comment_count 조회
-    verification_ids = [row.Verification.id for row in verif_rows]
-    comment_counts: dict[uuid.UUID, int] = {}
-    if verification_ids:
-        comment_count_stmt = (
-            select(Comment.verification_id, func.count().label("cnt"))
-            .where(Comment.verification_id.in_(verification_ids))
-            .group_by(Comment.verification_id)
-        )
-        comment_count_result = await db.execute(comment_count_stmt)
-        for row in comment_count_result.all():
-            comment_counts[row.verification_id] = row.cnt
-
-    # 6. VerificationItem 목록 조립
+    # 5. VerificationItem 목록 조립
     verifications = [
         VerificationItem(
             id=row.Verification.id,
@@ -301,7 +319,6 @@ async def get_daily_verifications(
             ),
             photo_urls=row.Verification.photo_urls,
             diary_text=row.Verification.diary_text,
-            comment_count=comment_counts.get(row.Verification.id, 0),
             created_at=row.Verification.created_at,
         )
         for row in verif_rows
@@ -312,4 +329,38 @@ async def get_daily_verifications(
         all_completed=day_completion is not None,
         season_icon_type=day_completion.season_icon_type if day_completion else None,
         verifications=verifications,
+    )
+
+
+async def get_verification_detail(
+    db: AsyncSession,
+    verification_id: uuid.UUID,
+    user_id: uuid.UUID,
+) -> VerificationDetailResponse:
+    # 1. Verification 조회
+    verification = await _get_verification_or_404(db, verification_id)
+
+    # 2. 멤버십 확인
+    await _check_verification_membership(db, verification, user_id)
+
+    # 3. Verification 작성자 조회
+    user_stmt = select(User).where(User.id == verification.user_id)
+    user_result = await db.execute(user_stmt)
+    verification_user = user_result.scalar_one()
+
+    char_map = await load_member_characters(db, [verification_user.id])
+
+    return VerificationDetailResponse(
+        id=verification.id,
+        challenge_id=verification.challenge_id,
+        user=UserBrief(
+            id=verification_user.id,
+            nickname=verification_user.nickname,
+            profile_image_url=verification_user.profile_image_url,
+            character=char_map.get(verification_user.id),
+        ),
+        date=verification.date,
+        photo_urls=verification.photo_urls,
+        diary_text=verification.diary_text,
+        created_at=verification.created_at,
     )

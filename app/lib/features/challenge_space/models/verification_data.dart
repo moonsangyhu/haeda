@@ -45,12 +45,28 @@ class VerificationItem with _$VerificationItem {
     required VerificationUser user,
     @JsonKey(name: 'photo_urls') List<String>? photoUrls,
     @JsonKey(name: 'diary_text') required String diaryText,
-    @JsonKey(name: 'comment_count') required int commentCount,
     @JsonKey(name: 'created_at') required String createdAt,
   }) = _VerificationItem;
 
   factory VerificationItem.fromJson(Map<String, dynamic> json) =>
       _$VerificationItemFromJson(json);
+}
+
+/// GET /verifications/{id} 응답의 data 필드.
+@freezed
+class VerificationDetail with _$VerificationDetail {
+  const factory VerificationDetail({
+    required String id,
+    @JsonKey(name: 'challenge_id') required String challengeId,
+    required VerificationUser user,
+    required String date,
+    @JsonKey(name: 'photo_urls') List<String>? photoUrls,
+    @JsonKey(name: 'diary_text') required String diaryText,
+    @JsonKey(name: 'created_at') required String createdAt,
+  }) = _VerificationDetail;
+
+  factory VerificationDetail.fromJson(Map<String, dynamic> json) =>
+      _$VerificationDetailFromJson(json);
 }
 
 /// GET /challenges/{id}/verifications/{date} 응답의 data 필드.
