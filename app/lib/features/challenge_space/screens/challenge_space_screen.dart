@@ -14,7 +14,6 @@ import '../providers/challenge_detail_provider.dart';
 import '../providers/member_settings_provider.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/calendar_grid.dart';
-import '../widgets/member_nudge_list.dart';
 import '../widgets/nudge_banner.dart';
 
 class ChallengeSpaceScreen extends ConsumerStatefulWidget {
@@ -343,13 +342,6 @@ class _ChallengeSpaceBodyState extends ConsumerState<_ChallengeSpaceBody> {
             calendarData: calendarData,
             challengeId: widget.challengeId,
           ),
-          const SizedBox(height: 16),
-          // 멤버 목록 (탭하면 콕 찌르기)
-          if (calendarData != null)
-            _MemberSection(
-              challengeId: widget.challengeId,
-              calendarData: calendarData,
-            ),
           const SizedBox(height: 24),
         ],
       ),
@@ -510,39 +502,6 @@ class _TodaySection extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _MemberSection extends ConsumerWidget {
-  final String challengeId;
-  final CalendarData calendarData;
-
-  const _MemberSection({
-    required this.challengeId,
-    required this.calendarData,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final now = DateTime.now();
-    final todayDateStr =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-    DayEntry? todayEntry;
-    try {
-      todayEntry = calendarData.days.firstWhere((d) => d.date == todayDateStr);
-    } catch (_) {
-      todayEntry = null;
-    }
-    final currentUserId = ref.watch(authStateProvider).valueOrNull?.id;
-    final creatorId = ref.watch(challengeDetailProvider(challengeId)).valueOrNull?.creator.id;
-
-    return MemberNudgeList(
-      challengeId: challengeId,
-      members: calendarData.members,
-      verifiedMemberIds: todayEntry?.verifiedMembers ?? [],
-      currentUserId: currentUserId,
-      creatorId: creatorId,
     );
   }
 }
