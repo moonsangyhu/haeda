@@ -16,7 +16,6 @@ import '../providers/calendar_provider.dart';
 import '../widgets/calendar_grid.dart';
 import '../widgets/member_nudge_list.dart';
 import '../widgets/nudge_banner.dart';
-import '../widgets/speech_input_bar.dart';
 
 class ChallengeSpaceScreen extends ConsumerStatefulWidget {
   final String challengeId;
@@ -295,12 +294,6 @@ class _ChallengeSpaceBodyState extends ConsumerState<_ChallengeSpaceBody> {
               },
               onVerify: () =>
                   context.push('/challenges/${widget.challengeId}/verify'),
-            ),
-            // 카톡식 인라인 한마디 입력 바 (scene 직하부, 같은 ScrollView 안)
-            SpeechInputBar(
-              challengeId: widget.challengeId,
-              currentUserId: currentUserId,
-              myNickname: myNickname,
             ),
             const SizedBox(height: 8),
           ],

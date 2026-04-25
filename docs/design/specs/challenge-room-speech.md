@@ -1,10 +1,13 @@
 ---
 slug: challenge-room-speech
-status: ready
+status: dropped
 created: 2026-04-19
+dropped: 2026-04-25
 area: full-stack
 depends-on: challenge-room-social
 ---
+
+> **DROPPED 2026-04-25** — 사용자 결정으로 챌린지 방 한마디 기능 전체 제거. 코드 / DB 테이블 / API 엔드포인트 / docs(prd/api-contract/domain-model) 동기 제거됨. 본 스펙은 추후 재도입 시 참조용으로만 보존. 보고서: `docs/reports/2026-04-25-feature-remove-room-speech.md`.
 
 # Challenge Room — Character Speech Bubble
 
