@@ -6,7 +6,6 @@ import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/challenge_room_scene.dart' show ChallengeRoomColors;
 import '../../../core/widgets/tappable_character.dart';
 import '../../character/models/character_data.dart';
-import 'speech_bubble.dart';
 
 /// A character widget rendered inside [ChallengeRoomScene].
 ///
@@ -22,9 +21,6 @@ class RoomCharacter extends StatefulWidget {
   final String nickname;
   final bool celebrationJump;
   final VoidCallback? onTap;
-  final String? speechText;
-  final double bubbleOpacity;
-  final double bubbleScale;
 
   const RoomCharacter({
     super.key,
@@ -36,9 +32,6 @@ class RoomCharacter extends StatefulWidget {
     required this.nickname,
     this.celebrationJump = false,
     this.onTap,
-    this.speechText,
-    this.bubbleOpacity = 0.0,
-    this.bubbleScale = 1.0,
   });
 
   @override
@@ -131,9 +124,6 @@ class _RoomCharacterState extends State<RoomCharacter>
     }
   }
 
-  bool get _hasSpeech =>
-      widget.speechText != null && widget.bubbleOpacity > 0;
-
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -149,23 +139,6 @@ class _RoomCharacterState extends State<RoomCharacter>
               alignment: Alignment.center,
               clipBehavior: Clip.none,
               children: [
-                // Speech bubble (above everything)
-                if (_hasSpeech)
-                  Positioned(
-                    top: -widget.size * 0.45,
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: SpeechBubble(
-                        text: widget.speechText!,
-                        opacity: widget.bubbleOpacity,
-                        scale: widget.bubbleScale,
-                        semanticsNickname: widget.nickname,
-                        maxWidth: widget.size * 3,
-                      ),
-                    ),
-                  ),
-
                 // Crown for creator
                 if (widget.isCreator)
                   Positioned(
@@ -184,8 +157,8 @@ class _RoomCharacterState extends State<RoomCharacter>
                 // Character body with animations
                 _buildAnimatedCharacter(),
 
-                // Wave bubble — suppressed when speech bubble is active
-                if (_showBubble && !_hasSpeech)
+                // Wave bubble (탭 인사 반응)
+                if (_showBubble)
                   Positioned(
                     top: -widget.size * 0.25,
                     right: -widget.size * 0.1,

@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../features/challenge_space/models/calendar_data.dart';
-import '../../features/challenge_space/providers/room_speech_provider.dart';
 import '../../features/challenge_space/widgets/celebration_overlay.dart';
 import '../../features/challenge_space/widgets/room_character.dart';
 import '../../features/character/models/character_data.dart';
@@ -100,65 +99,8 @@ class ChallengeRoomScene extends ConsumerStatefulWidget {
 }
 
 class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
-    with TickerProviderStateMixin, WidgetsBindingObserver {
+    with TickerProviderStateMixin {
   final Set<String> _nudgedSet = {};
-
-  ({String challengeId, String myUserId, String myNickname})? _speechParams;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _initSpeech();
-  }
-
-  @override
-  void didUpdateWidget(covariant ChallengeRoomScene oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (_speechParams == null &&
-        widget.currentUserId != null &&
-        widget.currentUserId != oldWidget.currentUserId) {
-      _initSpeech();
-    }
-  }
-
-  void _initSpeech() {
-    final userId = widget.currentUserId;
-    if (userId == null) return;
-    _speechParams = (
-      challengeId: widget.challengeId,
-      myUserId: userId,
-      myNickname: widget.myNickname,
-    );
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      final params = _speechParams;
-      if (params == null) return;
-      final controller = ref.read(roomSpeechProvider(params).notifier);
-      controller.hydrate().then((_) {
-        if (mounted) controller.start();
-      });
-    });
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    final params = _speechParams;
-    if (params == null) return;
-    if (state == AppLifecycleState.paused) {
-      ref.read(roomSpeechProvider(params).notifier).pauseForOffstage();
-    } else if (state == AppLifecycleState.resumed) {
-      final controller = ref.read(roomSpeechProvider(params).notifier);
-      controller.resume();
-      controller.hydrate();
-    }
-  }
 
   Future<void> _onNudge(CalendarMember member) async {
     if (_nudgedSet.contains(member.id)) return;
@@ -266,10 +208,6 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
   @override
   Widget build(BuildContext context) {
     final myCharacter = ref.watch(myCharacterProvider).valueOrNull;
-    final speechParams = _speechParams;
-    final speechController = speechParams != null
-        ? ref.watch(roomSpeechProvider(speechParams))
-        : null;
 
     // Sort: unverified → back rows (lower y), verified → front rows (higher y)
     final verified = widget.members
@@ -327,7 +265,6 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
                   w,
                   h,
                   myCharacter,
-                  speechController,
                 ),
 
               // Mini calendar tap overlay
@@ -373,7 +310,6 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
     double w,
     double h,
     CharacterData? myCharacter,
-    RoomSpeechController? speechController,
   ) {
     final isSelf = widget.currentUserId != null &&
         member.id.trim().toLowerCase() ==
@@ -388,11 +324,6 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
 
     final left = slot.xRatio * w - size / 2;
     final top = slot.yRatio * h - size * 0.85;
-
-    final isSpeaking = speechController?.activeSpeakerId == member.id;
-    final speechText = isSpeaking ? speechController?.activeText : null;
-    final bubbleOpacity = isSpeaking ? (speechController?.bubbleOpacity ?? 0.0) : 0.0;
-    final bubbleScale = isSpeaking ? (speechController?.bubbleScale ?? 1.0) : 1.0;
 
     return Positioned(
       left: left,
@@ -411,9 +342,6 @@ class _ChallengeRoomSceneState extends ConsumerState<ChallengeRoomScene>
             : isVerified
                 ? null // wave handled internally
                 : () => _onNudge(member),
-        speechText: speechText,
-        bubbleOpacity: bubbleOpacity,
-        bubbleScale: bubbleScale,
       ),
     );
   }

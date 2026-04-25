@@ -251,30 +251,7 @@ User 1──N DeviceToken
 - 보유(UserItem)하지 않은 아이템은 착용 불가
 - 코인 잔액 부족 시 구매 불가
 
-### 2.12 RoomSpeech (챌린지 방 한마디) — P2
-
-챌린지 방 캐릭터 위에 흰 말풍선으로 표시되는 ambient 한마디. 유저당 챌린지당 활성 1행, day-cutoff TTL.
-
-| 필드 | 타입 | 제약 | 설명 |
-|------|------|------|------|
-| id | UUID | PK | |
-| challenge_id | UUID | NOT NULL, FK → Challenge | |
-| user_id | UUID | NOT NULL, FK → User | 발언자 |
-| content | VARCHAR(40) | NOT NULL | trim + 줄바꿈 제거 후 1-40자 |
-| created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | |
-| expires_at | TIMESTAMPTZ | NOT NULL | 챌린지 `day_cutoff_hour` 기준 다음 cutoff (KST). 경계 30초 이내는 그 다음 cutoff |
-
-**제약:**
-- UNIQUE `(challenge_id, user_id)` — 유저별 챌린지당 1건. 재전송은 upsert.
-- INDEX `(challenge_id, expires_at)` — 만료 필터링 가속화.
-
-**비즈니스 룰:**
-- POST 시 동일 (challenge, user) 쌍에 대한 10초 rate limit (in-memory, 단일 worker MVP).
-- GET 시 `expires_at > now()` 만 반환.
-- DELETE 는 idempotent (없는 행 삭제도 200).
-- 멤버가 아닌 user 의 모든 호출은 `SPEECH_NOT_MEMBER` (403).
-
-### 2.13 RoomEquipMr (미니룸 장착 상태) — P2
+### 2.12 RoomEquipMr (미니룸 장착 상태) — P2
 
 사용자의 미니룸 8개 슬롯 현재 장착 상태. 유저당 1행. 슬롯 NULL = 디자인 기본값 렌더.
 
@@ -297,7 +274,7 @@ User 1──N DeviceToken
 - 슬롯 NULL → 디자인 기본값 렌더.
 - Item.is_active=false 로 변경 시 자동 NULL fallback (silent).
 
-### 2.14 RoomEquipCr (챌린지 방 공용 장착) — P2
+### 2.13 RoomEquipCr (챌린지 방 공용 장착) — P2
 
 챌린지 방의 공용 6개 슬롯 장착 상태. 챌린지당 1행. 방장만 편집 가능.
 
@@ -319,7 +296,7 @@ User 1──N DeviceToken
 - 방장이 챌린지를 떠나면 row 유지하되 기본값 렌더 (P3에서 승계 정책).
 - 챌린지 삭제 시 cascade delete.
 
-### 2.15 RoomEquipCrSignature (챌린지 방 멤버 signature) — P2
+### 2.14 RoomEquipCrSignature (챌린지 방 멤버 signature) — P2
 
 챌린지 방에서 각 멤버가 자기 캐릭터 옆에 표시할 개인 signature 아이템. 챌린지당 멤버당 최대 1행.
 
