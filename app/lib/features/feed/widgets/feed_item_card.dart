@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/utils/media_url.dart';
 import '../models/feed_item_data.dart';
 import '../providers/feed_provider.dart';
 
@@ -113,7 +114,7 @@ class FeedItemCard extends ConsumerWidget {
                     bottom: Radius.zero,
                   ),
                   child: Image.network(
-                    item.photoUrls!.first,
+                    mediaUrl(item.photoUrls!.first),
                     height: 200,
                     width: double.infinity,
                     fit: BoxFit.cover,

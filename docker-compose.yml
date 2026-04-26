@@ -24,6 +24,8 @@ services:
       DATABASE_URL: "postgresql+asyncpg://postgres:postgres@db:5432/haeda"
       SECRET_KEY: "dev-secret-key"
       DEBUG: "true"
+    volumes:
+      - ./server/uploads:/server/uploads
     depends_on:
       db:
         condition: service_healthy
