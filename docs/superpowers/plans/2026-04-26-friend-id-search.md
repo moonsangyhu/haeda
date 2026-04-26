@@ -12,6 +12,34 @@
 
 ---
 
+## Conventions (read first — supersedes inline test code below)
+
+이 레포의 실제 테스트 환경에 맞춰 **본 plan 의 모든 test 코드 인용을 보정해야 한다**. 인라인 코드는 의도 표현용 의사 예제이고, 실제 작성 시 다음 규칙을 따른다:
+
+1. **DB 백엔드는 SQLite in-memory** (`server/tests/conftest.py`).
+   - PostgreSQL-전용 정규식 (`~` 연산자), `psql -c` 검증, `pg_*` 함수, JSONB 등은 모델 / 테스트에 사용 금지.
+   - `discriminator` 의 5자리 숫자 형식은 **Pydantic 스키마 (Field pattern) 가 강제**하고, **postgres CHECK 제약은 Alembic 마이그레이션에만 둔다**. SQLAlchemy 모델 정의에서 `CheckConstraint("discriminator ~ ...")` 를 **포함하지 않는다** (SQLite 가 `~` 를 모르므로 `Base.metadata.create_all` 실행 시 타입 에러).
+   - 모델의 `__table_args__` 는 `UniqueConstraint("nickname", "discriminator", ...)` 만 둔다.
+
+2. **Fixture 매핑** (plan 인라인 코드에서 → 실제):
+   - `db` → **`db_session`** (`server/tests/conftest.py` 정의)
+   - `auth_user` → **`user`** (이미 conftest.py 에 있음, kakao_id=1001, nickname="테스터")
+   - `auth_headers: dict` → 직접 작성 `headers={"Authorization": f"Bearer {user.id}"}`
+   - 추가 사용자가 필요하면 `other_user` (kakao_id=1002, nickname="다른사람") 또는 인라인 생성
+
+3. **Migration 검증 테스트 (`test_migration_discriminator_backfill.py`) 는 작성 X.** SQLite 환경에서 의미 없음. 마이그레이션은 `docker compose exec backend ... alembic upgrade head` + `psql` 검증으로 수동 확인 (Task 3 step).
+
+4. **Backend 명령**:
+   - 테스트: 호스트의 `server/.venv/bin/pytest ...` (컨테이너에는 dev 의존성 미설치)
+   - Alembic: 컨테이너 안에서 `docker compose exec -T backend bash -c ".venv/bin/alembic upgrade head"` 또는 호스트에서 `cd server && .venv/bin/alembic ...`
+   - DB 검증: `docker compose exec -T db psql -U haeda -d haeda -c "..."` — 단, `haeda` 가 실제 DB 명/유저명인지 `docker compose config` 로 한 번 확인
+
+5. **인증 라우터 테스트 시 prefix**: `/api/v1` 프리픽스가 붙는지 기존 `tests/test_*.py` 에서 확인. (예: `await client.get("/api/v1/me", ...)` 일 수도 있음.) 새 라우터 테스트도 같은 패턴.
+
+6. **사전 실패 테스트 1개 무시**: `test_room_equip.py::test_member_clear_signature` 는 본 작업 이전부터 fail 상태. 베이스라인이며 수정 대상 아님. 회귀 테스트 시에는 `--ignore=tests/test_room_equip.py` 또는 명시 deselect.
+
+---
+
 ## File Structure
 
 ### Server (create / modify)
@@ -185,7 +213,7 @@ git commit -m "docs: add user discriminator and POST /users/search-by-id"
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, CheckConstraint, String, Text, UniqueConstraint
+from sqlalchemy import BigInteger, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -197,7 +225,7 @@ class User(Base):
     __tablename__ = "users"
     __table_args__ = (
         UniqueConstraint("nickname", "discriminator", name="uq_users_nickname_discriminator"),
-        CheckConstraint("discriminator ~ '^[0-9]{5}$'", name="ck_users_discriminator_format"),
+        # CheckConstraint 는 postgres-only 정규식 (`~`) 이라 SQLite 테스트와 호환 X — 마이그레이션에만 둔다.
     )
 
     id: Mapped[uuid.UUID] = mapped_column(
