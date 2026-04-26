@@ -38,3 +38,7 @@ automation/runs/
 
 # Design worktree sentinel
 .design-worktree
+
+# Verification uploads (local dev runtime — never commit user-uploaded media)
+server/uploads/*
+!server/uploads/.gitkeep

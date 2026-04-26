@@ -1,4 +1,6 @@
 """POST /challenges/{id}/verifications, GET /challenges/{id}/verifications/{date} 엔드포인트 테스트"""
+import os
+import re
 import uuid
 from datetime import date
 from io import BytesIO
@@ -13,6 +15,12 @@ from app.models.challenge_member import ChallengeMember
 from app.models.day_completion import DayCompletion
 from app.models.user import User
 from app.models.verification import Verification
+from app.routers.challenges import UPLOADS_DIR
+
+
+# 라우터는 byte stream 을 그대로 디스크에 쓰므로 진짜 이미지 디코딩이 필요 없다.
+# JPEG 매직 헤더 + 최소 EOI 마커 — static 서빙 시 content-type 추론(.jpg 확장자 기반)에 충분.
+_DUMMY_JPG = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00" + b"\x00" * 32 + b"\xff\xd9"
 
 
 # ---------- POST /challenges/{id}/verifications ----------
@@ -162,6 +170,82 @@ async def test_create_verification_duplicate(
 
     assert resp.status_code == 409
     assert resp.json()["error"]["code"] == "ALREADY_VERIFIED"
+
+
+@pytest.mark.asyncio
+async def test_create_verification_with_photos(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """multipart 사진 업로드: 파일 저장 + photo_urls 반환 + static 서빙 확인."""
+    photo_a = _DUMMY_JPG
+    photo_b = _DUMMY_JPG
+
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 5)
+        resp = await client.post(
+            f"/api/v1/challenges/{challenge.id}/verifications",
+            headers={"Authorization": f"Bearer {user.id}"},
+            data={"diary_text": "사진 두 장 첨부"},
+            files=[
+                ("photos", ("morning.jpg", photo_a, "image/jpeg")),
+                ("photos", ("evening.jpg", photo_b, "image/jpeg")),
+            ],
+        )
+
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    photo_urls = data["photo_urls"]
+    assert isinstance(photo_urls, list) and len(photo_urls) == 2
+
+    pattern = re.compile(r"^/uploads/[0-9a-f-]{36}\.jpg$")
+    saved_paths: list[str] = []
+    try:
+        for url in photo_urls:
+            assert pattern.match(url), f"unexpected url shape: {url}"
+            filename = url.rsplit("/", 1)[-1]
+            disk_path = os.path.join(UPLOADS_DIR, filename)
+            assert os.path.exists(disk_path), f"파일이 디스크에 저장되지 않음: {disk_path}"
+            saved_paths.append(disk_path)
+
+            served = await client.get(url)
+            assert served.status_code == 200, f"static 서빙 실패: {url}"
+            assert served.headers["content-type"].startswith("image/")
+            assert len(served.content) > 0
+    finally:
+        for p in saved_paths:
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+
+
+@pytest.mark.asyncio
+async def test_create_verification_too_many_photos(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """4장 첨부: VALIDATION_ERROR (422)."""
+    photo = _DUMMY_JPG
+    files = [("photos", (f"p{i}.jpg", photo, "image/jpeg")) for i in range(4)]
+
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 5)
+        resp = await client.post(
+            f"/api/v1/challenges/{challenge.id}/verifications",
+            headers={"Authorization": f"Bearer {user.id}"},
+            data={"diary_text": "사진 4장 시도"},
+            files=files,
+        )
+
+    assert resp.status_code == 422
+    assert resp.json()["error"]["code"] == "VALIDATION_ERROR"
 
 
 @pytest.mark.asyncio

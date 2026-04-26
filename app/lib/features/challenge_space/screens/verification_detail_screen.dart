@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/utils/media_url.dart';
 import '../../../core/widgets/character_avatar.dart';
 import '../../../core/widgets/error_widget.dart';
 import '../../../core/widgets/loading_widget.dart';
@@ -144,7 +145,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
       return ClipRRect(
         borderRadius: BorderRadius.circular(20),
         child: Image.network(
-          widget.photoUrls.first,
+          mediaUrl(widget.photoUrls.first),
           width: double.infinity,
           fit: BoxFit.cover,
           errorBuilder: (context, error, stackTrace) {
@@ -179,7 +180,7 @@ class _PhotoSectionState extends State<_PhotoSection> {
               return ClipRRect(
                 borderRadius: BorderRadius.circular(20),
                 child: Image.network(
-                  widget.photoUrls[index],
+                  mediaUrl(widget.photoUrls[index]),
                   width: double.infinity,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) {

@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'api_exception.dart';
 
-const _baseUrl = 'http://localhost:8000/api/v1';
+const apiBaseUrl = 'http://localhost:8000/api/v1';
+const apiOrigin = 'http://localhost:8000';
 
 class AuthInterceptor extends QueuedInterceptorsWrapper {
   @override
@@ -55,7 +56,7 @@ class ResponseInterceptor extends Interceptor {
 Dio createDioClient() {
   final dio = Dio(
     BaseOptions(
-      baseUrl: _baseUrl,
+      baseUrl: apiBaseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
       headers: {'Content-Type': 'application/json'},
