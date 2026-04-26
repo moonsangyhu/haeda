@@ -36,6 +36,7 @@ class AuthState extends _$AuthState {
       final user = AuthUser(
         id: map['id'] as String,
         nickname: map['nickname'] as String?,
+        discriminator: map['discriminator'] as String?,
         profileImageUrl: map['profile_image_url'] as String?,
         backgroundColor: map['background_color'] as String?,
         isNew: false,

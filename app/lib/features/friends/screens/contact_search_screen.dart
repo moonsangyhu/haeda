@@ -1,6 +1,7 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
-import 'package:go_router/go_router.dart';
+
 import 'package:flutter_contacts/models/contact/contact_property.dart';
 import 'package:flutter_contacts/models/permissions/permission_status.dart';
 import 'package:flutter_contacts/models/permissions/permission_type.dart';
@@ -8,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_client.dart';
 import '../models/friend_data.dart';
+import '../utils/user_id_format.dart';
 
 class ContactSearchScreen extends ConsumerStatefulWidget {
   const ContactSearchScreen({super.key});
@@ -19,15 +21,33 @@ class ContactSearchScreen extends ConsumerStatefulWidget {
 
 class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
   final _phoneController = TextEditingController();
+  final _idController = TextEditingController();
   bool _contactsLoading = false;
   bool _searchLoading = false;
+  bool _idSearchLoading = false;
   List<ContactMatchItem>? _matches;
   String? _error;
   final Set<String> _sentRequests = {};
+  ParsedUserId? _parsedId;
+
+  @override
+  void initState() {
+    super.initState();
+    _idController.addListener(() {
+      final parsed = parseUserId(_idController.text);
+      if (parsed?.nickname != _parsedId?.nickname ||
+          parsed?.discriminator != _parsedId?.discriminator) {
+        setState(() {
+          _parsedId = parsed;
+        });
+      }
+    });
+  }
 
   @override
   void dispose() {
     _phoneController.dispose();
+    _idController.dispose();
     super.dispose();
   }
 
@@ -85,6 +105,55 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
       setState(() {
         _error = '연락처를 불러오는 중 오류가 발생했어요.';
         _contactsLoading = false;
+      });
+    }
+  }
+
+  /// ID(닉네임#숫자) 직접 입력으로 검색
+  Future<void> _searchById() async {
+    final parsed = _parsedId;
+    if (parsed == null) return;
+
+    setState(() {
+      _idSearchLoading = true;
+      _error = null;
+    });
+
+    try {
+      final dio = ref.read(dioProvider);
+      final response = await dio.post(
+        '/users/search-by-id',
+        data: {
+          'nickname': parsed.nickname,
+          'discriminator': parsed.discriminator,
+        },
+      );
+      final data = response.data as Map<String, dynamic>;
+      final match = ContactMatchItem(
+        userId: data['user_id'] as String,
+        nickname: data['nickname'] as String,
+        discriminator: data['discriminator'] as String,
+        profileImageUrl: data['profile_image_url'] as String?,
+        friendshipStatus: data['friendship_status'] as String?,
+      );
+      setState(() {
+        _matches = [match];
+        _idSearchLoading = false;
+      });
+    } on DioException catch (e) {
+      setState(() {
+        _idSearchLoading = false;
+        if (e.response?.statusCode == 404) {
+          _matches = [];
+          _error = null;
+        } else {
+          _error = '검색 중 오류가 발생했어요.';
+        }
+      });
+    } catch (_) {
+      setState(() {
+        _idSearchLoading = false;
+        _error = '검색 중 오류가 발생했어요.';
       });
     }
   }
@@ -160,7 +229,7 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
         title: const Text('친구 찾기'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
+          onPressed: () => Navigator.of(context).pop(),
         ),
       ),
       body: Column(
@@ -213,41 +282,67 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
           // 전화번호 입력
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      hintText: '전화번호를 입력하세요',
-                      prefixIcon: const Icon(Icons.phone),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    onSubmitted: (_) => _searchByPhone(),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                FilledButton(
+            child: TextField(
+              controller: _phoneController,
+              keyboardType: TextInputType.phone,
+              decoration: InputDecoration(
+                hintText: '전화번호를 입력하세요',
+                prefixIcon: const Icon(Icons.phone),
+                suffixIcon: IconButton(
                   onPressed: _searchLoading ? null : _searchByPhone,
-                  child: _searchLoading
+                  icon: _searchLoading
                       ? const SizedBox(
                           width: 20,
                           height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
+                          child: CircularProgressIndicator(strokeWidth: 2),
                         )
-                      : const Text('검색'),
+                      : const Icon(Icons.search),
                 ),
-              ],
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+              onSubmitted: (_) => _searchByPhone(),
+            ),
+          ),
+
+          // ID(닉네임#숫자) 직접 입력
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: TextField(
+              key: const Key('id_search_field'),
+              controller: _idController,
+              decoration: InputDecoration(
+                hintText: '닉네임#12345 형식으로 입력',
+                prefixIcon: const Icon(Icons.alternate_email),
+                suffixIcon: IconButton(
+                  key: const Key('id_search_button'),
+                  onPressed: (_idSearchLoading || _parsedId == null)
+                      ? null
+                      : _searchById,
+                  icon: _idSearchLoading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.search),
+                ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+              onSubmitted: (_) {
+                if (_parsedId != null) _searchById();
+              },
             ),
           ),
 
@@ -308,6 +403,7 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
 
   Widget _buildMatchTile(ContactMatchItem match, ThemeData theme) {
     final alreadyFriend = match.friendshipStatus == 'accepted';
+    final isSelf = match.friendshipStatus == 'self';
     final pending = match.friendshipStatus == 'pending' ||
         _sentRequests.contains(match.userId);
 
@@ -328,18 +424,20 @@ class _ContactSearchScreenState extends ConsumerState<ContactSearchScreen> {
               )
             : null,
       ),
-      title: Text(match.nickname),
-      trailing: alreadyFriend
-          ? Chip(
-              label: const Text('친구'),
-              backgroundColor: theme.colorScheme.primaryContainer,
-            )
-          : pending
-              ? const Chip(label: Text('요청됨'))
-              : FilledButton.tonal(
-                  onPressed: () => _sendRequest(match.userId),
-                  child: const Text('친구 요청'),
-                ),
+      title: Text('${match.nickname}#${match.discriminator}'),
+      trailing: isSelf
+          ? const Chip(label: Text('본인'))
+          : alreadyFriend
+              ? Chip(
+                  label: const Text('친구'),
+                  backgroundColor: theme.colorScheme.primaryContainer,
+                )
+              : pending
+                  ? const Chip(label: Text('요청됨'))
+                  : FilledButton.tonal(
+                      onPressed: () => _sendRequest(match.userId),
+                      child: const Text('친구 요청'),
+                    ),
     );
   }
 }

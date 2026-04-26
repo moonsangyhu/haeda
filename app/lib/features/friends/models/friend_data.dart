@@ -64,6 +64,7 @@ class ContactMatchItem with _$ContactMatchItem {
   const factory ContactMatchItem({
     @JsonKey(name: 'user_id') required String userId,
     required String nickname,
+    required String discriminator,
     @JsonKey(name: 'profile_image_url') String? profileImageUrl,
     @JsonKey(name: 'friendship_status') String? friendshipStatus,
   }) = _ContactMatchItem;

@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import BigInteger, String, Text
+from sqlalchemy import BigInteger, String, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -11,12 +11,17 @@ from app.models.base import Base
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("nickname", "discriminator", name="uq_users_nickname_discriminator"),
+        # CheckConstraint 는 postgres-only 정규식 (`~`) 이라 SQLite 테스트와 호환 X — 마이그레이션에만 둔다.
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
     kakao_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
     nickname: Mapped[str] = mapped_column(String(30), nullable=False)
+    discriminator: Mapped[str] = mapped_column(String(5), nullable=False)
     profile_image_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     background_color: Mapped[str | None] = mapped_column(String(9), nullable=True)
     phone_number: Mapped[str | None] = mapped_column(String(20), nullable=True, unique=True)
@@ -24,7 +29,7 @@ class User(Base):
         nullable=False, server_default=func.now()
     )
 
-    # relationships
+    # relationships (기존 그대로 유지)
     created_challenges: Mapped[list["Challenge"]] = relationship(
         "Challenge", back_populates="creator", foreign_keys="Challenge.creator_id"
     )

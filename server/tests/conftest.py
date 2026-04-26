@@ -66,6 +66,7 @@ async def user(db_session: AsyncSession) -> User:
         id=uuid.uuid4(),
         kakao_id=1001,
         nickname="테스터",
+        discriminator="11111",
         profile_image_url=None,
     )
     db_session.add(u)
@@ -80,6 +81,7 @@ async def other_user(db_session: AsyncSession) -> User:
         id=uuid.uuid4(),
         kakao_id=1002,
         nickname="다른사람",
+        discriminator="22222",
         profile_image_url="https://example.com/img.jpg",
     )
     db_session.add(u)

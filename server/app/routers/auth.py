@@ -43,6 +43,7 @@ async def kakao_login(
             user=UserWithIsNew(
                 id=user.id,
                 nickname=user.nickname,
+                discriminator=user.discriminator,
                 profile_image_url=user.profile_image_url,
                 background_color=user.background_color,
                 is_new=is_new,
@@ -83,6 +84,7 @@ async def dev_login(
             user=UserWithIsNew(
                 id=user.id,
                 nickname=user.nickname,
+                discriminator=user.discriminator,
                 profile_image_url=user.profile_image_url,
                 background_color=user.background_color,
                 is_new=is_new,
@@ -118,6 +120,7 @@ async def update_profile(
         data=ProfileUpdateResponse(
             id=user.id,
             nickname=user.nickname,
+            discriminator=user.discriminator,
             profile_image_url=user.profile_image_url,
             background_color=user.background_color,
         )

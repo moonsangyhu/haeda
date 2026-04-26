@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.exceptions import AppException
 from app.models.user import User
+from app.services.discriminator_service import generate_discriminator
 
 KAKAO_USER_INFO_URL = "https://kapi.kakao.com/v2/user/me"
 UPLOADS_DIR = Path(__file__).parent.parent.parent / "uploads"
@@ -38,10 +39,14 @@ async def login_or_register(
     if user is not None:
         return user, False
 
+    final_nickname = nickname or f"user_{kakao_id}"
+    discriminator = await generate_discriminator(db, nickname=final_nickname)
+
     user = User(
         id=uuid.uuid4(),
         kakao_id=kakao_id,
-        nickname=nickname or f"user_{kakao_id}",
+        nickname=final_nickname,
+        discriminator=discriminator,
         profile_image_url=profile_image_url,
     )
     db.add(user)

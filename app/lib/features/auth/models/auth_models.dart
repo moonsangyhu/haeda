@@ -10,6 +10,7 @@ class AuthUser with _$AuthUser {
   const factory AuthUser({
     required String id,
     String? nickname,
+    String? discriminator,
     @JsonKey(name: 'profile_image_url') String? profileImageUrl,
     @JsonKey(name: 'background_color') String? backgroundColor,
     @JsonKey(name: 'is_new') required bool isNew,

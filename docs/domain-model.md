@@ -43,6 +43,7 @@ User 1──N DeviceToken
 | id | UUID | PK | 사용자 고유 ID |
 | kakao_id | BIGINT | UNIQUE, NOT NULL | 카카오 OAuth 고유 ID |
 | nickname | VARCHAR(30) | NOT NULL | 닉네임 |
+| discriminator | VARCHAR(5) | NOT NULL | 5자리 숫자 (`'10000'`–`'99999'`). `(nickname, discriminator)` UNIQUE, CHECK `~ '^[0-9]{5}$'` |
 | profile_image_url | TEXT | NULLABLE | 프로필 사진 URL |
 | background_color | VARCHAR(9) | NULLABLE | 캐릭터 배경 원형 색상 (고정 팔레트 내 hex, 예 `#FFCDD2`) |
 | created_at | TIMESTAMPTZ | NOT NULL, DEFAULT NOW() | 가입일시 |

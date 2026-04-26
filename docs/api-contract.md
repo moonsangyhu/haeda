@@ -66,6 +66,7 @@
     "user": {
       "id": "uuid",
       "nickname": "string | null",
+      "discriminator": "43217",
       "profile_image_url": "string | null",
       "background_color": "string | null",
       "is_new": true
@@ -93,6 +94,7 @@
   "data": {
     "id": "uuid",
     "nickname": "string",
+    "discriminator": "43217",
     "profile_image_url": "string | null",
     "background_color": "string | null",
   }
@@ -149,6 +151,7 @@
     "creator": {
       "id": "uuid",
       "nickname": "string",
+      "discriminator": "43217",
       "profile_image_url": "string"
     },
     "member_count": 1,
@@ -226,6 +229,7 @@
         "creator": {
           "id": "uuid",
           "nickname": "string",
+          "discriminator": "43217",
           "profile_image_url": "string"
         }
       }
@@ -258,6 +262,7 @@
     "creator": {
       "id": "uuid",
       "nickname": "string",
+      "discriminator": "43217",
       "profile_image_url": "string"
     },
     "member_count": 5,
@@ -361,6 +366,7 @@
       {
         "user_id": "uuid",
         "nickname": "김철수",
+        "discriminator": "43217",
         "profile_image_url": "string",
         "achievement_rate": 90.0,
         "verified_days": 27,
@@ -369,6 +375,7 @@
       {
         "user_id": "uuid",
         "nickname": "이영희",
+        "discriminator": "58104",
         "profile_image_url": "string",
         "achievement_rate": 86.7,
         "verified_days": 26,
@@ -500,6 +507,7 @@
       {
         "id": "uuid",
         "nickname": "김철수",
+        "discriminator": "43217",
         "profile_image_url": "string"
       }
     ],
@@ -540,6 +548,7 @@
         "user": {
           "id": "uuid",
           "nickname": "김철수",
+          "discriminator": "43217",
           "profile_image_url": "string",
           "character": {
             "hat": { "asset_key": "hat/pink_beanie.png", "rarity": "COMMON" } | null,
@@ -571,6 +580,7 @@
     "user": {
       "id": "uuid",
       "nickname": "김철수",
+      "discriminator": "43217",
       "profile_image_url": "string",
       "character": {
         "hat": { "asset_key": "hat/pink_beanie.png", "rarity": "COMMON" } | null,
@@ -971,6 +981,7 @@
       {
         "user_id": "uuid",
         "nickname": "민수",
+        "discriminator": "43217",
         "signature_item": { "id": "uuid", "name": "강아지", "category": "SIGNATURE", "rarity": "COMMON", "asset_key": "sig/dog", "is_limited": false }
       }
     ]
@@ -1017,6 +1028,7 @@
   "data": {
     "user_id": "uuid",
     "nickname": "민수",
+    "discriminator": "43217",
     "signature_item": { "id": "uuid", "name": "강아지", "category": "SIGNATURE", "rarity": "COMMON", "asset_key": "sig/dog", "is_limited": false }
   }
 }
@@ -1029,3 +1041,45 @@
 **Response:** 204 No Content. signature 가 없는 경우도 idempotent 204.
 
 **에러:** `CR_NOT_MEMBER`.
+
+---
+
+## 11. Users — P0
+
+### POST `/users/search-by-id` — 닉네임#숫자 ID 로 사용자 검색
+
+`(nickname, discriminator)` 정확 일치로 사용자 1명을 조회한다. 친구 추가 화면의 ID 검색 입력에서 호출.
+
+**Request:**
+```json
+{
+  "nickname": "홍길동",
+  "discriminator": "43217"
+}
+```
+
+**Response (200):**
+```json
+{
+  "data": {
+    "user_id": "uuid",
+    "nickname": "홍길동",
+    "discriminator": "43217",
+    "profile_image_url": "https://...",
+    "friendship_status": "none" | "pending" | "accepted" | "self"
+  }
+}
+```
+
+`friendship_status`:
+- `none` — 친구 관계 없음 (친구 추가 가능)
+- `pending` — 요청 보냈거나 받음 (대기중)
+- `accepted` — 이미 친구
+- `self` — 본인 ID 검색
+
+**에러:**
+| HTTP | code | 조건 |
+|------|------|------|
+| 400 | INVALID_ID_FORMAT | discriminator 형식 위반 (5자리 숫자 아님) |
+| 401 | UNAUTHORIZED | 인증 토큰 없음 또는 만료 |
+| 404 | USER_NOT_FOUND | 일치하는 사용자 없음 |
