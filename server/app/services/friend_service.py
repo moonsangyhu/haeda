@@ -24,6 +24,32 @@ def _normalize_phone(number: str) -> str:
     return re.sub(r"[\s\-]", "", number)
 
 
+async def compute_friendship_status(
+    db: AsyncSession,
+    *,
+    viewer_id: uuid.UUID,
+    target_id: uuid.UUID,
+) -> str:
+    """viewer 가 본 target 의 친구 상태.
+
+    반환: "self" | "accepted" | "pending" | "none"
+    """
+    if viewer_id == target_id:
+        return "self"
+
+    stmt = select(Friendship).where(
+        or_(
+            (Friendship.requester_id == viewer_id) & (Friendship.addressee_id == target_id),
+            (Friendship.addressee_id == viewer_id) & (Friendship.requester_id == target_id),
+        )
+    )
+    result = await db.execute(stmt)
+    friendship = result.scalar_one_or_none()
+    if friendship is None:
+        return "none"
+    return friendship.status  # 'pending' | 'accepted'
+
+
 async def send_friend_request(
     db: AsyncSession,
     requester_id: uuid.UUID,
