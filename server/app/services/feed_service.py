@@ -132,6 +132,7 @@ async def get_friend_feed(
                 actor=UserBrief(
                     id=row.User.id,
                     nickname=row.User.nickname,
+                    discriminator=row.User.discriminator,
                     profile_image_url=row.User.profile_image_url,
                 ),
                 type=fi.type,

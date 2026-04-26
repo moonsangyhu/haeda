@@ -29,6 +29,7 @@ async def get_me(
     brief = UserBrief(
         id=user.id,
         nickname=user.nickname,
+        discriminator=user.discriminator,
         profile_image_url=user.profile_image_url,
         background_color=user.background_color,
     )

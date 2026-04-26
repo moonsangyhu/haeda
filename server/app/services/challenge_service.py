@@ -189,6 +189,7 @@ async def get_challenge_detail(
         creator=UserBrief(
             id=creator.id,
             nickname=creator.nickname,
+            discriminator=creator.discriminator,
             profile_image_url=creator.profile_image_url,
         ),
         member_count=member_count,
@@ -294,6 +295,7 @@ async def create_challenge(
         creator=UserBrief(
             id=creator.id,
             nickname=creator.nickname,
+            discriminator=creator.discriminator,
             profile_image_url=creator.profile_image_url,
         ),
         member_count=1,

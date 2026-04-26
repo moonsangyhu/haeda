@@ -314,6 +314,7 @@ async def get_daily_verifications(
             user=UserBrief(
                 id=row.User.id,
                 nickname=row.User.nickname,
+                discriminator=row.User.discriminator,
                 profile_image_url=row.User.profile_image_url,
                 character=char_map.get(row.User.id),
             ),
@@ -356,6 +357,7 @@ async def get_verification_detail(
         user=UserBrief(
             id=verification_user.id,
             nickname=verification_user.nickname,
+            discriminator=verification_user.discriminator,
             profile_image_url=verification_user.profile_image_url,
             character=char_map.get(verification_user.id),
         ),

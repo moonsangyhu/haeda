@@ -140,6 +140,7 @@ async def send_nudge(
     sender_brief = UserBrief(
         id=sender.id,
         nickname=sender.nickname,
+        discriminator=sender.discriminator,
         profile_image_url=sender.profile_image_url,
     )
 

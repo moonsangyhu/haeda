@@ -74,6 +74,7 @@ async def get_pending_requests(
             user=UserBrief(
                 id=row.User.id,
                 nickname=row.User.nickname,
+                discriminator=row.User.discriminator,
                 profile_image_url=row.User.profile_image_url,
             ),
             created_at=row.Friendship.created_at,
