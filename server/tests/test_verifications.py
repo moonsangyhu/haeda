@@ -47,6 +47,34 @@ async def test_create_verification_success(
 
 
 @pytest.mark.asyncio
+async def test_create_verification_coins_earned_uses_type_field(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """coins_earned[] 의 각 아이템은 api-contract.md 에 따라 'type' 필드를 가진다."""
+    with patch("app.services.verification_service.effective_today") as mock_ef:
+        mock_ef.return_value = date(2026, 4, 5)
+        resp = await client.post(
+            f"/api/v1/challenges/{challenge.id}/verifications",
+            headers={"Authorization": f"Bearer {user.id}"},
+            data={"diary_text": "타입 필드 계약 검증"},
+        )
+
+    assert resp.status_code == 201
+    data = resp.json()["data"]
+    coins_earned = data["coins_earned"]
+    assert coins_earned is not None and len(coins_earned) >= 1
+    first = coins_earned[0]
+    assert "type" in first, f"'type' 필드가 없습니다: {first}"
+    assert "reason" not in first, f"'reason' 필드가 노출되어선 안 됩니다: {first}"
+    assert first["type"] == "VERIFICATION"
+    assert first["amount"] == 10
+
+
+@pytest.mark.asyncio
 async def test_create_verification_cutoff2_before_boundary(
     client: AsyncClient,
     db_session: AsyncSession,

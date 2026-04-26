@@ -25,4 +25,4 @@ class CoinTransactionListResponse(BaseModel):
 
 class CoinEarned(BaseModel):
     amount: int
-    reason: str
+    type: str
