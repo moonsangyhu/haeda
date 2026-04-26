@@ -47,6 +47,7 @@ class ContactMatchRequest(BaseModel):
 class ContactMatchItem(BaseModel):
     user_id: uuid.UUID
     nickname: str
+    discriminator: str
     profile_image_url: str | None
     friendship_status: str | None  # null, 'pending', 'accepted'
 

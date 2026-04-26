@@ -241,6 +241,7 @@ async def match_contacts(
         ContactMatchItem(
             user_id=u.id,
             nickname=u.nickname,
+            discriminator=u.discriminator,
             profile_image_url=u.profile_image_url,
             friendship_status=status_map.get(u.id),
         )
