@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -18,6 +19,14 @@ class SettingsScreen extends ConsumerStatefulWidget {
 
 class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool _isLoggingOut = false;
+
+  Future<void> _copyMyId(String fullId) async {
+    await Clipboard.setData(ClipboardData(text: fullId));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('ID 복사됨')),
+    );
+  }
 
   Future<void> _logout() async {
     final confirmed = await showDialog<bool>(
@@ -104,6 +113,32 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               ],
             ),
           ),
+
+          // ── 내 ID 섹션 ──
+          if (user?.nickname != null && user?.discriminator != null) ...[
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+              child: Text(
+                '내 ID',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            ListTile(
+              key: const Key('my_id_row'),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20),
+              title: Text(
+                '${user!.nickname}#${user.discriminator}',
+                style: const TextStyle(fontFamily: 'monospace'),
+              ),
+              subtitle: const Text('탭하면 복사돼요'),
+              trailing: const Icon(Icons.copy, size: 18),
+              onTap: () => _copyMyId('${user.nickname}#${user.discriminator}'),
+            ),
+          ],
 
           const SizedBox(height: 16),
           const Divider(indent: 20, endIndent: 20),
