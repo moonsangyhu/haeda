@@ -183,7 +183,7 @@ async def create_verification(
         reason="VERIFICATION",
         reference_id=challenge_id,
     )
-    coins_earned.append(CoinEarned(amount=10, reason="VERIFICATION"))
+    coins_earned.append(CoinEarned(amount=10, type="VERIFICATION"))
 
     # streak 보너스
     if streak_count == 3:
@@ -194,7 +194,7 @@ async def create_verification(
             reason="STREAK_3",
             reference_id=challenge_id,
         )
-        coins_earned.append(CoinEarned(amount=15, reason="STREAK_3"))
+        coins_earned.append(CoinEarned(amount=15, type="STREAK_3"))
     elif streak_count == 7:
         await gem_service.award_gems(
             db=db,
@@ -203,7 +203,7 @@ async def create_verification(
             reason="STREAK_7",
             reference_id=challenge_id,
         )
-        coins_earned.append(CoinEarned(amount=50, reason="STREAK_7"))
+        coins_earned.append(CoinEarned(amount=50, type="STREAK_7"))
 
     # 8. 전원 인증 판정
     # 해당 날짜 인증 수 카운트 (방금 flush된 레코드 포함)
@@ -250,7 +250,7 @@ async def create_verification(
                 reason="ALL_COMPLETED",
                 reference_id=challenge_id,
             )
-        coins_earned.append(CoinEarned(amount=20, reason="ALL_COMPLETED"))
+        coins_earned.append(CoinEarned(amount=20, type="ALL_COMPLETED"))
 
     await db.commit()
     await db.refresh(verification)
