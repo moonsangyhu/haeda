@@ -20,7 +20,7 @@ from app.schemas.verification import (
     VerificationDetailResponse,
     VerificationItem,
 )
-from app.services import gem_service, streak_service
+from app.services import gem_service, streak_service, treasure_chest_service
 from app.services.calendar_service import _determine_season
 from app.services.character_helpers import load_member_characters
 from app.utils.time import effective_today
@@ -253,6 +253,11 @@ async def create_verification(
                 reference_id=challenge_id,
             )
         coins_earned.append(CoinEarned(amount=20, type="ALL_COMPLETED"))
+
+    from datetime import datetime as _dt, timezone as _tz
+    await treasure_chest_service.arm_if_first_today(
+        db, user_id, _dt.now(_tz.utc)
+    )
 
     await db.commit()
     await db.refresh(verification)

@@ -358,3 +358,39 @@ async def test_open_endpoint_openable_returns_200(
     data = resp.json()["data"]
     assert data["reward_gems"] == 100
     assert data["balance"] == 100
+
+
+@pytest.mark.asyncio
+async def test_create_verification_arms_chest(
+    db_session: AsyncSession,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """인증 생성 → user_treasure_states 에 행 arm."""
+    from app.services import verification_service
+
+    today = date(2026, 4, 27)
+
+    pre = await db_session.execute(
+        select(UserTreasureState).where(UserTreasureState.user_id == user.id)
+    )
+    assert pre.scalar_one_or_none() is None
+
+    with patch("app.services.verification_service.effective_today", return_value=today):
+        await verification_service.create_verification(
+            db=db_session,
+            challenge_id=challenge.id,
+            user_id=user.id,
+            diary_text="테스트 인증",
+            photo_urls=None,
+            target_date=today,
+        )
+
+    post = await db_session.execute(
+        select(UserTreasureState).where(UserTreasureState.user_id == user.id)
+    )
+    row = post.scalar_one_or_none()
+    assert row is not None
+    assert row.armed_date == today
+    assert row.opened is False
