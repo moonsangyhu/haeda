@@ -1,6 +1,7 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 import '../../../features/character/models/coin_earned.dart';
 import '../../character/models/character_data.dart';
+import 'comment_data.dart';
 
 part 'verification_data.freezed.dart';
 part 'verification_data.g.dart';
@@ -45,6 +46,7 @@ class VerificationItem with _$VerificationItem {
     required VerificationUser user,
     @JsonKey(name: 'photo_urls') List<String>? photoUrls,
     @JsonKey(name: 'diary_text') required String diaryText,
+    @JsonKey(name: 'comment_count') @Default(0) int commentCount,
     @JsonKey(name: 'created_at') required String createdAt,
   }) = _VerificationItem;
 
@@ -62,6 +64,7 @@ class VerificationDetail with _$VerificationDetail {
     required String date,
     @JsonKey(name: 'photo_urls') List<String>? photoUrls,
     @JsonKey(name: 'diary_text') required String diaryText,
+    @Default(<CommentItem>[]) List<CommentItem> comments,
     @JsonKey(name: 'created_at') required String createdAt,
   }) = _VerificationDetail;
 

@@ -202,16 +202,29 @@ class _VerificationListItem extends ConsumerWidget {
           Icon(Icons.check_circle, size: 14, color: Theme.of(context).colorScheme.primary),
         ],
       ),
-      subtitle: item.diaryText.isNotEmpty
-          ? Text(
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (item.diaryText.isNotEmpty)
+            Text(
               item.diaryText,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
-            )
-          : null,
+            ),
+          if (item.commentCount > 0) ...[
+            const SizedBox(height: 4),
+            Text(
+              '💬 ${item.commentCount}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ],
+      ),
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
     );
   }
