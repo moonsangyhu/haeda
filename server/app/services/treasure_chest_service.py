@@ -4,12 +4,14 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.exceptions import AppException
 from app.models.user_treasure_state import UserTreasureState
 from app.schemas.treasure_chest import (
     ChestState,
     OpenChestResponse,
     TreasureChestResponse,
 )
+from app.services import gem_service
 
 CHEST_REWARD_GEMS = 100
 CHEST_TIMER_HOURS = 12
@@ -106,3 +108,46 @@ async def arm_if_first_today(
     row.opened = False
     row.updated_at = now
     await db.flush()
+
+
+async def open_chest(
+    db: AsyncSession, user_id: uuid.UUID
+) -> OpenChestResponse:
+    state = await get_state(db, user_id)
+
+    if state.state == ChestState.OPENED:
+        raise AppException(
+            status_code=409,
+            code="CHEST_ALREADY_OPENED",
+            message="오늘 보물상자를 이미 열었습니다.",
+        )
+
+    if state.state != ChestState.OPENABLE:
+        raise AppException(
+            status_code=409,
+            code="CHEST_NOT_READY",
+            message="보물상자가 아직 준비되지 않았습니다.",
+        )
+
+    await gem_service.award_gems(
+        db=db,
+        user_id=user_id,
+        amount=CHEST_REWARD_GEMS,
+        reason="treasure_chest",
+        reference_id=None,
+    )
+
+    now = _now()
+    stmt = select(UserTreasureState).where(UserTreasureState.user_id == user_id)
+    result = await db.execute(stmt)
+    row = result.scalar_one()
+    row.opened = True
+    row.updated_at = now
+    await db.flush()
+
+    balance = await gem_service.get_balance(db, user_id)
+    return OpenChestResponse(
+        reward_gems=CHEST_REWARD_GEMS,
+        balance=balance,
+        opened_at=now,
+    )

@@ -191,3 +191,102 @@ async def test_arm_if_first_today_resets_after_day_change(
     armed_at = row.armed_at if row.armed_at.tzinfo else row.armed_at.replace(tzinfo=timezone.utc)
     assert armed_at == now
     assert row.opened is False
+
+
+@pytest.mark.asyncio
+async def test_open_chest_openable_awards_gems(
+    db_session: AsyncSession, user: User
+):
+    """openable 상태에서 open_chest → balance += 100, opened=true."""
+    now = _now()
+    db_session.add(
+        UserTreasureState(
+            user_id=user.id,
+            armed_date=now.date(),
+            armed_at=now - timedelta(hours=13),
+            opened=False,
+        )
+    )
+    await db_session.commit()
+
+    with patch("app.services.treasure_chest_service._now", return_value=now):
+        result = await treasure_chest_service.open_chest(db_session, user.id)
+    await db_session.commit()
+
+    assert result.reward_gems == 100
+    assert result.balance == 100
+
+    from sqlalchemy import func, select as sql_select
+    bal_stmt = sql_select(func.coalesce(func.sum(GemTransaction.amount), 0)).where(
+        GemTransaction.user_id == user.id
+    )
+    bal_result = await db_session.execute(bal_stmt)
+    assert bal_result.scalar_one() == 100
+
+    stmt = select(UserTreasureState).where(UserTreasureState.user_id == user.id)
+    row_result = await db_session.execute(stmt)
+    assert row_result.scalar_one().opened is True
+
+
+@pytest.mark.asyncio
+async def test_open_chest_locked_raises(
+    db_session: AsyncSession, user: User
+):
+    """locked 상태에서 open_chest → AppException CHEST_NOT_READY."""
+    from app.exceptions import AppException
+
+    now = _now()
+    db_session.add(
+        UserTreasureState(
+            user_id=user.id,
+            armed_date=now.date(),
+            armed_at=now - timedelta(hours=5),
+            opened=False,
+        )
+    )
+    await db_session.commit()
+
+    with patch("app.services.treasure_chest_service._now", return_value=now):
+        with pytest.raises(AppException) as exc:
+            await treasure_chest_service.open_chest(db_session, user.id)
+    assert exc.value.code == "CHEST_NOT_READY"
+    assert exc.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_open_chest_already_opened_raises(
+    db_session: AsyncSession, user: User
+):
+    """opened=true 상태에서 open_chest → AppException CHEST_ALREADY_OPENED."""
+    from app.exceptions import AppException
+
+    now = _now()
+    db_session.add(
+        UserTreasureState(
+            user_id=user.id,
+            armed_date=now.date(),
+            armed_at=now - timedelta(hours=14),
+            opened=True,
+        )
+    )
+    await db_session.commit()
+
+    with patch("app.services.treasure_chest_service._now", return_value=now):
+        with pytest.raises(AppException) as exc:
+            await treasure_chest_service.open_chest(db_session, user.id)
+    assert exc.value.code == "CHEST_ALREADY_OPENED"
+    assert exc.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_open_chest_no_chest_raises(
+    db_session: AsyncSession, user: User
+):
+    """no_chest 상태에서 open_chest → AppException CHEST_NOT_READY."""
+    from app.exceptions import AppException
+
+    with patch("app.services.treasure_chest_service._now", return_value=_now()):
+        with pytest.raises(AppException) as exc:
+            await treasure_chest_service.open_chest(db_session, user.id)
+    assert exc.value.code == "CHEST_NOT_READY"
+    assert exc.value.status_code == 409
