@@ -41,3 +41,6 @@ class Verification(Base):
     user: Mapped["User"] = relationship(
         "User", back_populates="verifications"
     )
+    comments: Mapped[list["Comment"]] = relationship(
+        "Comment", back_populates="verification", cascade="all, delete-orphan"
+    )
