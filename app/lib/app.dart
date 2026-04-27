@@ -27,6 +27,7 @@ import 'features/friends/screens/friend_list_screen.dart';
 import 'features/friends/screens/friend_requests_screen.dart';
 import 'features/friends/screens/contact_search_screen.dart';
 import 'features/room_decoration/screens/room_decorator_screen.dart';
+import 'features/streak/screens/streak_screen.dart';
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -198,6 +199,11 @@ final _router = GoRouter(
     GoRoute(
       path: '/friends/contact-search',
       builder: (context, state) => const ContactSearchScreen(),
+    ),
+    // 연속 기록 페이지
+    GoRoute(
+      path: '/streak',
+      builder: (context, state) => const StreakScreen(),
     ),
   ],
 );
