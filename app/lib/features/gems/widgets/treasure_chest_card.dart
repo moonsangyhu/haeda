@@ -76,8 +76,8 @@ class TreasureChestCard extends StatelessWidget {
   String _formatRemaining(int seconds) {
     final h = seconds ~/ 3600;
     final m = (seconds % 3600) ~/ 60;
-    if (h > 0) return '${h}시간 ${m}분 남음';
-    return '${m}분 남음';
+    if (h > 0) return '$h시간 $m분 남음';
+    return '$m분 남음';
   }
 
   double _progress() {
