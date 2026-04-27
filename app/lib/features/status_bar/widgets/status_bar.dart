@@ -75,15 +75,24 @@ class _StatusBarContent extends StatelessWidget {
                   ),
                 ),
               ),
-              Semantics(
-                label: '젬 ${stats.gems}개',
-                excludeSemantics: true,
-                child: _StatPill(
-                  color: const Color(0xFF4FC3F7),
-                  opacity: pillOpacity,
-                  child: _StatItem(
-                    asset: 'gem',
-                    value: '${stats.gems}',
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: () => context.push('/gems'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Semantics(
+                    label: '젬 ${stats.gems}개',
+                    excludeSemantics: true,
+                    button: true,
+                    child: _StatPill(
+                      color: const Color(0xFF4FC3F7),
+                      opacity: pillOpacity,
+                      child: _StatItem(
+                        asset: 'gem',
+                        value: '${stats.gems}',
+                      ),
+                    ),
                   ),
                 ),
               ),
