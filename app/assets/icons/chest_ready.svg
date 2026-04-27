@@ -1,0 +1,9 @@
+<svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect x="10" y="22" width="44" height="32" rx="2" fill="#FFC107" stroke="#F57C00" stroke-width="2"/>
+  <path d="M10 30 Q32 18 54 30" stroke="#F57C00" stroke-width="2" fill="#FFE082"/>
+  <rect x="28" y="32" width="8" height="10" rx="1" fill="#FFFFFF" stroke="#F57C00" stroke-width="1"/>
+  <text x="6" y="14" font-size="10" fill="#FFD700">✦</text>
+  <text x="50" y="14" font-size="10" fill="#FFD700">✦</text>
+  <text x="6" y="60" font-size="8" fill="#FFD700">✧</text>
+  <text x="52" y="60" font-size="8" fill="#FFD700">✧</text>
+</svg>
