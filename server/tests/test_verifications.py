@@ -424,7 +424,7 @@ async def test_get_daily_verifications_success(
     v_item = data["verifications"][0]
     assert v_item["diary_text"] == "오늘 달리기!"
     assert v_item["photo_urls"] is None
-    assert "comment_count" not in v_item
+    assert v_item["comment_count"] == 0
     assert v_item["user"]["id"] == str(user.id)
     assert v_item["user"]["nickname"] == "테스터"
 
