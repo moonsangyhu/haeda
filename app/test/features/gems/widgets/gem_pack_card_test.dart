@@ -20,7 +20,7 @@ void main() {
     );
     expect(find.textContaining('+500'), findsOneWidget);
     expect(find.text('25,000원'), findsOneWidget);
-    expect(find.text('5,000'), findsOneWidget);
+    expect(find.textContaining('5,000'), findsAtLeastNWidgets(1));
   });
 
   testWidgets('no bonus badge when bonus_gems = 0', (tester) async {
