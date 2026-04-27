@@ -118,3 +118,76 @@ async def test_armed_yesterday_returns_no_chest(
     with patch("app.services.treasure_chest_service._now", return_value=now):
         result = await treasure_chest_service.get_state(db_session, user.id)
     assert result.state == ChestState.NO_CHEST
+
+
+@pytest.mark.asyncio
+async def test_arm_if_first_today_inserts_row(
+    db_session: AsyncSession, user: User
+):
+    """행 없음 + 호출 → INSERT, armed_date=today, opened=false."""
+    now = _now()
+    await treasure_chest_service.arm_if_first_today(db_session, user.id, now)
+    await db_session.commit()
+    stmt = select(UserTreasureState).where(UserTreasureState.user_id == user.id)
+    result = await db_session.execute(stmt)
+    row = result.scalar_one()
+    assert row.armed_date == now.date()
+    armed_at = row.armed_at if row.armed_at.tzinfo else row.armed_at.replace(tzinfo=timezone.utc)
+    assert armed_at == now
+    assert row.opened is False
+
+
+@pytest.mark.asyncio
+async def test_arm_if_first_today_idempotent_same_day(
+    db_session: AsyncSession, user: User
+):
+    """같은 날 재호출 → no-op (armed_at, opened 변화 없음)."""
+    now = _now()
+    original = now - timedelta(hours=3)
+    db_session.add(
+        UserTreasureState(
+            user_id=user.id,
+            armed_date=now.date(),
+            armed_at=original,
+            opened=False,
+        )
+    )
+    await db_session.commit()
+
+    await treasure_chest_service.arm_if_first_today(db_session, user.id, now)
+    await db_session.commit()
+
+    stmt = select(UserTreasureState).where(UserTreasureState.user_id == user.id)
+    result = await db_session.execute(stmt)
+    row = result.scalar_one()
+    armed_at = row.armed_at if row.armed_at.tzinfo else row.armed_at.replace(tzinfo=timezone.utc)
+    assert armed_at == original
+    assert row.opened is False
+
+
+@pytest.mark.asyncio
+async def test_arm_if_first_today_resets_after_day_change(
+    db_session: AsyncSession, user: User
+):
+    """armed_date=어제 + opened=true → UPDATE today, opened=false."""
+    now = _now()
+    db_session.add(
+        UserTreasureState(
+            user_id=user.id,
+            armed_date=now.date() - timedelta(days=1),
+            armed_at=now - timedelta(hours=20),
+            opened=True,
+        )
+    )
+    await db_session.commit()
+
+    await treasure_chest_service.arm_if_first_today(db_session, user.id, now)
+    await db_session.commit()
+
+    stmt = select(UserTreasureState).where(UserTreasureState.user_id == user.id)
+    result = await db_session.execute(stmt)
+    row = result.scalar_one()
+    assert row.armed_date == now.date()
+    armed_at = row.armed_at if row.armed_at.tzinfo else row.armed_at.replace(tzinfo=timezone.utc)
+    assert armed_at == now
+    assert row.opened is False

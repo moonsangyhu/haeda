@@ -76,3 +76,33 @@ async def get_state(
         reward_gems=CHEST_REWARD_GEMS,
         remaining_seconds=0,
     )
+
+
+async def arm_if_first_today(
+    db: AsyncSession, user_id: uuid.UUID, now: datetime
+) -> None:
+    today = now.date()
+    stmt = select(UserTreasureState).where(UserTreasureState.user_id == user_id)
+    result = await db.execute(stmt)
+    row = result.scalar_one_or_none()
+
+    if row is None:
+        db.add(
+            UserTreasureState(
+                user_id=user_id,
+                armed_date=today,
+                armed_at=now,
+                opened=False,
+            )
+        )
+        await db.flush()
+        return
+
+    if row.armed_date == today:
+        return
+
+    row.armed_date = today
+    row.armed_at = now
+    row.opened = False
+    row.updated_at = now
+    await db.flush()
