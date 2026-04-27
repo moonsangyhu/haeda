@@ -51,6 +51,7 @@ async def seed():
     async with session_factory() as db:
         # 기존 데이터 정리 (역순 FK)
         for table in [
+            "comments",
             "claps",
             "feed_items",
             "friendships",

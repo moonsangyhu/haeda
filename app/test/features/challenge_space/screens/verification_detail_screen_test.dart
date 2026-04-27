@@ -78,6 +78,126 @@ void main() {
     });
   });
 
+  group('인증 상세 화면 - 댓글 섹션', () {
+    testWidgets('댓글이 없으면 안내 문구를 표시한다', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: _CommentList(comments: []),
+          ),
+        ),
+      );
+
+      expect(find.text('첫 댓글을 남겨보세요.'), findsOneWidget);
+    });
+
+    testWidgets('댓글이 있으면 내용을 표시한다', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: _CommentList(
+                comments: [
+                  _CommentData(nickname: '이영희', content: '멋지네요!'),
+                  _CommentData(nickname: '박지민', content: '저도 따라해볼게요.'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('이영희'), findsOneWidget);
+      expect(find.text('멋지네요!'), findsOneWidget);
+      expect(find.text('박지민'), findsOneWidget);
+      expect(find.text('저도 따라해볼게요.'), findsOneWidget);
+    });
+
+    testWidgets('댓글 헤더에 댓글 수가 표시된다', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: _CommentList(
+              comments: [
+                _CommentData(nickname: '이영희', content: '멋지네요!'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('댓글 1'), findsOneWidget);
+    });
+  });
+
+  group('인증 상세 화면 - 댓글 입력창', () {
+    testWidgets('댓글 입력 TextField가 있다', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _CommentInputBar(
+              onSend: () {},
+              isLoading: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(TextField), findsOneWidget);
+    });
+
+    testWidgets('전송 버튼이 있다', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _CommentInputBar(
+              onSend: () {},
+              isLoading: false,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byIcon(Icons.send), findsOneWidget);
+    });
+
+    testWidgets('전송 중일 때 로딩 인디케이터가 표시된다', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _CommentInputBar(
+              onSend: () {},
+              isLoading: true,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.byType(CircularProgressIndicator), findsOneWidget);
+      expect(find.byIcon(Icons.send), findsNothing);
+    });
+
+    testWidgets('전송 버튼을 탭하면 onSend 콜백이 호출된다', (tester) async {
+      var sendCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _CommentInputBar(
+              onSend: () {
+                sendCalled = true;
+              },
+              isLoading: false,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byIcon(Icons.send));
+      expect(sendCalled, isTrue);
+    });
+  });
+
   group('인증 리스트 아이템 - 탭 동작', () {
     testWidgets('인증 리스트 아이템에 onTap이 있다', (tester) async {
       var tapped = false;
@@ -154,5 +274,82 @@ class _DiaryText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(text);
+  }
+}
+
+class _CommentData {
+  final String nickname;
+  final String content;
+
+  const _CommentData({required this.nickname, required this.content});
+}
+
+class _CommentList extends StatelessWidget {
+  final List<_CommentData> comments;
+
+  const _CommentList({required this.comments});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text('댓글 ${comments.length}'),
+        if (comments.isEmpty)
+          const Center(child: Text('첫 댓글을 남겨보세요.'))
+        else
+          ...comments.map(
+            (c) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(c.nickname),
+                Text(c.content),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _CommentInputBar extends StatelessWidget {
+  final VoidCallback onSend;
+  final bool isLoading;
+
+  const _CommentInputBar({
+    required this.onSend,
+    required this.isLoading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(
+          child: TextField(
+            decoration: InputDecoration(hintText: '댓글을 입력하세요...'),
+          ),
+        ),
+        const SizedBox(width: 8),
+        isLoading
+            ? const SizedBox(
+                width: 40,
+                height: 40,
+                child: Center(
+                  child: SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+                ),
+              )
+            : IconButton(
+                onPressed: onSend,
+                icon: const Icon(Icons.send),
+              ),
+      ],
+    );
   }
 }

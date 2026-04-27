@@ -7,10 +7,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.exceptions import AppException
 from app.models.challenge import Challenge
 from app.models.challenge_member import ChallengeMember
+from app.models.comment import Comment
 from app.models.day_completion import DayCompletion
 from app.models.user import User
 from app.models.verification import Verification
 from app.schemas.coin import CoinEarned
+from app.schemas.comment import CommentAuthor, CommentItem
 from app.schemas.user import UserBrief
 from app.schemas.verification import (
     DailyVerificationsResponse,
@@ -282,10 +284,22 @@ async def get_daily_verifications(
     # 2. 멤버십 확인
     await _check_membership(db, challenge_id, user_id)
 
-    # 3. 해당 날짜의 Verification 목록 조회 (User JOIN)
+    # 3. 해당 날짜의 Verification 목록 조회 (User JOIN + Comment count subquery)
+    comment_count_subq = (
+        select(
+            Comment.verification_id.label("vid"),
+            func.count(Comment.id).label("cnt"),
+        )
+        .group_by(Comment.verification_id)
+        .subquery()
+    )
     verif_stmt = (
-        select(Verification, User)
+        select(Verification, User, comment_count_subq.c.cnt)
         .join(User, User.id == Verification.user_id)
+        .outerjoin(
+            comment_count_subq,
+            comment_count_subq.c.vid == Verification.id,
+        )
         .where(
             Verification.challenge_id == challenge_id,
             Verification.date == target_date,
@@ -320,6 +334,7 @@ async def get_daily_verifications(
             ),
             photo_urls=row.Verification.photo_urls,
             diary_text=row.Verification.diary_text,
+            comment_count=row.cnt or 0,
             created_at=row.Verification.created_at,
         )
         for row in verif_rows
@@ -349,7 +364,34 @@ async def get_verification_detail(
     user_result = await db.execute(user_stmt)
     verification_user = user_result.scalar_one()
 
-    char_map = await load_member_characters(db, [verification_user.id])
+    # 4. 댓글 목록 조회 (작성자 JOIN, 시간순 정렬)
+    comments_stmt = (
+        select(Comment, User)
+        .join(User, User.id == Comment.author_id)
+        .where(Comment.verification_id == verification_id)
+        .order_by(Comment.created_at)
+    )
+    comments_result = await db.execute(comments_stmt)
+    comment_rows = comments_result.all()
+
+    # 5. 캐릭터 일괄 로딩 (verification 작성자 + 댓글 작성자)
+    all_user_ids = [verification_user.id] + [row.User.id for row in comment_rows]
+    char_map = await load_member_characters(db, list(set(all_user_ids)))
+
+    comments = [
+        CommentItem(
+            id=row.Comment.id,
+            author=CommentAuthor(
+                id=row.User.id,
+                nickname=row.User.nickname,
+                profile_image_url=row.User.profile_image_url,
+                character=char_map.get(row.User.id),
+            ),
+            content=row.Comment.content,
+            created_at=row.Comment.created_at,
+        )
+        for row in comment_rows
+    ]
 
     return VerificationDetailResponse(
         id=verification.id,
@@ -364,5 +406,6 @@ async def get_verification_detail(
         date=verification.date,
         photo_urls=verification.photo_urls,
         diary_text=verification.diary_text,
+        comments=comments,
         created_at=verification.created_at,
     )

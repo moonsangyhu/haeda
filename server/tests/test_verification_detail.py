@@ -57,7 +57,39 @@ async def test_verification_detail_happy_path(
     assert "created_at" in data
     assert data["user"]["id"] == str(user.id)
     assert data["user"]["nickname"] == "테스터"
-    assert "comments" not in data
+    assert data["comments"] == []
+
+
+@pytest.mark.asyncio
+async def test_verification_detail_with_comments(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+    verification: Verification,
+):
+    """댓글이 있는 인증 상세 조회 — comments 배열에 채워져 반환"""
+    from app.models.comment import Comment
+
+    c = Comment(
+        id=uuid.uuid4(),
+        verification_id=verification.id,
+        author_id=user.id,
+        content="좋은 인증이네요!",
+    )
+    db_session.add(c)
+    await db_session.commit()
+
+    resp = await client.get(
+        f"/api/v1/verifications/{verification.id}",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert len(data["comments"]) == 1
+    assert data["comments"][0]["content"] == "좋은 인증이네요!"
+    assert data["comments"][0]["author"]["id"] == str(user.id)
 
 
 @pytest.mark.asyncio
