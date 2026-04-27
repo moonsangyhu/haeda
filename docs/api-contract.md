@@ -1214,3 +1214,75 @@
 | 400 | INVALID_ID_FORMAT | discriminator 형식 위반 (5자리 숫자 아님) |
 | 401 | UNAUTHORIZED | 인증 토큰 없음 또는 만료 |
 | 404 | USER_NOT_FOUND | 일치하는 사용자 없음 |
+
+---
+
+## 7. Gems — 보물상자 + 충전 (P1)
+
+### GET `/gems/chest` — 보물상자 상태
+
+전역 보물상자 state machine. 4 state.
+
+**Response (200):**
+```json
+{
+  "data": {
+    "state": "locked",
+    "armed_at": "2026-04-27T09:00:00Z",
+    "openable_at": "2026-04-27T21:00:00Z",
+    "opened_at": null,
+    "reward_gems": 100,
+    "remaining_seconds": 19380
+  }
+}
+```
+
+**state 값:**
+- `no_chest` — 오늘 인증 안함 (chest 없음)
+- `locked` — 인증 후 12h 미경과
+- `openable` — 12h 경과, 열 수 있음
+- `opened` — 오늘 이미 열음
+
+`reward_gems` 는 100 고정. 인증 후 12h 타이머.
+
+### POST `/gems/chest/open` — 보물상자 열기
+
+**Response (200):**
+```json
+{ "data": { "reward_gems": 100, "balance": 260, "opened_at": "2026-04-27T21:30:12Z" } }
+```
+
+**Error:**
+- `409 CHEST_NOT_READY` — locked / no_chest 상태에서 시도
+- `409 CHEST_ALREADY_OPENED` — 오늘 이미 열음
+- `401 UNAUTHORIZED`
+
+### GET `/gems/packs` — 보석 팩 목록
+
+**Response (200):**
+```json
+{
+  "data": {
+    "packs": [
+      { "id": "pack_small",  "gems": 1000,  "bonus_gems": 0,    "price_krw": 5000 },
+      { "id": "pack_medium", "gems": 5000,  "bonus_gems": 500,  "price_krw": 25000 },
+      { "id": "pack_large", "gems": 12000, "bonus_gems": 2000, "price_krw": 60000 }
+    ]
+  }
+}
+```
+
+가격 기준: 1000 보석 ≈ 5000원. medium/large 는 보너스 포함.
+
+### POST `/gems/packs/{pack_id}/purchase` — 보석 팩 구매 (mock)
+
+본 MVP 는 영수증 검증 없이 즉시 보석 지급. 실제 IAP 전환은 P1 후속.
+
+**Response (200):**
+```json
+{ "data": { "awarded_gems": 5500, "balance": 5760, "pack_id": "pack_medium" } }
+```
+
+**Error:**
+- `404 PACK_NOT_FOUND` — invalid pack_id
+- `401 UNAUTHORIZED`
