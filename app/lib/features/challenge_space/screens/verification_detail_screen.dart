@@ -59,7 +59,17 @@ class _VerificationDetailScreenState
 
     if (ok) {
       _commentController.clear();
+      final detail =
+          ref.read(verificationDetailProvider(widget.verificationId)).value;
       ref.invalidate(verificationDetailProvider(widget.verificationId));
+      if (detail != null) {
+        ref.invalidate(dailyVerificationsProvider(
+          DailyVerificationParams(
+            challengeId: detail.challengeId,
+            date: detail.date,
+          ),
+        ));
+      }
     } else {
       final state = ref.read(commentSubmitProvider(widget.verificationId));
       final msg = state.errorMessage ?? '댓글 작성에 실패했습니다.';
