@@ -19,6 +19,7 @@ from app.models.challenge import Challenge  # noqa: E402
 from app.models.challenge_member import ChallengeMember  # noqa: E402
 from app.models.day_completion import DayCompletion  # noqa: E402
 from app.models.user import User  # noqa: E402
+from app.models.user_treasure_state import UserTreasureState  # noqa: E402, F401
 from app.models.verification import Verification  # noqa: E402
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
