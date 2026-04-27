@@ -290,3 +290,71 @@ async def test_open_chest_no_chest_raises(
             await treasure_chest_service.open_chest(db_session, user.id)
     assert exc.value.code == "CHEST_NOT_READY"
     assert exc.value.status_code == 409
+
+
+@pytest.mark.asyncio
+async def test_chest_endpoint_returns_no_chest_for_new_user(
+    client: AsyncClient, user: User
+):
+    resp = await client.get(
+        "/api/v1/gems/chest",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["state"] == "no_chest"
+    assert data["reward_gems"] == 100
+
+
+@pytest.mark.asyncio
+async def test_chest_endpoint_no_token_returns_401(client: AsyncClient):
+    resp = await client.get("/api/v1/gems/chest")
+    assert resp.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_open_endpoint_locked_returns_409(
+    client: AsyncClient, db_session: AsyncSession, user: User
+):
+    now = _now()
+    db_session.add(
+        UserTreasureState(
+            user_id=user.id,
+            armed_date=now.date(),
+            armed_at=now - timedelta(hours=5),
+            opened=False,
+        )
+    )
+    await db_session.commit()
+    with patch("app.services.treasure_chest_service._now", return_value=now):
+        resp = await client.post(
+            "/api/v1/gems/chest/open",
+            headers={"Authorization": f"Bearer {user.id}"},
+        )
+    assert resp.status_code == 409
+    assert resp.json()["error"]["code"] == "CHEST_NOT_READY"
+
+
+@pytest.mark.asyncio
+async def test_open_endpoint_openable_returns_200(
+    client: AsyncClient, db_session: AsyncSession, user: User
+):
+    now = _now()
+    db_session.add(
+        UserTreasureState(
+            user_id=user.id,
+            armed_date=now.date(),
+            armed_at=now - timedelta(hours=13),
+            opened=False,
+        )
+    )
+    await db_session.commit()
+    with patch("app.services.treasure_chest_service._now", return_value=now):
+        resp = await client.post(
+            "/api/v1/gems/chest/open",
+            headers={"Authorization": f"Bearer {user.id}"},
+        )
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["reward_gems"] == 100
+    assert data["balance"] == 100

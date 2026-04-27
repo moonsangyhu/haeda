@@ -11,7 +11,7 @@ from fastapi.staticfiles import StaticFiles
 from app.config import settings
 from app.database import _get_session_factory
 from app.exceptions import register_exception_handlers
-from app.routers import auth, challenges, feed, friends, me, notifications, room_equip, shop, users, verifications
+from app.routers import auth, challenges, feed, friends, gems, me, notifications, room_equip, shop, users, verifications
 from app.services.scheduler_service import close_expired_challenges
 
 logger = logging.getLogger(__name__)
@@ -80,6 +80,7 @@ app.include_router(users.router, prefix=settings.API_V1_PREFIX)
 app.include_router(friends.router, prefix=settings.API_V1_PREFIX)
 app.include_router(feed.router, prefix=settings.API_V1_PREFIX)
 app.include_router(room_equip.router, prefix=settings.API_V1_PREFIX)
+app.include_router(gems.router, prefix=settings.API_V1_PREFIX)
 
 
 @app.get("/health")
