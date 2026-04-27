@@ -192,5 +192,46 @@ void main() {
 
       expect(pushedRoute, '/streak');
     });
+
+    testWidgets('tapping gem pill pushes /gems route', (tester) async {
+      const stats = UserStats(
+        streak: 7,
+        verifiedToday: true,
+        activeChallenges: 3,
+        completedChallenges: 2,
+        gems: 120,
+      );
+
+      String? pushedRoute;
+      final router = GoRouter(
+        initialLocation: '/',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (context, state) => const Scaffold(body: StatusBar()),
+          ),
+          GoRoute(
+            path: '/gems',
+            builder: (context, state) {
+              pushedRoute = '/gems';
+              return const Scaffold(body: Text('gems page'));
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [userStatsProvider.overrideWith((_) async => stats)],
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pump();
+
+      await tester.tap(find.text('120'));
+      await tester.pumpAndSettle();
+
+      expect(pushedRoute, '/gems');
+    });
   });
 }
