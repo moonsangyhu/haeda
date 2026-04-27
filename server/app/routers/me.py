@@ -12,7 +12,14 @@ from app.models.user import User
 from app.schemas.coin import CoinBalanceResponse
 from app.schemas.item import AppearanceUpdateRequest, CharacterUpdateRequest
 from app.schemas.user import UserBrief
-from app.services import challenge_service, character_service, gem_service, shop_service, user_stats_service
+from app.services import (
+    challenge_service,
+    character_service,
+    gem_service,
+    shop_service,
+    streak_calendar_service,
+    user_stats_service,
+)
 
 router = APIRouter(prefix="/me", tags=["me"])
 
@@ -171,3 +178,22 @@ async def update_my_appearance(
 ):
     result = await character_service.update_appearance(db, user_id, body)
     return {"data": result.model_dump()}
+
+
+@router.get("/streak/calendar")
+async def get_streak_calendar(
+    year: int = Query(..., description="조회 연도"),
+    month: int = Query(..., description="조회 월 (1~12)"),
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    if year < 2024 or year > 2100 or month < 1 or month > 12:
+        raise AppException(
+            status_code=400,
+            code="INVALID_MONTH",
+            message="잘못된 연도/월입니다.",
+        )
+    cal = await streak_calendar_service.get_calendar(
+        db=db, user_id=user_id, year=year, month=month
+    )
+    return {"data": cal.model_dump(mode="json")}

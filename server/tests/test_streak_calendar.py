@@ -194,3 +194,76 @@ async def test_join_date_future_to_queried_month(
     assert all(
         d.status in (DayStatus.BEFORE_JOIN, DayStatus.FUTURE) for d in result.days
     )
+
+
+@pytest.mark.asyncio
+async def test_endpoint_returns_calendar(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    membership.joined_at = datetime(2026, 4, 1, 0, 0, 0)
+    db_session.add(
+        Verification(
+            id=uuid.uuid4(),
+            challenge_id=challenge.id,
+            user_id=user.id,
+            date=date(2026, 4, 26),
+            photo_urls=None,
+            diary_text="운동",
+        )
+    )
+    await db_session.commit()
+
+    with patch(
+        "app.services.streak_calendar_service._today",
+        return_value=date(2026, 4, 27),
+    ):
+        resp = await client.get(
+            "/api/v1/me/streak/calendar?year=2026&month=4",
+            headers={"Authorization": f"Bearer {user.id}"},
+        )
+
+    assert resp.status_code == 200
+    data = resp.json()["data"]
+    assert data["year"] == 2026
+    assert data["month"] == 4
+    assert data["first_join_date"] == "2026-04-01"
+    assert len(data["days"]) == 30
+    by_date = {d["date"]: d["status"] for d in data["days"]}
+    assert by_date["2026-04-26"] == "success"
+    assert by_date["2026-04-27"] == "today_pending"
+
+
+@pytest.mark.asyncio
+async def test_endpoint_invalid_month_returns_400(
+    client: AsyncClient, user: User
+):
+    resp = await client.get(
+        "/api/v1/me/streak/calendar?year=2026&month=13",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_MONTH"
+
+
+@pytest.mark.asyncio
+async def test_endpoint_invalid_year_returns_400(
+    client: AsyncClient, user: User
+):
+    resp = await client.get(
+        "/api/v1/me/streak/calendar?year=1900&month=4",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 400
+    body = resp.json()
+    assert body["error"]["code"] == "INVALID_MONTH"
+
+
+@pytest.mark.asyncio
+async def test_endpoint_no_token_returns_401(client: AsyncClient):
+    resp = await client.get("/api/v1/me/streak/calendar?year=2026&month=4")
+    assert resp.status_code == 401
