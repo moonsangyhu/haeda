@@ -444,6 +444,50 @@
 `achievement_rate`: 소수점 첫째자리까지 (0.0 ~ 100.0)
 `today_verified`: 오늘 날짜에 사용자의 인증이 존재하면 `true`
 
+### GET `/me/streak/calendar` — 전역 streak 캘린더
+
+전역 streak 의 월별 일자별 상태를 반환한다. 상단 status bar 의 streak pill 탭으로 진입하는 `/streak` 페이지에서 사용.
+
+**Query Parameters:**
+| 파라미터 | 타입 | 필수 | 설명 |
+|----------|------|------|------|
+| year | int | Y | 조회 연도 (2024 ~ 2100) |
+| month | int | Y | 조회 월 (1 ~ 12) |
+
+**Response (200):**
+```json
+{
+  "data": {
+    "streak": 14,
+    "first_join_date": "2025-12-03",
+    "year": 2026,
+    "month": 4,
+    "days": [
+      { "date": "2026-04-01", "status": "success" },
+      { "date": "2026-04-02", "status": "failure" },
+      { "date": "2026-04-27", "status": "today_pending" },
+      { "date": "2026-04-28", "status": "future" }
+    ]
+  }
+}
+```
+
+**필드:**
+- `streak`: 현재 전역 streak (`/me/stats` 와 동일 로직, 모든 챌린지 통합)
+- `first_join_date`: 유저의 가장 이른 `ChallengeMember.joined_at` 날짜. 챌린지 미참여 시 `null`
+- `days`: 해당 월의 모든 날짜, `date` 오름차순 (28~31 개)
+
+**status 값:**
+- `success` — 그 날 어떤 챌린지든 인증 1 회 이상
+- `failure` — 가입 이후 ~ 어제 사이, 인증 없음
+- `today_pending` — 오늘 + 인증 없음 (오늘 인증 완료면 `success` 우선)
+- `future` — 오늘 이후
+- `before_join` — 첫 챌린지 가입일 이전 (또는 미참여 유저)
+
+**Error:**
+- `400 INVALID_MONTH` — year/month 범위 밖
+- `401 UNAUTHORIZED` — 토큰 없음
+
 ---
 
 ## 4. Verifications — P0

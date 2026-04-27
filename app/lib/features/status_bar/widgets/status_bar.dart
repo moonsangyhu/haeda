@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:go_router/go_router.dart';
 import '../models/user_stats.dart';
 import '../providers/user_stats_provider.dart';
 
@@ -40,15 +41,25 @@ class _StatusBarContent extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              Semantics(
-                label: '스트릭 ${stats.streak}일, 오늘 인증 ${stats.verifiedToday ? "완료" : "미완료"}',
-                excludeSemantics: true,
-                child: _StatPill(
-                  color: const Color(0xFFFF6B35),
-                  opacity: pillOpacity,
-                  child: _StatItem(
-                    asset: streakAsset,
-                    value: '${stats.streak}',
+              Material(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                child: InkWell(
+                  onTap: () => context.push('/streak'),
+                  borderRadius: BorderRadius.circular(14),
+                  child: Semantics(
+                    label:
+                        '스트릭 ${stats.streak}일, 오늘 인증 ${stats.verifiedToday ? "완료" : "미완료"}',
+                    excludeSemantics: true,
+                    button: true,
+                    child: _StatPill(
+                      color: const Color(0xFFFF6B35),
+                      opacity: pillOpacity,
+                      child: _StatItem(
+                        asset: streakAsset,
+                        value: '${stats.streak}',
+                      ),
+                    ),
                   ),
                 ),
               ),
