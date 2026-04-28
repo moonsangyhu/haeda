@@ -21,6 +21,7 @@ class ChallengeCreateResponse with _$ChallengeCreateResponse {
     required String status,
     required ChallengeCreatorBrief creator,
     @JsonKey(name: 'member_count') required int memberCount,
+    @Default('🎯') String icon,
     @JsonKey(name: 'created_at') required String createdAt,
   }) = _ChallengeCreateResponse;
 

@@ -18,6 +18,8 @@ class ChallengeSummary with _$ChallengeSummary {
     @JsonKey(name: 'achievement_rate') required double achievementRate,
     String? badge,
     @JsonKey(name: 'today_verified') @Default(false) bool todayVerified,
+    @Default('🎯') String icon,
+    @JsonKey(name: 'last_verified_at') DateTime? lastVerifiedAt,
   }) = _ChallengeSummary;
 
   factory ChallengeSummary.fromJson(Map<String, dynamic> json) =>
