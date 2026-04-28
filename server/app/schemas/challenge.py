@@ -23,6 +23,7 @@ class ChallengeCreate(BaseModel):
     verification_frequency: dict
     photo_required: bool = False
     day_cutoff_hour: int = 0
+    icon: str = Field(default="🎯", max_length=8)
 
 
 class ChallengeCreateResponse(BaseModel):
@@ -39,6 +40,7 @@ class ChallengeCreateResponse(BaseModel):
     status: str
     creator: UserBrief
     member_count: int
+    icon: str
     created_at: datetime
 
     model_config = {"from_attributes": True}

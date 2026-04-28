@@ -267,6 +267,7 @@ async def create_challenge(
         day_cutoff_hour=data.day_cutoff_hour,
         invite_code=code,
         status="active",
+        icon=data.icon,
     )
     db.add(challenge)
     await db.flush()  # get challenge.id
@@ -299,6 +300,7 @@ async def create_challenge(
             profile_image_url=creator.profile_image_url,
         ),
         member_count=1,
+        icon=challenge.icon,
         created_at=challenge.created_at,
     )
 

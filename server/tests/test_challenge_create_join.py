@@ -252,3 +252,46 @@ async def test_join_challenge_ended(
     )
     assert resp.status_code == 400
     assert resp.json()["error"]["code"] == "CHALLENGE_ENDED"
+
+
+# ---------- icon 필드 테스트 ----------
+
+@pytest.mark.asyncio
+async def test_create_challenge_with_icon(
+    client: AsyncClient,
+    user: User,
+):
+    resp = await client.post(
+        "/api/v1/challenges",
+        json={
+            "title": "아침 운동",
+            "category": "운동",
+            "start_date": "2026-04-05",
+            "end_date": "2026-05-04",
+            "verification_frequency": {"type": "daily"},
+            "icon": "🏃",
+        },
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["data"]["icon"] == "🏃"
+
+
+@pytest.mark.asyncio
+async def test_create_challenge_default_icon(
+    client: AsyncClient,
+    user: User,
+):
+    resp = await client.post(
+        "/api/v1/challenges",
+        json={
+            "title": "독서",
+            "category": "독서",
+            "start_date": "2026-04-05",
+            "end_date": "2026-05-04",
+            "verification_frequency": {"type": "daily"},
+        },
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 201
+    assert resp.json()["data"]["icon"] == "🎯"
