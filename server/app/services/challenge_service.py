@@ -217,6 +217,7 @@ async def get_challenge_detail(
         member_count=member_count,
         is_member=is_member,
         is_creator=(challenge.creator_id == user_id),
+        icon=challenge.icon,
         created_at=challenge.created_at,
     )
 

@@ -84,6 +84,7 @@ class ChallengeDetail(BaseModel):
     member_count: int
     is_member: bool
     is_creator: bool
+    icon: str
     created_at: datetime
 
     model_config = {"from_attributes": True}

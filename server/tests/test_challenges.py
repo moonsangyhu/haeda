@@ -230,3 +230,35 @@ async def test_update_challenge_settings_invalid_value(
     )
     assert resp.status_code == 422
     assert resp.json()["error"]["code"] == "INVALID_DAY_CUTOFF_HOUR"
+
+
+# ---------- icon 필드 ----------
+
+@pytest.mark.asyncio
+async def test_get_challenge_detail_includes_icon(
+    client: AsyncClient,
+    db_session: AsyncSession,
+    user: User,
+):
+    c = Challenge(
+        creator_id=user.id,
+        title="아이콘 테스트",
+        category="기타",
+        start_date=date(2026, 4, 1),
+        end_date=date(2026, 5, 1),
+        verification_frequency={"type": "daily"},
+        invite_code="ICONTST1",
+        status="active",
+        icon="📚",
+    )
+    db_session.add(c)
+    await db_session.flush()
+    db_session.add(ChallengeMember(challenge_id=c.id, user_id=user.id))
+    await db_session.commit()
+
+    resp = await client.get(
+        f"/api/v1/challenges/{c.id}",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["icon"] == "📚"
