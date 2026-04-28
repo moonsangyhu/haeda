@@ -126,9 +126,14 @@
     "type": "daily"
   },
     "photo_required": true,
-  "day_cutoff_hour": 0
+  "day_cutoff_hour": 0,
+  "icon": "🏃"
 }
 ```
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| icon | string | N | 챌린지 식별 이모지 1글자. 미지정 시 기본 `"🎯"`. UTF-8 8 byte 이내 (단일 emoji + variation selector + ZWJ 한도). |
 
 > P0에서 `is_public`은 서버가 기본 `false`로 설정. 클라이언트는 전송하지 않는다.
 
@@ -155,6 +160,7 @@
       "profile_image_url": "string"
     },
     "member_count": 1,
+    "icon": "🏃",
     "created_at": "2026-04-04T12:00:00Z"
   }
 }
@@ -267,6 +273,7 @@
     },
     "member_count": 5,
     "is_member": true,
+    "icon": "🏃",
     "created_at": "2026-04-04T12:00:00Z"
   }
 }
@@ -434,7 +441,9 @@
         "member_count": 5,
         "achievement_rate": 73.3,
         "badge": null,
-        "today_verified": false
+        "today_verified": false,
+        "icon": "🏃",
+        "last_verified_at": "2026-04-28T10:30:00+09:00"
       }
     ]
   }
@@ -443,6 +452,10 @@
 
 `achievement_rate`: 소수점 첫째자리까지 (0.0 ~ 100.0)
 `today_verified`: 오늘 날짜에 사용자의 인증이 존재하면 `true`
+`icon`: 챌린지 식별 이모지 (default `"🎯"`).
+`last_verified_at`: 사용자 본인의 마지막 인증 `created_at` (ISO 8601). 인증 없으면 `null`.
+
+**정렬 규약**: `last_verified_at DESC NULLS LAST, start_date DESC`. 사용자가 가장 최근에 인증한 챌린지가 첫 번째.
 
 ### GET `/me/streak/calendar` — 전역 streak 캘린더
 

@@ -36,6 +36,7 @@ class ChallengeDetail with _$ChallengeDetail {
     @JsonKey(name: 'member_count') required int memberCount,
     @JsonKey(name: 'is_member') required bool isMember,
     @JsonKey(name: 'is_creator') @Default(false) bool isCreator,
+    @Default('🎯') String icon,
     @JsonKey(name: 'created_at') required String createdAt,
   }) = _ChallengeDetail;
 

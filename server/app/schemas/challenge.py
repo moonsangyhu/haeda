@@ -23,6 +23,7 @@ class ChallengeCreate(BaseModel):
     verification_frequency: dict
     photo_required: bool = False
     day_cutoff_hour: int = 0
+    icon: str = Field(default="🎯", max_length=8)
 
 
 class ChallengeCreateResponse(BaseModel):
@@ -39,6 +40,7 @@ class ChallengeCreateResponse(BaseModel):
     status: str
     creator: UserBrief
     member_count: int
+    icon: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -60,6 +62,8 @@ class ChallengeListItem(BaseModel):
     achievement_rate: float
     badge: str | None
     today_verified: bool
+    icon: str
+    last_verified_at: datetime | None
 
     model_config = {"from_attributes": True}
 
@@ -80,6 +84,7 @@ class ChallengeDetail(BaseModel):
     member_count: int
     is_member: bool
     is_creator: bool
+    icon: str
     created_at: datetime
 
     model_config = {"from_attributes": True}

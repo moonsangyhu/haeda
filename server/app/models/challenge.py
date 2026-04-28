@@ -46,6 +46,9 @@ class Challenge(Base):
     day_cutoff_hour: Mapped[int] = mapped_column(
         SmallInteger, nullable=False, server_default="0"
     )
+    icon: Mapped[str] = mapped_column(
+        String(8), nullable=False, server_default="🎯"
+    )
     created_at: Mapped[datetime] = mapped_column(
         nullable=False, server_default=func.now()
     )

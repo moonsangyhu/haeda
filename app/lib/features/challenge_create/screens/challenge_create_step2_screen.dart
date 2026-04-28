@@ -91,6 +91,7 @@ class _ChallengeCreateStep2ScreenState
       verificationFrequency: _buildFrequency(),
       photoRequired: _photoRequired,
       dayCutoffHour: _dayCutoffHour,
+      icon: (widget.step1Data['icon'] as String?) ?? '🎯',
     );
 
     try {

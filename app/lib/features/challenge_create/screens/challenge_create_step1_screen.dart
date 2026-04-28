@@ -17,23 +17,27 @@ class _ChallengeCreateStep1ScreenState
   final _categoryController = TextEditingController();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
+  final _iconController = TextEditingController();
 
   @override
   void dispose() {
     _categoryController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
+    _iconController.dispose();
     super.dispose();
   }
 
   void _onNext() {
     if (_formKey.currentState!.validate()) {
+      final iconText = _iconController.text.trim();
       context.go(
         '/create/step2',
         extra: {
           'category': _categoryController.text.trim(),
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),
+          'icon': iconText.isEmpty ? '🎯' : iconText,
         },
       );
     }
@@ -51,11 +55,27 @@ class _ChallengeCreateStep1ScreenState
       ),
       body: Form(
         key: _formKey,
-        child: ListView(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
-          children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
             _StepIndicator(current: 1, total: 2),
             const SizedBox(height: 24),
+            _FieldLabel('이모지'),
+            const SizedBox(height: 8),
+            TextFormField(
+              key: const Key('emoji_field'),
+              controller: _iconController,
+              maxLength: 2,
+              decoration: const InputDecoration(
+                hintText: '🎯',
+                border: OutlineInputBorder(),
+                counterText: '',
+              ),
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 20),
             _FieldLabel('카테고리'),
             const SizedBox(height: 8),
             TextFormField(
@@ -110,6 +130,7 @@ class _ChallengeCreateStep1ScreenState
               child: const Text('다음'),
             ),
           ],
+          ),
         ),
       ),
     );

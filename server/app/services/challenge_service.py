@@ -57,11 +57,30 @@ async def get_my_challenges(
     user_id: uuid.UUID,
     status_filter: str | None,
 ) -> list[ChallengeListItem]:
-    # 내가 속한 멤버십 + 챌린지 조회
+    # 사용자 본인의 챌린지별 마지막 인증 시각 subquery
+    last_verif_subq = (
+        select(
+            Verification.challenge_id.label("challenge_id"),
+            func.max(Verification.created_at).label("last_verified_at"),
+        )
+        .where(Verification.user_id == user_id)
+        .group_by(Verification.challenge_id)
+        .subquery()
+    )
+
+    # 내가 속한 멤버십 + 챌린지 + 마지막 인증 시각 조회 (last_verified_at DESC NULLS LAST)
     stmt = (
-        select(ChallengeMember, Challenge)
+        select(ChallengeMember, Challenge, last_verif_subq.c.last_verified_at)
         .join(Challenge, ChallengeMember.challenge_id == Challenge.id)
+        .outerjoin(
+            last_verif_subq,
+            last_verif_subq.c.challenge_id == Challenge.id,
+        )
         .where(ChallengeMember.user_id == user_id)
+        .order_by(
+            last_verif_subq.c.last_verified_at.desc().nullslast(),
+            Challenge.start_date.desc(),
+        )
     )
     if status_filter:
         stmt = stmt.where(Challenge.status == status_filter)
@@ -113,6 +132,7 @@ async def get_my_challenges(
     for row in rows:
         challenge = row.Challenge
         membership = row.ChallengeMember
+        last_verified_at = row.last_verified_at
         verified_count = verification_count_map.get(challenge.id, 0)
         achievement_rate = _compute_achievement_rate(
             verified_count,
@@ -132,6 +152,8 @@ async def get_my_challenges(
                 achievement_rate=achievement_rate,
                 badge=membership.badge,
                 today_verified=challenge.id in today_verified_set,
+                icon=challenge.icon,
+                last_verified_at=last_verified_at,
             )
         )
     return items
@@ -195,6 +217,7 @@ async def get_challenge_detail(
         member_count=member_count,
         is_member=is_member,
         is_creator=(challenge.creator_id == user_id),
+        icon=challenge.icon,
         created_at=challenge.created_at,
     )
 
@@ -267,6 +290,7 @@ async def create_challenge(
         day_cutoff_hour=data.day_cutoff_hour,
         invite_code=code,
         status="active",
+        icon=data.icon,
     )
     db.add(challenge)
     await db.flush()  # get challenge.id
@@ -299,6 +323,7 @@ async def create_challenge(
             profile_image_url=creator.profile_image_url,
         ),
         member_count=1,
+        icon=challenge.icon,
         created_at=challenge.created_at,
     )
 

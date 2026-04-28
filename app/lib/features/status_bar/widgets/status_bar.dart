@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
+import '../../my_page/models/challenge_summary.dart';
 import '../models/user_stats.dart';
+import '../providers/most_recent_challenge_provider.dart';
 import '../providers/user_stats_provider.dart';
 
 class StatusBar extends ConsumerWidget {
@@ -20,17 +22,18 @@ class StatusBar extends ConsumerWidget {
   }
 }
 
-class _StatusBarContent extends StatelessWidget {
+class _StatusBarContent extends ConsumerWidget {
   const _StatusBarContent({required this.stats});
 
   final UserStats stats;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final streakAsset = stats.verifiedToday ? 'fire' : 'sleep';
     final isDark = theme.brightness == Brightness.dark;
     final pillOpacity = isDark ? 0.10 : 0.15;
+    final mostRecent = ref.watch(mostRecentChallengeProvider);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -63,17 +66,10 @@ class _StatusBarContent extends StatelessWidget {
                   ),
                 ),
               ),
-              Semantics(
-                label: '활성 챌린지 ${stats.activeChallenges}개, 완료 ${stats.completedChallenges}개',
-                excludeSemantics: true,
-                child: _StatPill(
-                  color: const Color(0xFFFFB800),
-                  opacity: pillOpacity,
-                  child: _StatItem(
-                    asset: 'lightning',
-                    value: '${stats.activeChallenges}/${stats.completedChallenges}',
-                  ),
-                ),
+              _ChallengePill(
+                stats: stats,
+                mostRecent: mostRecent,
+                pillOpacity: pillOpacity,
               ),
               Material(
                 color: Colors.transparent,
@@ -109,6 +105,53 @@ class _StatusBarContent extends StatelessWidget {
   }
 }
 
+class _ChallengePill extends StatelessWidget {
+  const _ChallengePill({
+    required this.stats,
+    required this.mostRecent,
+    required this.pillOpacity,
+  });
+
+  final UserStats stats;
+  final ChallengeSummary? mostRecent;
+  final double pillOpacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasChallenge = mostRecent != null;
+    final tapTarget = hasChallenge
+        ? '/challenges/${mostRecent!.id}'
+        : '/create';
+    final semanticsLabel = hasChallenge
+        ? '챌린지 ${mostRecent!.title}, 진행 중 ${stats.activeChallenges}개'
+        : '챌린지 없음, 만들기';
+
+    final item = hasChallenge
+        ? _StatItem(emoji: mostRecent!.icon, value: '${stats.activeChallenges}')
+        : _StatItem(asset: 'lightning', value: '${stats.activeChallenges}');
+
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        key: const Key('challenge_pill'),
+        onTap: () => context.push(tapTarget),
+        borderRadius: BorderRadius.circular(14),
+        child: Semantics(
+          label: semanticsLabel,
+          excludeSemantics: true,
+          button: true,
+          child: _StatPill(
+            color: const Color(0xFFFFB800),
+            opacity: pillOpacity,
+            child: item,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StatPill extends StatelessWidget {
   const _StatPill({
     required this.color,
@@ -135,11 +178,14 @@ class _StatPill extends StatelessWidget {
 
 class _StatItem extends StatelessWidget {
   const _StatItem({
-    required this.asset,
+    this.asset,
+    this.emoji,
     required this.value,
-  });
+  }) : assert(asset != null || emoji != null,
+            'asset 또는 emoji 중 하나는 반드시 지정');
 
-  final String asset;
+  final String? asset;
+  final String? emoji;
   final String value;
 
   @override
@@ -149,11 +195,17 @@ class _StatItem extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        SvgPicture.asset(
-          'assets/icons/$asset.svg',
-          width: 20,
-          height: 20,
-        ),
+        if (emoji != null)
+          Text(
+            emoji!,
+            style: const TextStyle(fontSize: 18),
+          )
+        else
+          SvgPicture.asset(
+            'assets/icons/$asset.svg',
+            width: 20,
+            height: 20,
+          ),
         const SizedBox(width: 4),
         Text(
           value,
