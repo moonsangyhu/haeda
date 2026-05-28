@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -26,22 +28,23 @@ ChallengeSummary _challengeSummary({
       icon: icon,
     );
 
+Finder _svgIcon(String name) => find.byWidgetPredicate(
+      (w) =>
+          w is SvgPicture &&
+          w.bytesLoader is SvgAssetLoader &&
+          (w.bytesLoader as SvgAssetLoader).assetName ==
+              'assets/icons/$name.svg',
+    );
+
 void main() {
   group('StatusBar', () {
     testWidgets('shows fixed-height SizedBox while loading', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            userStatsProvider.overrideWith((ref) async {
-              await Future<void>.delayed(const Duration(days: 365));
-              return const UserStats(
-                streak: 0,
-                verifiedToday: false,
-                activeChallenges: 0,
-                completedChallenges: 0,
-                gems: 0,
-              );
-            }),
+            userStatsProvider.overrideWith(
+              (ref) => Completer<UserStats>().future,
+            ),
           ],
           child: const MaterialApp(
             home: Scaffold(body: StatusBar()),
@@ -84,6 +87,8 @@ void main() {
         ProviderScope(
           overrides: [
             userStatsProvider.overrideWith((_) async => stats),
+            myChallengesProvider
+                .overrideWith((_) async => const <ChallengeSummary>[]),
           ],
           child: const MaterialApp(
             home: Scaffold(body: StatusBar()),
@@ -92,7 +97,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('🌺'), findsOneWidget);
+      expect(_svgIcon('fire'), findsOneWidget);
       expect(find.text('7'), findsOneWidget);
     });
 
@@ -110,6 +115,8 @@ void main() {
         ProviderScope(
           overrides: [
             userStatsProvider.overrideWith((_) async => stats),
+            myChallengesProvider
+                .overrideWith((_) async => const <ChallengeSummary>[]),
           ],
           child: const MaterialApp(
             home: Scaffold(body: StatusBar()),
@@ -118,7 +125,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('🥀'), findsOneWidget);
+      expect(_svgIcon('sleep'), findsOneWidget);
       expect(find.text('3'), findsOneWidget);
     });
 
@@ -298,6 +305,8 @@ void main() {
         ProviderScope(
           overrides: [
             userStatsProvider.overrideWith((_) async => stats),
+            myChallengesProvider
+                .overrideWith((_) async => const <ChallengeSummary>[]),
           ],
           child: const MaterialApp(
             home: Scaffold(body: StatusBar()),
@@ -306,7 +315,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('💎'), findsOneWidget);
+      expect(_svgIcon('gem'), findsOneWidget);
       expect(find.text('999'), findsOneWidget);
     });
 

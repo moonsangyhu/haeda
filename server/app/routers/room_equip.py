@@ -83,25 +83,10 @@ async def update_challenge_room(
     return {"data": result.model_dump()}
 
 
-@router.delete("/challenges/{challenge_id}/room/{slot}")
-async def clear_challenge_room_slot(
-    challenge_id: uuid.UUID,
-    slot: str,
-    user_id: uuid.UUID = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db),
-):
-    if slot not in VALID_CR_SLOTS:
-        raise AppException(
-            status_code=422,
-            code="INVALID_SLOT",
-            message=f"유효하지 않은 슬롯입니다. 가능한 값: {', '.join(sorted(VALID_CR_SLOTS))}",
-        )
-    result = await room_equip_service.clear_challenge_room_slot(db, challenge_id, user_id, slot)
-    return {"data": result.model_dump()}
-
-
 # ---------------------------------------------------------------------------
 # Signature
+# Static "/room/signature" routes must be declared before the parameterized
+# "/room/{slot}" route below, or FastAPI matches {slot}="signature" first.
 # ---------------------------------------------------------------------------
 
 @router.put("/challenges/{challenge_id}/room/signature")
@@ -122,4 +107,21 @@ async def clear_signature(
     db: AsyncSession = Depends(get_db),
 ):
     result = await room_equip_service.clear_signature(db, challenge_id, user_id)
+    return {"data": result.model_dump()}
+
+
+@router.delete("/challenges/{challenge_id}/room/{slot}")
+async def clear_challenge_room_slot(
+    challenge_id: uuid.UUID,
+    slot: str,
+    user_id: uuid.UUID = Depends(get_current_user_id),
+    db: AsyncSession = Depends(get_db),
+):
+    if slot not in VALID_CR_SLOTS:
+        raise AppException(
+            status_code=422,
+            code="INVALID_SLOT",
+            message=f"유효하지 않은 슬롯입니다. 가능한 값: {', '.join(sorted(VALID_CR_SLOTS))}",
+        )
+    result = await room_equip_service.clear_challenge_room_slot(db, challenge_id, user_id, slot)
     return {"data": result.model_dump()}

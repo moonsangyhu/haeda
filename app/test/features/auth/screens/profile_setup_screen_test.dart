@@ -76,7 +76,7 @@ void main() {
         ProviderScope(
           overrides: [
             authStateProvider.overrideWith(() => _MockAuthNotifier(
-              onUpdateProfile: ({required nickname, profileImage}) async {
+              onUpdateProfile: ({nickname, profileImage}) async {
                 updateCalled = true;
               },
             )),
@@ -121,7 +121,7 @@ class _MockAuthNotifier extends AuthState {
   _MockAuthNotifier({required this.onUpdateProfile});
 
   final Future<void> Function({
-    required String nickname,
+    String? nickname,
     dynamic profileImage,
   }) onUpdateProfile;
 
@@ -129,7 +129,11 @@ class _MockAuthNotifier extends AuthState {
   AsyncValue<AuthUser?> build() => const AsyncData(null);
 
   @override
-  Future<void> updateProfile({required String nickname, dynamic profileImage}) {
+  Future<void> updateProfile({
+    String? nickname,
+    dynamic profileImage,
+    String? backgroundColor,
+  }) {
     return onUpdateProfile(nickname: nickname, profileImage: profileImage);
   }
 }

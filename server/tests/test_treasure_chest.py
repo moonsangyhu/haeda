@@ -392,5 +392,7 @@ async def test_create_verification_arms_chest(
     )
     row = post.scalar_one_or_none()
     assert row is not None
-    assert row.armed_date == today
+    # 보물상자 arming 은 challenge day_cutoff 와 무관하게 실제 UTC 오늘을 기준으로 한다
+    # (treasure_chest_service.get_state / arm_if_first_today 모두 now.date() 사용).
+    assert row.armed_date == datetime.now(timezone.utc).date()
     assert row.opened is False
