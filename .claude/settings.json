@@ -20,8 +20,6 @@
       "Bash(command: *git push --force*)",
       "Bash(command: *git push * --force*)",
       "Bash(command: *git push*--force*)",
-      "Bash(command: *git push origin main*)",
-      "Bash(command: *git push -u origin main*)",
       "Bash(command: sudo *)",
       "Bash(command: *DROP TABLE*)",
       "Bash(command: *DROP DATABASE*)",
