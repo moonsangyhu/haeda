@@ -104,50 +104,68 @@ class _ChallengeSpaceScreenState
         title: detailAsync.when(
           loading: () => const Text('챌린지'),
           error: (_, __) => const Text('챌린지'),
-          data: (detail) => Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              GestureDetector(
-                key: const Key('challenge_header_icon'),
-                behavior: HitTestBehavior.opaque,
-                onTap: detail.isCreator
-                    ? () => _showIconEditSheet(
-                          context,
-                          detail.icon,
-                          detail.category,
-                        )
-                    : null,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: Text(
-                    detail.icon,
-                    style: const TextStyle(fontSize: 22),
+          data: (detail) {
+            final changedAt = detail.iconChangedAt;
+            final showHint = detail.previousIcon != null &&
+                changedAt != null &&
+                DateTime.now().toUtc().difference(changedAt) <
+                    const Duration(hours: 24);
+            return Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (showHint)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 4),
+                    child: _IconChangeHint(
+                      previousIcon: detail.previousIcon!,
+                    ),
+                  ),
+                GestureDetector(
+                  key: const Key('challenge_header_icon'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: detail.isCreator
+                      ? () => _showIconEditSheet(
+                            context,
+                            detail.icon,
+                            detail.category,
+                          )
+                      : null,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: Text(
+                      detail.icon,
+                      style: const TextStyle(fontSize: 22),
+                    ),
                   ),
                 ),
-              ),
-              Flexible(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      detail.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      '참여자 ${detail.memberCount}명${detail.dayCutoffHour > 0 ? ' · 새벽 ${detail.dayCutoffHour}시까지 인정' : ''}',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
+                Flexible(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        detail.title,
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      Text(
+                        '참여자 ${detail.memberCount}명${detail.dayCutoffHour > 0 ? ' · 새벽 ${detail.dayCutoffHour}시까지 인정' : ''}',
+                        style:
+                            Theme.of(context).textTheme.labelSmall?.copyWith(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                                ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            );
+          },
         ),
         actions: [
           if (detailAsync.valueOrNull != null) ...[
@@ -677,6 +695,44 @@ class _ChallengeSettingsSheetState
             ],
           ],
         ),
+      ),
+    );
+  }
+}
+
+
+class _IconChangeHint extends StatelessWidget {
+  final String previousIcon;
+
+  const _IconChangeHint({required this.previousIcon});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Container(
+      key: const Key("icon_change_hint"),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHighest.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.history,
+            size: 12,
+            color: colors.onSurfaceVariant,
+          ),
+          const SizedBox(width: 2),
+          Text(
+            previousIcon,
+            style: TextStyle(
+              fontSize: 14,
+              color: colors.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
       ),
     );
   }

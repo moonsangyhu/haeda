@@ -35,7 +35,12 @@ Dio _pendingDio() {
   return dio;
 }
 
-ChallengeDetail _detail({String icon = '🎯', bool isCreator = true}) {
+ChallengeDetail _detail({
+  String icon = '🎯',
+  bool isCreator = true,
+  String? previousIcon,
+  DateTime? iconChangedAt,
+}) {
   return ChallengeDetail(
     id: 'c1',
     title: '운동 30일',
@@ -53,6 +58,9 @@ ChallengeDetail _detail({String icon = '🎯', bool isCreator = true}) {
     isMember: true,
     isCreator: isCreator,
     icon: icon,
+    previousIcon: previousIcon,
+    iconChangedAt: iconChangedAt,
+    iconChangedByUserId: previousIcon != null ? 'u-creator' : null,
     createdAt: '2026-05-01T00:00:00Z',
   );
 }
@@ -122,5 +130,52 @@ void main() {
     await tester.tap(find.byKey(const Key('challenge_header_icon')));
     await tester.pump(const Duration(milliseconds: 500));
     expect(find.byKey(const Key('emoji_preset_wrap')), findsNothing);
+  });
+
+  testWidgets('24h 이내 변경 시 이모지 좌측에 previous hint chip 이 노출된다',
+      (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        challengeId: 'c1',
+        detail: _detail(
+          icon: '💪',
+          previousIcon: '🎯',
+          iconChangedAt: DateTime.now().toUtc().subtract(
+                const Duration(hours: 3),
+              ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('icon_change_hint')), findsOneWidget);
+    expect(find.text('🎯'), findsOneWidget); // previous icon in chip
+  });
+
+  testWidgets('24h 초과 시 hint chip 미노출', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        challengeId: 'c1',
+        detail: _detail(
+          icon: '💪',
+          previousIcon: '🎯',
+          iconChangedAt: DateTime.now().toUtc().subtract(
+                const Duration(hours: 30),
+              ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('icon_change_hint')), findsNothing);
+  });
+
+  testWidgets('previousIcon null 시 hint chip 미노출', (tester) async {
+    await tester.pumpWidget(
+      _wrap(
+        challengeId: 'c1',
+        detail: _detail(icon: '💪'),
+      ),
+    );
+    await tester.pump();
+    expect(find.byKey(const Key('icon_change_hint')), findsNothing);
   });
 }
