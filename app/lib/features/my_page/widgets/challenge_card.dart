@@ -28,6 +28,11 @@ class ChallengeCard extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  Text(
+                    challenge.icon,
+                    style: const TextStyle(fontSize: 20),
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       isCompleted
@@ -36,6 +41,7 @@ class ChallengeCard extends StatelessWidget {
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                   Chip(

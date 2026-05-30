@@ -166,5 +166,29 @@ void main() {
 
       expect(find.text('달성률 86.7%'), findsOneWidget);
     });
+
+    testWidgets('challenge.icon 을 title 좌측에 노출한다', (tester) async {
+      const challenge = ChallengeSummary(
+        id: 'c1',
+        title: '운동 30일',
+        category: '운동',
+        startDate: '2026-05-01',
+        endDate: '2026-05-30',
+        status: 'active',
+        memberCount: 3,
+        achievementRate: 50.0,
+        badge: null,
+        icon: '💪',
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChallengeCard(challenge: challenge, onTap: () {}),
+          ),
+        ),
+      );
+      expect(find.text('💪'), findsOneWidget);
+      expect(find.text('운동 30일'), findsOneWidget);
+    });
   });
 }
