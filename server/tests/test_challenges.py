@@ -322,3 +322,86 @@ async def test_update_challenge_icon_persists_across_get(
     )
     assert detail_resp.status_code == 200
     assert detail_resp.json()["data"]["icon"] == "💪"
+
+
+# ---------- icon 변경 이력 ----------
+
+
+@pytest.mark.asyncio
+async def test_icon_change_records_previous_and_metadata(
+    client: AsyncClient,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """icon 변경 시 previous_icon / icon_changed_at / icon_changed_by_user_id 가 저장된다."""
+    original_icon = challenge.icon
+    patch_resp = await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"icon": "💪"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert patch_resp.status_code == 200
+
+    detail = await client.get(
+        f"/api/v1/challenges/{challenge.id}",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    data = detail.json()["data"]
+    assert data["icon"] == "💪"
+    assert data["previous_icon"] == original_icon
+    assert data["icon_changed_at"] is not None
+    assert data["icon_changed_by_user_id"] == str(user.id)
+
+
+@pytest.mark.asyncio
+async def test_icon_change_overwrites_previous_on_second_change(
+    client: AsyncClient,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """두 번 변경하면 previous 는 직전 값으로 덮어쓴다 (전체 history 아님)."""
+    await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"icon": "💪"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"icon": "🏃"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+
+    detail = await client.get(
+        f"/api/v1/challenges/{challenge.id}",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    data = detail.json()["data"]
+    assert data["icon"] == "🏃"
+    assert data["previous_icon"] == "💪"
+
+
+@pytest.mark.asyncio
+async def test_non_icon_settings_change_does_not_touch_history(
+    client: AsyncClient,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """icon 미변경 (다른 setting 만 변경) 시 history 컬럼은 그대로."""
+    resp = await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"day_cutoff_hour": 1},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+
+    detail = await client.get(
+        f"/api/v1/challenges/{challenge.id}",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    data = detail.json()["data"]
+    assert data["previous_icon"] is None
+    assert data["icon_changed_at"] is None
+    assert data["icon_changed_by_user_id"] is None

@@ -218,6 +218,9 @@ async def get_challenge_detail(
         is_member=is_member,
         is_creator=(challenge.creator_id == user_id),
         icon=challenge.icon,
+        previous_icon=challenge.previous_icon,
+        icon_changed_at=challenge.icon_changed_at,
+        icon_changed_by_user_id=challenge.icon_changed_by_user_id,
         created_at=challenge.created_at,
     )
 
@@ -562,7 +565,12 @@ async def update_challenge_settings(
         stripped = icon.strip()
         if not stripped:
             raise AppException(422, "INVALID_ICON", "icon은 비어 있을 수 없습니다.")
-        challenge.icon = stripped
+        if stripped != challenge.icon:
+            # icon 이 실제로 바뀌었을 때만 history 기록 (같은 값으로 재저장은 noop).
+            challenge.previous_icon = challenge.icon
+            challenge.icon_changed_at = datetime.now(timezone.utc)
+            challenge.icon_changed_by_user_id = user_id
+            challenge.icon = stripped
 
     await db.commit()
     await db.refresh(challenge)

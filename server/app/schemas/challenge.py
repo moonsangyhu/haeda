@@ -85,6 +85,9 @@ class ChallengeDetail(BaseModel):
     is_member: bool
     is_creator: bool
     icon: str
+    previous_icon: str | None = None
+    icon_changed_at: datetime | None = None
+    icon_changed_by_user_id: uuid.UUID | None = None
     created_at: datetime
 
     model_config = {"from_attributes": True}

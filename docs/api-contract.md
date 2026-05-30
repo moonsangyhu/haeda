@@ -278,10 +278,19 @@
     "member_count": 5,
     "is_member": true,
     "icon": "🏃",
+    "previous_icon": "🎯",
+    "icon_changed_at": "2026-05-30T10:25:00Z",
+    "icon_changed_by_user_id": "uuid",
     "created_at": "2026-04-04T12:00:00Z"
   }
 }
 ```
+
+| 필드 | 타입 | 비고 |
+|------|------|------|
+| previous_icon | string \| null | 직전 icon 값. 한 번도 변경된 적 없으면 null. PATCH 마다 직전 값으로 덮어쓰기 (전체 history 아님) |
+| icon_changed_at | timestamptz \| null | 마지막 icon 변경 시각 (UTC). 변경 이력 없으면 null |
+| icon_changed_by_user_id | uuid \| null | 마지막 icon 변경자 user_id. 사용자 삭제 시 SET NULL |
 
 **에러:**
 | code | 조건 |
