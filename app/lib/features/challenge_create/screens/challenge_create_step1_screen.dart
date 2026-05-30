@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../widgets/emoji_picker.dart';
 
 /// Flow 3 — Step 1: 기본 정보 입력 화면.
 /// 카테고리, 제목, 설명(선택)을 입력 후 Step 2로 이동.
@@ -17,27 +18,26 @@ class _ChallengeCreateStep1ScreenState
   final _categoryController = TextEditingController();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _iconController = TextEditingController();
+  String? _pickedIcon;
 
   @override
   void dispose() {
     _categoryController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
-    _iconController.dispose();
     super.dispose();
   }
 
   void _onNext() {
     if (_formKey.currentState!.validate()) {
-      final iconText = _iconController.text.trim();
+      final picked = _pickedIcon?.trim();
       context.go(
         '/create/step2',
         extra: {
           'category': _categoryController.text.trim(),
           'title': _titleController.text.trim(),
           'description': _descriptionController.text.trim(),
-          'icon': iconText.isEmpty ? '🎯' : iconText,
+          'icon': (picked == null || picked.isEmpty) ? '🎯' : picked,
         },
       );
     }
@@ -64,16 +64,9 @@ class _ChallengeCreateStep1ScreenState
             const SizedBox(height: 24),
             _FieldLabel('이모지'),
             const SizedBox(height: 8),
-            TextFormField(
-              key: const Key('emoji_field'),
-              controller: _iconController,
-              maxLength: 2,
-              decoration: const InputDecoration(
-                hintText: '🎯',
-                border: OutlineInputBorder(),
-                counterText: '',
-              ),
-              textInputAction: TextInputAction.next,
+            EmojiPicker(
+              initialValue: _pickedIcon,
+              onChanged: (v) => setState(() => _pickedIcon = v),
             ),
             const SizedBox(height: 20),
             _FieldLabel('카테고리'),

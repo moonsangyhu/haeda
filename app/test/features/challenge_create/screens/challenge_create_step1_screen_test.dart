@@ -53,11 +53,12 @@ void main() {
     expect(find.byKey(const Key('description_field')), findsOneWidget);
   });
 
-  testWidgets('이모지 TextField가 존재한다', (tester) async {
+  testWidgets('이모지 preset wrap 이 노출된다', (tester) async {
     await tester.pumpWidget(buildTestApp());
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('emoji_field')), findsOneWidget);
+    expect(find.byKey(const Key('emoji_preset_wrap')), findsOneWidget);
+    expect(find.byKey(const Key('emoji_custom_toggle')), findsOneWidget);
   });
 
   testWidgets('[다음] 버튼이 존재한다', (tester) async {
@@ -139,7 +140,7 @@ void main() {
       expect(capturedExtra!['icon'], '🎯');
     });
 
-    testWidgets('emoji input forwards as-is', (tester) async {
+    testWidgets('preset chip 탭 시 해당 이모지가 forward 된다', (tester) async {
       Map<String, dynamic>? capturedExtra;
       final router = GoRouter(
         initialLocation: '/create',
@@ -169,15 +170,64 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.byKey(const Key('emoji_preset_💪')));
+      await tester.tap(find.byKey(const Key('emoji_preset_💪')));
+      await tester.pump();
       await tester.enterText(find.byKey(const Key('category_field')), '운동');
       await tester.enterText(find.byKey(const Key('title_field')), '러닝');
-      await tester.enterText(find.byKey(const Key('emoji_field')), '🏃');
       await tester.ensureVisible(find.byKey(const Key('next_button')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('next_button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('next_button')));
       await tester.pumpAndSettle();
 
-      expect(capturedExtra!['icon'], '🏃');
+      expect(capturedExtra!['icon'], '💪');
+    });
+
+    testWidgets('직접 입력 토글 후 입력값이 forward 된다', (tester) async {
+      Map<String, dynamic>? capturedExtra;
+      final router = GoRouter(
+        initialLocation: '/create',
+        routes: [
+          GoRoute(
+            path: '/',
+            builder: (_, __) => const Scaffold(body: Text('home')),
+          ),
+          GoRoute(
+            path: '/create',
+            builder: (_, __) => const ChallengeCreateStep1Screen(),
+          ),
+          GoRoute(
+            path: '/create/step2',
+            builder: (context, state) {
+              capturedExtra = state.extra as Map<String, dynamic>?;
+              return const Scaffold(body: Text('step2'));
+            },
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp.router(routerConfig: router),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.byKey(const Key('emoji_custom_toggle')));
+      await tester.tap(find.byKey(const Key('emoji_custom_toggle')));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('emoji_custom_field')), findsOneWidget);
+
+      await tester.enterText(
+          find.byKey(const Key('emoji_custom_field')), '🦄');
+      await tester.enterText(find.byKey(const Key('category_field')), '습관');
+      await tester.enterText(find.byKey(const Key('title_field')), '유니콘');
+      await tester.ensureVisible(find.byKey(const Key('next_button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('next_button')));
+      await tester.pumpAndSettle();
+
+      expect(capturedExtra!['icon'], '🦄');
     });
   });
 }
