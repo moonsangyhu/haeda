@@ -262,3 +262,63 @@ async def test_get_challenge_detail_includes_icon(
     )
     assert resp.status_code == 200
     assert resp.json()["data"]["icon"] == "📚"
+
+
+# ---------- icon 수정 ----------
+
+
+@pytest.mark.asyncio
+async def test_update_challenge_icon_creator(
+    client: AsyncClient,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """챌린지 생성자가 icon 변경 → 200, 응답에 icon 포함"""
+    resp = await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"icon": "🏃"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert resp.status_code == 200
+    body = resp.json()["data"]
+    assert body["icon"] == "🏃"
+
+
+@pytest.mark.asyncio
+async def test_update_challenge_icon_not_creator(
+    client: AsyncClient,
+    other_user: User,
+    challenge: Challenge,
+):
+    """비생성자가 icon 변경 시도 → 403 NOT_CHALLENGE_CREATOR"""
+    resp = await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"icon": "📚"},
+        headers={"Authorization": f"Bearer {other_user.id}"},
+    )
+    assert resp.status_code == 403
+    assert resp.json()["error"]["code"] == "NOT_CHALLENGE_CREATOR"
+
+
+@pytest.mark.asyncio
+async def test_update_challenge_icon_persists_across_get(
+    client: AsyncClient,
+    user: User,
+    challenge: Challenge,
+    membership: ChallengeMember,
+):
+    """PATCH 후 GET /challenges/:id 에 변경된 icon 노출"""
+    patch_resp = await client.patch(
+        f"/api/v1/challenges/{challenge.id}/settings",
+        json={"icon": "💪"},
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert patch_resp.status_code == 200
+
+    detail_resp = await client.get(
+        f"/api/v1/challenges/{challenge.id}",
+        headers={"Authorization": f"Bearer {user.id}"},
+    )
+    assert detail_resp.status_code == 200
+    assert detail_resp.json()["data"]["icon"] == "💪"

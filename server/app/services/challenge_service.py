@@ -543,6 +543,7 @@ async def update_challenge_settings(
     challenge_id: uuid.UUID,
     user_id: uuid.UUID,
     day_cutoff_hour: int | None = None,
+    icon: str | None = None,
 ) -> ChallengeSettingsResponse:
     result = await db.execute(select(Challenge).where(Challenge.id == challenge_id))
     challenge = result.scalar_one_or_none()
@@ -557,6 +558,15 @@ async def update_challenge_settings(
             raise AppException(422, "INVALID_DAY_CUTOFF_HOUR", "day_cutoff_hour은 0~2 사이여야 합니다.")
         challenge.day_cutoff_hour = day_cutoff_hour
 
+    if icon is not None:
+        stripped = icon.strip()
+        if not stripped:
+            raise AppException(422, "INVALID_ICON", "icon은 비어 있을 수 없습니다.")
+        challenge.icon = stripped
+
     await db.commit()
     await db.refresh(challenge)
-    return ChallengeSettingsResponse(day_cutoff_hour=challenge.day_cutoff_hour)
+    return ChallengeSettingsResponse(
+        day_cutoff_hour=challenge.day_cutoff_hour,
+        icon=challenge.icon,
+    )

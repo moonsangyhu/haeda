@@ -92,10 +92,12 @@ class ChallengeDetail(BaseModel):
 
 class ChallengeSettingsUpdate(BaseModel):
     day_cutoff_hour: int | None = None
+    icon: str | None = Field(default=None, max_length=8)
 
 
 class ChallengeSettingsResponse(BaseModel):
     day_cutoff_hour: int
+    icon: str
 
 
 class DayEntry(BaseModel):

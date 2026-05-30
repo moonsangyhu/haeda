@@ -184,19 +184,22 @@
 **Request:**
 ```json
 {
-  "day_cutoff_hour": 2
+  "day_cutoff_hour": 2,
+  "icon": "🏃"
 }
 ```
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
 | day_cutoff_hour | int | N | 하루 경계 시각. 허용값 0, 1, 2. 미입력 시 기존 값 유지 |
+| icon | string (max 8) | N | 챌린지를 식별하는 이모지 (1~2 글자). 미입력 시 기존 값 유지 |
 
 **Response (200):**
 ```json
 {
   "data": {
-    "day_cutoff_hour": 2
+    "day_cutoff_hour": 2,
+    "icon": "🏃"
   }
 }
 ```
@@ -207,6 +210,7 @@
 | CHALLENGE_NOT_FOUND | 존재하지 않는 챌린지 |
 | NOT_CHALLENGE_CREATOR | 챌린지 생성자가 아님 |
 | INVALID_DAY_CUTOFF_HOUR | day_cutoff_hour 가 0, 1, 2 범위 밖 |
+| INVALID_ICON | icon 이 빈 문자열 |
 
 ### GET `/challenges` — 공개 챌린지 목록 — P1
 

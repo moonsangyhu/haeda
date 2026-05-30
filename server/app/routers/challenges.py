@@ -177,6 +177,7 @@ async def update_challenge_settings(
         challenge_id=challenge_id,
         user_id=user_id,
         day_cutoff_hour=body.day_cutoff_hour,
+        icon=body.icon,
     )
     return {"data": result.model_dump()}
 
