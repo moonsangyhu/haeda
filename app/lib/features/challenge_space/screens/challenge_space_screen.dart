@@ -14,6 +14,7 @@ import '../providers/challenge_detail_provider.dart';
 import '../providers/member_settings_provider.dart';
 import '../providers/calendar_provider.dart';
 import '../widgets/calendar_grid.dart';
+import '../widgets/challenge_icon_edit_sheet.dart';
 import '../widgets/nudge_banner.dart';
 
 class ChallengeSpaceScreen extends ConsumerStatefulWidget {
@@ -73,6 +74,17 @@ class _ChallengeSpaceScreenState
     );
   }
 
+  void _showIconEditSheet(BuildContext context, String currentIcon) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      builder: (ctx) => ChallengeIconEditSheet(
+        challengeId: widget.challengeId,
+        currentIcon: currentIcon,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final detailAsync =
@@ -87,22 +99,43 @@ class _ChallengeSpaceScreenState
         title: detailAsync.when(
           loading: () => const Text('챌린지'),
           error: (_, __) => const Text('챌린지'),
-          data: (detail) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          data: (detail) => Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(
-                detail.title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                overflow: TextOverflow.ellipsis,
+              GestureDetector(
+                key: const Key('challenge_header_icon'),
+                behavior: HitTestBehavior.opaque,
+                onTap: detail.isCreator
+                    ? () => _showIconEditSheet(context, detail.icon)
+                    : null,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Text(
+                    detail.icon,
+                    style: const TextStyle(fontSize: 22),
+                  ),
+                ),
               ),
-              Text(
-                '참여자 ${detail.memberCount}명${detail.dayCutoffHour > 0 ? ' · 새벽 ${detail.dayCutoffHour}시까지 인정' : ''}',
-                style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+              Flexible(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      detail.title,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                      overflow: TextOverflow.ellipsis,
                     ),
+                    Text(
+                      '참여자 ${detail.memberCount}명${detail.dayCutoffHour > 0 ? ' · 새벽 ${detail.dayCutoffHour}시까지 인정' : ''}',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
