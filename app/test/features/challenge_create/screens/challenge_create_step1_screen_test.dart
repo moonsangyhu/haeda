@@ -98,6 +98,21 @@ void main() {
     expect(find.text('Step2'), findsOneWidget);
   });
 
+  testWidgets('카테고리 "운동" 입력 시 preset 이 sport preset 으로 갱신된다', (tester) async {
+    await tester.pumpWidget(buildTestApp());
+    await tester.pumpAndSettle();
+
+    // 초기 universal preset 에는 🏋️ 가 없고, sport preset 에는 있다.
+    expect(find.byKey(const Key('emoji_preset_🏋️')), findsNothing);
+
+    await tester.enterText(
+        find.byKey(const Key('category_field')), '운동');
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('emoji_preset_🏋️')), findsOneWidget);
+    expect(find.byKey(const Key('emoji_preset_💪')), findsOneWidget);
+  });
+
   group('emoji forwarding', () {
     testWidgets('blank emoji uses default 🎯', (tester) async {
       Map<String, dynamic>? capturedExtra;

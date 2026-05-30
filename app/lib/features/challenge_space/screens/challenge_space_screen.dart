@@ -74,13 +74,18 @@ class _ChallengeSpaceScreenState
     );
   }
 
-  void _showIconEditSheet(BuildContext context, String currentIcon) {
+  void _showIconEditSheet(
+    BuildContext context,
+    String currentIcon,
+    String category,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (ctx) => ChallengeIconEditSheet(
         challengeId: widget.challengeId,
         currentIcon: currentIcon,
+        category: category,
       ),
     );
   }
@@ -106,7 +111,11 @@ class _ChallengeSpaceScreenState
                 key: const Key('challenge_header_icon'),
                 behavior: HitTestBehavior.opaque,
                 onTap: detail.isCreator
-                    ? () => _showIconEditSheet(context, detail.icon)
+                    ? () => _showIconEditSheet(
+                          context,
+                          detail.icon,
+                          detail.category,
+                        )
                     : null,
                 child: Padding(
                   padding: const EdgeInsets.only(right: 8),

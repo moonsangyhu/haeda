@@ -5,7 +5,16 @@ class EmojiPicker extends StatefulWidget {
   final String? initialValue;
   final ValueChanged<String> onChanged;
 
-  const EmojiPicker({super.key, this.initialValue, required this.onChanged});
+  /// 카테고리 입력값 (자유 텍스트). null 또는 빈 문자열이면 universal preset.
+  /// 변경되면 preset 그리드가 즉시 갱신된다 (선택 emoji 는 유지).
+  final String? category;
+
+  const EmojiPicker({
+    super.key,
+    this.initialValue,
+    required this.onChanged,
+    this.category,
+  });
 
   @override
   State<EmojiPicker> createState() => _EmojiPickerState();
@@ -21,10 +30,11 @@ class _EmojiPickerState extends State<EmojiPicker> {
     super.initState();
     _selected = widget.initialValue;
     final init = widget.initialValue;
+    final initialPresets = resolvePresets(widget.category);
     _customController = TextEditingController(
-      text: init != null && !kEmojiPresets.contains(init) ? init : '',
+      text: init != null && !initialPresets.contains(init) ? init : '',
     );
-    if (init != null && !kEmojiPresets.contains(init)) {
+    if (init != null && !initialPresets.contains(init)) {
       _customMode = true;
     }
   }
@@ -59,6 +69,7 @@ class _EmojiPickerState extends State<EmojiPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final presets = resolvePresets(widget.category);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -67,7 +78,7 @@ class _EmojiPickerState extends State<EmojiPicker> {
           spacing: 8,
           runSpacing: 8,
           children: [
-            for (final e in kEmojiPresets)
+            for (final e in presets)
               ChoiceChip(
                 key: Key('emoji_preset_$e'),
                 label: Text(e, style: const TextStyle(fontSize: 20)),

@@ -8,10 +8,15 @@ class ChallengeIconEditSheet extends ConsumerStatefulWidget {
   final String challengeId;
   final String currentIcon;
 
+  /// 챌린지 카테고리 — preset 그리드를 카테고리에 맞춰 노출한다.
+  /// null 이면 universal preset.
+  final String? category;
+
   const ChallengeIconEditSheet({
     super.key,
     required this.challengeId,
     required this.currentIcon,
+    this.category,
   });
 
   @override
@@ -75,6 +80,7 @@ class _ChallengeIconEditSheetState
             EmojiPicker(
               initialValue: _picked,
               onChanged: (v) => setState(() => _picked = v),
+              category: widget.category,
             ),
             const SizedBox(height: 24),
             FilledButton(

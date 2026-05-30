@@ -21,7 +21,19 @@ class _ChallengeCreateStep1ScreenState
   String? _pickedIcon;
 
   @override
+  void initState() {
+    super.initState();
+    // 카테고리 입력이 바뀔 때마다 EmojiPicker 의 preset 이 갱신되도록.
+    _categoryController.addListener(_onCategoryChanged);
+  }
+
+  void _onCategoryChanged() {
+    setState(() {});
+  }
+
+  @override
   void dispose() {
+    _categoryController.removeListener(_onCategoryChanged);
     _categoryController.dispose();
     _titleController.dispose();
     _descriptionController.dispose();
@@ -67,6 +79,7 @@ class _ChallengeCreateStep1ScreenState
             EmojiPicker(
               initialValue: _pickedIcon,
               onChanged: (v) => setState(() => _pickedIcon = v),
+              category: _categoryController.text,
             ),
             const SizedBox(height: 20),
             _FieldLabel('카테고리'),
